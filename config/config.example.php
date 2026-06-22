@@ -11,14 +11,21 @@ declare(strict_types=1);
  */
 
 return [
+    // 'prod' für Live-Betrieb, 'dev' für lokale Entwicklung (zeigt Fehler-
+    // details, kein HSTS-Secure-Flag, Twig ohne Cache).
+    'env' => 'prod',
+
     // Öffentliche Basis-URL der Installation (ohne abschließenden Slash).
     'app_url' => 'https://feedback.example.com',
 
-    // Zufälliger Schlüssel zum Signieren von Session-Cookies.
-    // Generieren z. B. mit: php -r "echo bin2hex(random_bytes(32));"
+    // Zufälliger Schlüssel zum Signieren von Session-Cookies und Magic-Links.
+    // Generieren: php -r "echo bin2hex(random_bytes(32));"
     'app_key' => '',
 
-    // Datenbank (MySQL/MariaDB) — ausschließlich Prepared Statements.
+    // Gültigkeitsdauer eines Magic-Links in Sekunden (Default: 15 Minuten).
+    'magic_link_ttl' => 60 * 15,
+
+    // Datenbank (MySQL/MariaDB) — ausschließlich Prepared Statements (DBAL).
     'db' => [
         'host'    => 'localhost',
         'port'    => 3306,
@@ -46,4 +53,14 @@ return [
 
     // Session-Lebensdauer in Sekunden (Default: 30 Tage).
     'session_lifetime' => 60 * 60 * 24 * 30,
+
+    // Rate-Limits (security.md §6). limit=0 deaktiviert eine Aktion.
+    'rate_limits' => [
+        'magiclink:email' => ['limit' => 3,  'window' => 3600],      // 3/Stunde pro E-Mail
+        'magiclink:ip'    => ['limit' => 5,  'window' => 3600],      // 5/Stunde pro IP
+        'submit:user'     => ['limit' => 5,  'window' => 3600],      // 5 Ideen/Stunde
+        'comment:user'    => ['limit' => 10, 'window' => 3600],      // 10 Kommentare/Stunde
+        'dupsearch:user'  => ['limit' => 30, 'window' => 60],        // 30/Minute Duplikat-Suche
+        'vote:user'       => ['limit' => 60, 'window' => 60],        // 60 Votes/Minute
+    ],
 ];

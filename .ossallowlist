@@ -15,6 +15,7 @@ composer.json
 composer.lock
 .gitignore
 .ossallowlist
+phpunit.xml
 
 # Hook-Schutz (muss committet sein, um für Klonende zu gelten; öffentlich ok)
 .githooks/
@@ -27,3 +28,4 @@ public/
 src/
 tests/
 db/
+templates/

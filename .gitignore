@@ -20,6 +20,9 @@
 # Audit-Logs (PII-arm, aber nicht für die Öffentlichkeit)
 /logs/
 
+# Twig-Cache & Runtime-Variablen
+/var/
+
 # PHPUnit
 /.phpunit.cache/
 /.phpunit.result.cache
