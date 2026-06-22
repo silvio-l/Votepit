@@ -1,0 +1,19 @@
+{% extends 'base.twig' %}
+
+{% block title %}Link ungültig · Votepit{% endblock %}
+
+{% block content %}
+<section class="vp-card">
+    <span class="vp-icon" aria-hidden="true">&#9888;</span>
+    <h1 class="vp-h1">Link ungültig oder abgelaufen</h1>
+    <p class="vp-lead">
+        Dieser Login-Link ist nicht mehr gültig — er wurde bereits verwendet,
+        ist abgelaufen oder fehlerhaft.
+    </p>
+    <a class="vp-btn" href="/login">Neuen Link anfordern</a>
+</section>
+{% endblock %}
+
+{% block footer %}
+<footer class="vp-footer">Votepit</footer>
+{% endblock %}

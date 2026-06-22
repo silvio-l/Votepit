@@ -35,6 +35,52 @@ final readonly class UserRepository
     }
 
     /**
+     * Sucht einen User by ID. Liefert token_version (für die Session-Payload).
+     *
+     * @return array<string, mixed>|null
+     * @throws DbalException
+     */
+    public function findById(int $id): ?array
+    {
+        $row = $this->conn->fetchAssociative(
+            'SELECT id, email, is_admin, is_blocked, token_version, verified_at, created_at
+             FROM users WHERE id = :id',
+            ['id' => $id],
+        );
+
+        return $row === false ? null : $row;
+    }
+
+    /**
+     * Setzt verified_at = jetzt, NUR falls noch NULL (idempotent, kein Überschreiben).
+     *
+     * @throws DbalException
+     */
+    public function markVerified(int $id): void
+    {
+        $now = (new \DateTimeImmutable())->format('Y-m-d H:i:s');
+
+        $this->conn->executeStatement(
+            'UPDATE users SET verified_at = :now WHERE id = :id AND verified_at IS NULL',
+            ['now' => $now, 'id' => $id],
+        );
+    }
+
+    /**
+     * Setzt is_admin = 1 (idempotent). Aufrufer entscheidet via Config::isAdminEmail.
+     * Entfernen aus der Allowlist entzieht Admin NICHT (kein stilles Downgrade).
+     *
+     * @throws DbalException
+     */
+    public function promoteAdmin(int $id): void
+    {
+        $this->conn->executeStatement(
+            'UPDATE users SET is_admin = 1 WHERE id = :id',
+            ['id' => $id],
+        );
+    }
+
+    /**
      * Legt einen neuen User mit verifizierter E-Mail an.
      * Wirft DbalException bei Unique-Violation (race condition → außen fangen).
      *

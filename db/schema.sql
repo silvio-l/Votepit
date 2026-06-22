@@ -32,12 +32,13 @@ CREATE TABLE IF NOT EXISTS boards (
 
 -- users: Identität = verifizierte E-Mail (passwortlos). Keine Passwort-Hashes.
 CREATE TABLE IF NOT EXISTS users (
-    id          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-    email       VARCHAR(254)    NOT NULL,
-    is_admin    TINYINT(1)      NOT NULL DEFAULT 0,
-    is_blocked  TINYINT(1)      NOT NULL DEFAULT 0,
-    verified_at DATETIME        NULL,
-    created_at  DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    id            BIGINT UNSIGNED   NOT NULL AUTO_INCREMENT,
+    email         VARCHAR(254)      NOT NULL,
+    is_admin      TINYINT(1)        NOT NULL DEFAULT 0,
+    is_blocked    TINYINT(1)        NOT NULL DEFAULT 0,
+    token_version SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+    verified_at   DATETIME          NULL,
+    created_at    DATETIME          NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     UNIQUE KEY uq_users_email (email)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

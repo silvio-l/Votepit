@@ -95,12 +95,13 @@ abstract class IntegrationTestCase extends TestCase
         // FULLTEXT, ON DUPLICATE KEY UPDATE → nicht für Sprint-2-Tests nötig.
         $conn->executeStatement(
             'CREATE TABLE IF NOT EXISTS users (
-                id          INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-                email       VARCHAR(254) NOT NULL,
-                is_admin    INTEGER NOT NULL DEFAULT 0,
-                is_blocked  INTEGER NOT NULL DEFAULT 0,
-                verified_at DATETIME NULL,
-                created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                id            INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                email         VARCHAR(254) NOT NULL,
+                is_admin      INTEGER NOT NULL DEFAULT 0,
+                is_blocked    INTEGER NOT NULL DEFAULT 0,
+                token_version INTEGER NOT NULL DEFAULT 0,
+                verified_at   DATETIME NULL,
+                created_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 UNIQUE (email)
             )',
         );

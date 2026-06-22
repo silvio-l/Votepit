@@ -33,6 +33,43 @@ final readonly class LoginTokenRepository
     }
 
     /**
+     * Findet einen aktiven (unused, nicht abgelaufenen) Login-Token by Hash.
+     * Vergleich gegen einen gebundenen :now-Parameter (portabel MySQL/SQLite;
+     * Datetime-Strings 'Y-m-d H:i:s' vergleichen lexikografisch korrekt).
+     *
+     * @return array<string, mixed>|null
+     * @throws DbalException
+     */
+    public function findActiveByHash(string $tokenHash): ?array
+    {
+        $now = (new \DateTimeImmutable())->format('Y-m-d H:i:s');
+
+        $row = $this->conn->fetchAssociative(
+            'SELECT id, user_id, token_hash, expires_at, used_at
+             FROM login_tokens
+             WHERE token_hash = :token_hash AND used_at IS NULL AND expires_at > :now',
+            ['token_hash' => $tokenHash, 'now' => $now],
+        );
+
+        return $row === false ? null : $row;
+    }
+
+    /**
+     * Markiert einen Token als verbraucht (used_at = jetzt). Einmaligkeit-Backstop.
+     *
+     * @throws DbalException
+     */
+    public function markUsed(int $id): void
+    {
+        $now = (new \DateTimeImmutable())->format('Y-m-d H:i:s');
+
+        $this->conn->executeStatement(
+            'UPDATE login_tokens SET used_at = :now WHERE id = :id',
+            ['now' => $now, 'id' => $id],
+        );
+    }
+
+    /**
      * Speichert einen neuen Login-Token-Datensatz (Hash, purpose='login').
      * NUR den Hash übergeben — niemals den Klartext-Token.
      *

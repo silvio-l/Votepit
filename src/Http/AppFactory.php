@@ -72,6 +72,9 @@ final class AppFactory
         );
         $audit    = $auditLogger ?? new AuditLogger($root . '/logs/audit.log');
 
+        // UserRepository wird (mit DB) bereits für die AuthN-Hydratation gebraucht.
+        $userRepo = $conn instanceof Connection ? new UserRepository($conn) : null;
+
         $twig = Twig::create($root . '/templates', [
             'cache'            => $config->env === 'prod' ? $root . '/var/twig-cache' : false,
             'autoescape'       => 'html', // Sicherheits-Default (A03 — XSS)
@@ -85,7 +88,7 @@ final class AppFactory
         //   AuthN → BlockCheck → CSRF → [Route: AuthZ → Handler]
         $app->add(new CsrfMiddleware($csrf, $responseFactory));
         $app->add(new BlockCheckMiddleware($responseFactory));
-        $app->add(new AuthNMiddleware());
+        $app->add(new AuthNMiddleware($userRepo));
         $app->add(new SessionMiddleware($sessions));
 
         // RateLimit(IP) nur mit DB-Connection (grob, pro Client-IP).
@@ -120,7 +123,7 @@ final class AppFactory
 
         // Login-Routen (Sprint 2): nur mit DB-Connection registrieren.
         if ($conn instanceof Connection) {
-            $userRepo  = new UserRepository($conn);
+            $userRepo ??= new UserRepository($conn); // bereits oben gebaut; ??= narrowt den Typ
             $tokenRepo = new LoginTokenRepository($conn);
             $vault     = new TokenVault();
             $resolvedMailer = $mailer ?? new SymfonyMailerAdapter($config->smtp);
@@ -171,6 +174,68 @@ final class AppFactory
 
                 $response = $twig->render($response, 'login-sent.twig', []);
                 return $response->withHeader('Content-Type', 'text/html; charset=utf-8');
+            })->add(AuthZMiddleware::anon($responseFactory));
+
+            // GET /login/verify?token=<klartext> — verifiziert den Magic-Link und
+            // stellt eine frische Session aus (AuthZ: anon, GET → CSRF-exempt:
+            // der Einmal-Token selbst ist die Capability). Bei Misserfolg KEIN
+            // Side-Effect, einheitliche 4xx-Fehlerseite.
+            $app->get('/login/verify', function (
+                ServerRequestInterface $request,
+                ResponseInterface $response,
+            ) use ($twig, $userRepo, $tokenRepo, $vault, $audit, $config, $sessions, $conn): MessageInterface {
+                $params = $request->getQueryParams();
+                $token  = is_string($params['token'] ?? null) ? $params['token'] : '';
+
+                $row = $token !== '' ? $tokenRepo->findActiveByHash($vault->hash($token)) : null;
+
+                // Konstant-zeitige Bestätigung; Misserfolg → keine Mutation.
+                if (!is_array($row) || !$vault->verify($token, (string) $row['token_hash'])) {
+                    $audit->log('magic_link.verify_failed', []);
+                    $response = $twig->render($response->withStatus(400), 'login-invalid.twig', []);
+                    return $response->withHeader('Content-Type', 'text/html; charset=utf-8');
+                }
+
+                $userId    = (int) $row['user_id'];
+                $tokenId   = (int) $row['id'];
+                $isAdminML = false;
+
+                // Atomar: Token verbrauchen + verified_at + Admin-Promotion.
+                /** @var array<string, mixed> $user */
+                $user = $conn->transactional(
+                    function () use ($tokenRepo, $userRepo, $tokenId, $userId, $config, &$isAdminML): array {
+                        $tokenRepo->markUsed($tokenId);
+                        $userRepo->markVerified($userId);
+
+                        $loaded = $userRepo->findById($userId);
+                        if (!is_array($loaded)) {
+                            // Sollte in einer Transaktion nicht passieren → fail-secure abbrechen.
+                            throw new \RuntimeException('verify: user not found after markVerified');
+                        }
+
+                        if ($config->isAdminEmail((string) $loaded['email'])) {
+                            $userRepo->promoteAdmin($userId);
+                            $loaded['is_admin'] = 1;
+                            $isAdminML          = true;
+                        }
+
+                        return $loaded;
+                    },
+                );
+
+                $audit->log('magic_link.verified', ['email' => $user['email']]);
+                if ($isAdminML) {
+                    $audit->log('admin.promoted', ['email' => $user['email']]);
+                }
+
+                // Frische Session — etwaiges Vor-Login-Cookie wird ignoriert/ersetzt
+                // (Session-Fixation-Schutz). Default-Pfad = Home (Issue 05: Return-Pfad).
+                $response = $sessions->issue(
+                    $response->withStatus(302)->withHeader('Location', '/'),
+                    ['uid' => $userId, 'v' => (int) ($user['token_version'] ?? 0)],
+                );
+
+                return $response;
             })->add(AuthZMiddleware::anon($responseFactory));
         }
 

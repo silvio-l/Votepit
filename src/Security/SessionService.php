@@ -77,7 +77,9 @@ final readonly class SessionService
      */
     public function issue(ResponseInterface $response, array $payload): ResponseInterface
     {
-        return $response->withHeader(
+        // withAddedHeader (nicht withHeader): ein paralleler Set-Cookie (z. B. das
+        // CSRF-Cookie der CsrfMiddleware) darf nicht überschrieben werden.
+        return $response->withAddedHeader(
             'Set-Cookie',
             self::COOKIE_NAME . '=' . $this->sign($payload)
             . '; Path=/; HttpOnly; SameSite=Strict'
