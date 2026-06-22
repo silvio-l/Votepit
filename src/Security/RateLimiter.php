@@ -6,6 +6,7 @@ namespace Votepit\Security;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception;
+use Doctrine\DBAL\Platforms\AbstractMySQLPlatform;
 
 /**
  * Serverseitiges Fixed-Window-Rate-Limiting (security.md §6).
@@ -34,16 +35,38 @@ final readonly class RateLimiter
             return true; // kein Limit konfiguriert → erlaubt
         }
 
-        $this->conn->executeStatement(
-            "INSERT INTO rate_limits (bucket, window_seconds, count, window_started_at)
-             VALUES (:bucket, :window, 1, NOW())
-             ON DUPLICATE KEY UPDATE
-               count = IF(TIMESTAMPDIFF(SECOND, window_started_at, NOW()) >= window_seconds,
-                          1, count + 1),
-               window_started_at = IF(TIMESTAMPDIFF(SECOND, window_started_at, NOW()) >= window_seconds,
-                                      NOW(), window_started_at)",
-            ['bucket' => $bucket, 'window' => $windowSeconds]
-        );
+        if ($this->conn->getDatabasePlatform() instanceof AbstractMySQLPlatform) {
+            $this->conn->executeStatement(
+                "INSERT INTO rate_limits (bucket, window_seconds, count, window_started_at)
+                 VALUES (:bucket, :window, 1, NOW())
+                 ON DUPLICATE KEY UPDATE
+                   count = IF(TIMESTAMPDIFF(SECOND, window_started_at, NOW()) >= window_seconds,
+                              1, count + 1),
+                   window_started_at = IF(TIMESTAMPDIFF(SECOND, window_started_at, NOW()) >= window_seconds,
+                                          NOW(), window_started_at)",
+                ['bucket' => $bucket, 'window' => $windowSeconds]
+            );
+        } else {
+            // SQLite-kompatibel (Tests + nicht-MySQL-Deployments): zwei Statements.
+            $this->conn->executeStatement(
+                "INSERT OR IGNORE INTO rate_limits (bucket, window_seconds, count, window_started_at)
+                 VALUES (:bucket, :window, 0, datetime('now'))",
+                ['bucket' => $bucket, 'window' => $windowSeconds]
+            );
+            $this->conn->executeStatement(
+                "UPDATE rate_limits
+                 SET count             = CASE WHEN (CAST(strftime('%s', 'now') AS INTEGER)
+                                                   - CAST(strftime('%s', window_started_at) AS INTEGER))
+                                                   >= window_seconds
+                                              THEN 1 ELSE count + 1 END,
+                     window_started_at = CASE WHEN (CAST(strftime('%s', 'now') AS INTEGER)
+                                                   - CAST(strftime('%s', window_started_at) AS INTEGER))
+                                                   >= window_seconds
+                                              THEN datetime('now') ELSE window_started_at END
+                 WHERE bucket = :bucket",
+                ['bucket' => $bucket]
+            );
+        }
 
         $row = $this->conn->fetchAssociative(
             'SELECT count FROM rate_limits WHERE bucket = :bucket',

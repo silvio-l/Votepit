@@ -128,6 +128,10 @@ final class AppFactory
             $vault     = new TokenVault();
             $resolvedMailer = $mailer ?? new SymfonyMailerAdapter($config->smtp);
 
+            // Per-Action-Rate-Limits für Magic-Link-Anfragen (Issue 06).
+            $emailRateLimit = $config->rateLimit('magiclink:email');
+            $mlIpRateLimit  = $config->rateLimit('magiclink:ip');
+
             // GET /login — zeigt das E-Mail-Formular (AuthZ: anon).
             $app->get('/login', function (
                 ServerRequestInterface $request,
@@ -174,7 +178,32 @@ final class AppFactory
 
                 $response = $twig->render($response, 'login-sent.twig', []);
                 return $response->withHeader('Content-Type', 'text/html; charset=utf-8');
-            })->add(AuthZMiddleware::anon($responseFactory));
+            })
+            ->add(AuthZMiddleware::anon($responseFactory))
+            ->add(RateLimitMiddleware::perAction(
+                new RateLimiter($conn),
+                $responseFactory,
+                'magiclink:email',
+                $emailRateLimit['limit'],
+                $emailRateLimit['window'],
+                static function (ServerRequestInterface $r): ?string {
+                    $parsed = $r->getParsedBody();
+                    $email  = is_array($parsed) ? strtolower(trim((string) ($parsed['email'] ?? ''))) : '';
+                    return $email !== '' ? $email : null;
+                },
+            ))
+            ->add(RateLimitMiddleware::perAction(
+                new RateLimiter($conn),
+                $responseFactory,
+                'magiclink:ip',
+                $mlIpRateLimit['limit'],
+                $mlIpRateLimit['window'],
+                static function (ServerRequestInterface $r): ?string {
+                    $params = $r->getServerParams();
+                    $ip     = $params['REMOTE_ADDR'] ?? null;
+                    return is_string($ip) && $ip !== '' ? $ip : null;
+                },
+            ));
 
             // GET /login/verify?token=<klartext> — verifiziert den Magic-Link und
             // stellt eine frische Session aus (AuthZ: anon, GET → CSRF-exempt:
