@@ -2,7 +2,7 @@
 
 Selbst-gehostetes **Feature-Voting-Board** mit echten **Up- _und_ Down-Votes** — für klassisches PHP/MySQL-Shared-Hosting, ohne Docker, ohne fremde Runtime. Eine Installation bedient mehrere Boards (ein Board pro Projekt). Anmeldung passwortlos per Magic-Link.
 
-> Status: **Frühe Initialisierung.** Die Implementierung beginnt mit dem Security-Foundation-Sprint (Skeleton, Routing, Config, Schema, Schutzschichten) — Security by Design ist Fundament, nicht Endstufe.
+> Status: **Frühe Initialisierung.** Die Implementierung beginnt mit dem Security-Foundation-Sprint (Skeleton, Routing, Config, Schema, Schutzschichten).
 
 ## Warum
 
@@ -29,7 +29,7 @@ Bewusst **nicht** im MVP: Embed-Widget, OAuth, E-Mail-Benachrichtigungen, öffen
 
 ## Technologie
 
-Aufbau auf einem **schlanken Stack aus geprüften Komponenten** (Security by Design): [Slim 4](https://www.slimframework.com/) (PSR-15-Middleware-Pipeline), [Twig 3](https://twig.symfony.com/) (Templates mit Autoescape), ausgewählte [Symfony-Komponenten](https://symfony.com/components) (Validator, Mailer) und [Doctrine DBAL](https://www.doctrine-project.org/projects/doctrine-dbal.html) (Prepared-Statements-only). Bewusst kein Full-Stack-Framework — Shared-Hosting-tauglich, kleine Angriffsfläche, Security-Primitive aus aktiv gepflegten, auditierten Quellen.
+Aufbau auf einem **schlanken Stack aus geprüften Komponenten**: [Slim 4](https://www.slimframework.com/) (PSR-15-Middleware-Pipeline), [Twig 3](https://twig.symfony.com/) (Templates mit Autoescape), ausgewählte [Symfony-Komponenten](https://symfony.com/components) (Validator, Mailer) und [Doctrine DBAL](https://www.doctrine-project.org/projects/doctrine-dbal.html) (Prepared-Statements-only). Bewusst kein Full-Stack-Framework — Shared-Hosting-tauglich, kleine Angriffsfläche, Security-Primitive aus aktiv gepflegten, auditierten Quellen.
 
 ## Installation
 
@@ -57,7 +57,7 @@ Eine Installation bedient mehrere Boards path-basiert (`/example`, `/example`, `
 
 ## Sicherheit
 
-Votepit wird **Security by Design** gebaut: Schutzschichten (Security-Header, Middleware-Pipeline, deny-by-default-Autorisierung) sind Fundament, nicht Endstufe. Im Einzelnen:
+Schutzschichten (Security-Header, Middleware-Pipeline, deny-by-default-Autorisierung) sind Teil des Fundaments. Im Einzelnen:
 
 - Ausschließlich Prepared Statements (Doctrine DBAL über PDO) → keine SQL-Injection
 - **Twig mit Autoescape (Default)** → kontextgerechtes Output-Escaping, kein XSS
