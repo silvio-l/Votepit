@@ -26,6 +26,9 @@ require dirname(__DIR__) . '/vendor/autoload.php';
 
 try {
     $config = \Votepit\Config::fromArray(require $configPath);
+    // Lazy DBAL-Connection (verbindet erst beim ersten Query) — trägt u. a. die
+    // RateLimit(IP)-Schicht. Im DB-losen Test wird stattdessen null genutzt.
+    $conn = \Votepit\Persistence\ConnectionFactory::create($config);
 } catch (\Votepit\ConfigException $e) {
     http_response_code(500);
     header('Content-Type: text/plain; charset=utf-8');
@@ -33,4 +36,4 @@ try {
     exit;
 }
 
-\Votepit\Http\AppFactory::create($config)->run();
+\Votepit\Http\AppFactory::create($config, $conn)->run();

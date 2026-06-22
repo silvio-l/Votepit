@@ -17,6 +17,10 @@
 # falls jemand etwas unterhalb von docs/ anlegt, wird es hier blockiert.
 /docs/
 
+# Agent-/Claude-Konfiguration — lokal für KI-Tooling, gehört nicht auf GitHub.
+/CLAUDE.md
+/CONTEXT.md
+
 # Audit-Logs (PII-arm, aber nicht für die Öffentlichkeit)
 /logs/
 
@@ -27,6 +31,10 @@
 /.phpunit.cache/
 /.phpunit.result.cache
 /coverage/
+
+# Quality-Tooling-Caches (PHPStan/PHP-CS-Fixer/Rector)
+/.php-cs-fixer.cache
+/.phpstan.cache/
 
 # IDE
 /.idea/

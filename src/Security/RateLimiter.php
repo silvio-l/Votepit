@@ -21,9 +21,9 @@ use Doctrine\DBAL\Exception;
  *
  * DB-seitig via UPSERT (rate_limits hat PRIMARY KEY auf bucket).
  */
-final class RateLimiter
+final readonly class RateLimiter
 {
-    public function __construct(private readonly Connection $conn) {}
+    public function __construct(private Connection $conn) {}
 
     /**
      * @throws Exception

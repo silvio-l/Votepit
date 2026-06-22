@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Votepit\Http;
 
+use Doctrine\DBAL\Connection;
+use Psr\Http\Message\MessageInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Slim\App;
@@ -13,22 +15,31 @@ use Votepit\Config;
 use Votepit\Http\Middleware\AuthNMiddleware;
 use Votepit\Http\Middleware\AuthZMiddleware;
 use Votepit\Http\Middleware\BlockCheckMiddleware;
+use Votepit\Http\Middleware\CsrfMiddleware;
+use Votepit\Http\Middleware\RateLimitMiddleware;
 use Votepit\Http\Middleware\SecurityHeaderMiddleware;
 use Votepit\Http\Middleware\SessionMiddleware;
 use Votepit\Logging\AuditLogger;
+use Votepit\Security\CsrfService;
+use Votepit\Security\RateLimiter;
 use Votepit\Security\SessionService;
 
 /**
  * Baut die Slim-4-App mit der PSR-15-Middleware-Pipeline (arch.md L1–L4) und
  * den definierten Routes.
  *
- * Sprint 0: Smoke-Route (GET /), Security-Header, Session/AuthN/AuthZ/BlockCheck
- * als Gerüst. CSRF (slim/csrf), RateLimit und fachliche Routes folgen in
- * Sprint 2+.
+ * Sprint 0: Smoke-Route (GET /), Security-Header, RateLimit(IP)/Session/AuthN/
+ * BlockCheck/CSRF als Pipeline, AuthZ per-Route. Magic-Link + fachliche Routes
+ * folgen in Sprint 2+.
+ *
+ * Die DB-Connection ist optional: ohne sie (DB-loser Smoke-Test) entfällt die
+ * RateLimit(IP)-Schicht; public/index.php reicht in Produktion eine echte
+ * Connection (ConnectionFactory) herein.
  */
 final class AppFactory
 {
-    public static function create(Config $config): App
+    /** @return App<null> */
+    public static function create(Config $config, ?Connection $conn = null): App
     {
         $responseFactory = new ResponseFactory();
 
@@ -36,10 +47,16 @@ final class AppFactory
 
         // --- Services -----------------------------------------------------
         $root     = dirname(__DIR__, 2); // Repo-Root
+        $secure   = $config->env === 'prod';
         $sessions = new SessionService(
             appKey: $config->appKey,
             lifetime: $config->sessionLifetime,
-            secure: $config->env === 'prod',
+            secure: $secure,
+        );
+        $csrf     = new CsrfService(
+            appKey: $config->appKey,
+            lifetime: $config->sessionLifetime,
+            secure: $secure,
         );
         $audit    = new AuditLogger($root . '/logs/audit.log');
 
@@ -49,10 +66,27 @@ final class AppFactory
             'strict_variables' => false,
         ]);
 
-        // --- Globale PSR-15-Pipeline (Request-Reihenfolge außen → innen) --
+        // --- Globale PSR-15-Pipeline -------------------------------------
+        // Add-Reihenfolge ist umgekehrt zur Ausführung (zuletzt added = außen).
+        // Ausführung außen → innen:
+        //   Error → BodyParsing → SecurityHeader → RateLimit(IP) → Session →
+        //   AuthN → BlockCheck → CSRF → [Route: AuthZ → Handler]
+        $app->add(new CsrfMiddleware($csrf, $responseFactory));
         $app->add(new BlockCheckMiddleware($responseFactory));
         $app->add(new AuthNMiddleware());
         $app->add(new SessionMiddleware($sessions));
+
+        // RateLimit(IP) nur mit DB-Connection (grob, pro Client-IP).
+        if ($conn instanceof Connection) {
+            $ipLimit = $config->rateLimit('global:ip');
+            $app->add(RateLimitMiddleware::perIp(
+                new RateLimiter($conn),
+                $responseFactory,
+                $ipLimit['limit'],
+                $ipLimit['window'],
+            ));
+        }
+
         $app->add(new SecurityHeaderMiddleware());
         $app->addBodyParsingMiddleware();
         $app->addErrorMiddleware(
@@ -63,7 +97,7 @@ final class AppFactory
 
         // --- Routes -------------------------------------------------------
         // Smoke-Route: beweist Boot + Pipeline + Twig + Security-Header.
-        $app->get('/', function (ServerRequestInterface $request, ResponseInterface $response) use ($twig, $audit) {
+        $app->get('/', function (ServerRequestInterface $request, ResponseInterface $response) use ($twig, $audit): MessageInterface {
             $audit->log('smoke.hit', ['ua' => $request->getHeaderLine('User-Agent')]);
             $response = $twig->render($response, 'home.twig', [
                 'title'  => 'Votepit',

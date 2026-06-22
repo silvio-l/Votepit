@@ -56,6 +56,7 @@ return [
 
     // Rate-Limits (security.md §6). limit=0 deaktiviert eine Aktion.
     'rate_limits' => [
+        'global:ip'       => ['limit' => 300, 'window' => 60],       // grob: 300/Minute pro IP (DoS-Bremse)
         'magiclink:email' => ['limit' => 3,  'window' => 3600],      // 3/Stunde pro E-Mail
         'magiclink:ip'    => ['limit' => 5,  'window' => 3600],      // 5/Stunde pro IP
         'submit:user'     => ['limit' => 5,  'window' => 3600],      // 5 Ideen/Stunde

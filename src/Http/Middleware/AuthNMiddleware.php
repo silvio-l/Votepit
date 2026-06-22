@@ -25,7 +25,7 @@ final class AuthNMiddleware implements MiddlewareInterface
 
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
-        $userId = $request->getAttribute(SessionMiddleware::ATTR_USER_ID);
+        $request->getAttribute(SessionMiddleware::ATTR_USER_ID);
 
         // Sprint 0: keine User-Hydratation (Repository folgt in Sprint 2/3).
         // Wenn keine Session → User bleibt null. Eine später gesetzte user_id

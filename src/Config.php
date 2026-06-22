@@ -10,20 +10,25 @@ namespace Votepit;
  *
  * Quelle: config/config.php (gitignored, nicht im Repo).
  */
-final class Config
+final readonly class Config
 {
+    /**
+     * @param list<string>          $adminEmails
+     * @param array<string, mixed>  $rateLimits
+     */
     private function __construct(
-        public readonly string $env,
-        public readonly string $appUrl,
-        public readonly string $appKey,
-        public readonly DbConfig $db,
-        public readonly SmtpConfig $smtp,
-        public readonly array $adminEmails,
-        public readonly int $sessionLifetime,
-        public readonly int $magicLinkTtl,
-        public readonly array $rateLimits,
+        public string $env,
+        public string $appUrl,
+        public string $appKey,
+        public DbConfig $db,
+        public SmtpConfig $smtp,
+        public array $adminEmails,
+        public int $sessionLifetime,
+        public int $magicLinkTtl,
+        public array $rateLimits,
     ) {}
 
+    /** @param array<string, mixed> $a */
     public static function fromArray(array $a): self
     {
         $appKey = trim((string) ($a['app_key'] ?? ''));
@@ -33,7 +38,7 @@ final class Config
         if ($appKey === '') {
             throw new ConfigException('config: "app_key" fehlt — erzeugen mit: php -r "echo bin2hex(random_bytes(32));"');
         }
-        if ($appUrl === '' || !filter_var($appUrl, FILTER_VALIDATE_URL)) {
+        if ($appUrl === '' || filter_var($appUrl, FILTER_VALIDATE_URL) === false) {
             throw new ConfigException('config: "app_url" fehlt oder ungültig');
         }
         if (!in_array($env, ['prod', 'dev'], true)) {
@@ -46,7 +51,10 @@ final class Config
             appKey: $appKey,
             db: DbConfig::fromArray((array) ($a['db'] ?? [])),
             smtp: SmtpConfig::fromArray((array) ($a['smtp'] ?? [])),
-            adminEmails: array_values(array_filter(array_map('strtolower', (array) ($a['admin_emails'] ?? [])))),
+            adminEmails: array_values(array_filter(
+                array_map(strtolower(...), (array) ($a['admin_emails'] ?? [])),
+                static fn (string $e): bool => $e !== '',
+            )),
             sessionLifetime: (int) ($a['session_lifetime'] ?? 60 * 60 * 24 * 30),
             magicLinkTtl: (int) ($a['magic_link_ttl'] ?? 60 * 15),
             rateLimits: (array) ($a['rate_limits'] ?? []),

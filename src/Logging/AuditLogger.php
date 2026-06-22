@@ -14,13 +14,14 @@ namespace Votepit\Logging;
  *
  * Secrets (app_key, Passwörter, Token-Klartext) dürfen NIE in den context.
  */
-final class AuditLogger
+final readonly class AuditLogger
 {
     public function __construct(
-        private readonly string $logPath,
-        private readonly bool $enabled = true,
+        private string $logPath,
+        private bool $enabled = true,
     ) {}
 
+    /** @param array<string, mixed> $context */
     public function log(string $action, array $context = []): void
     {
         if (!$this->enabled) {
@@ -42,6 +43,9 @@ final class AuditLogger
     /**
      * Maskiert E-Mail-Adressen (und Felder mit Namen, die auf PII deuten).
      * Rekursiv für verschachtelte Arrays.
+     *
+     * @param  array<array-key, mixed> $data
+     * @return array<array-key, mixed>
      */
     private function mask(array $data): array
     {

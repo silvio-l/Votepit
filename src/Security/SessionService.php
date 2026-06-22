@@ -18,25 +18,33 @@ use Psr\Http\Message\ResponseInterface;
  *
  * Konstant: HMAC-Verify via hash_equals (Timing-Angriff-resistent).
  */
-final class SessionService
+final readonly class SessionService
 {
     private const COOKIE_NAME = 'votepit_sess';
 
     public function __construct(
-        private readonly string $appKey,
-        private readonly int $lifetime,
-        private readonly bool $secure,
+        private string $appKey,
+        private int $lifetime,
+        private bool $secure,
     ) {}
 
-    /** Signiert eine Payload zu einem Cookie-Wert. */
+    /**
+     * Signiert eine Payload zu einem Cookie-Wert.
+     *
+     * @param array<string, mixed> $payload
+     */
     public function sign(array $payload): string
     {
-        $body = rtrim(strtr(base64_encode((string) json_encode($payload, JSON_THROW_ON_ERROR)), '+/', '-_'), '=');
+        $body = rtrim(strtr(base64_encode(json_encode($payload, JSON_THROW_ON_ERROR)), '+/', '-_'), '=');
         $mac  = rtrim(strtr(base64_encode(hash_hmac('sha256', $body, $this->appKey, true)), '+/', '-_'), '=');
         return $body . '.' . $mac;
     }
 
-    /** Verifiziert einen Cookie-Wert; liefert die Payload oder null. */
+    /**
+     * Verifiziert einen Cookie-Wert; liefert die Payload oder null.
+     *
+     * @return array<string, mixed>|null
+     */
     public function verify(?string $cookie): ?array
     {
         if ($cookie === null || !str_contains($cookie, '.')) {
@@ -62,7 +70,11 @@ final class SessionService
         return is_array($payload) ? $payload : null;
     }
 
-    /** Setzt das Session-Cookie auf dem Response. */
+    /**
+     * Setzt das Session-Cookie auf dem Response.
+     *
+     * @param array<string, mixed> $payload
+     */
     public function issue(ResponseInterface $response, array $payload): ResponseInterface
     {
         return $response->withHeader(

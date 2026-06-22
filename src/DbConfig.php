@@ -4,17 +4,18 @@ declare(strict_types=1);
 
 namespace Votepit;
 
-final class DbConfig
+final readonly class DbConfig
 {
     private function __construct(
-        public readonly string $host,
-        public readonly int $port,
-        public readonly string $name,
-        public readonly string $user,
-        public readonly string $pass,
-        public readonly string $charset,
+        public string $host,
+        public int $port,
+        public string $name,
+        public string $user,
+        public string $pass,
+        public string $charset,
     ) {}
 
+    /** @param array<string, mixed> $a */
     public static function fromArray(array $a): self
     {
         $name = trim((string) ($a['name'] ?? ''));

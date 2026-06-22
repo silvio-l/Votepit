@@ -116,3 +116,20 @@ CREATE TABLE IF NOT EXISTS rate_limits (
     window_started_at DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (bucket)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- score_cache-Pflege via DB-Trigger (ADR-3: Trigger bevorzugt vor app-seitiger
+-- Pflege → Konsistenz). Inkrementell: ideas.score_cache = SUM(votes.value).
+-- Einzel-Statement-Trigger (kein BEGIN/END) → kein DELIMITER nötig, applier-sicher;
+-- idempotent via DROP TRIGGER IF EXISTS. votes.idea_id ist unveränderlich, daher
+-- aktualisiert der UPDATE-Trigger nur den value-Delta derselben Idee.
+DROP TRIGGER IF EXISTS trg_votes_after_insert;
+CREATE TRIGGER trg_votes_after_insert AFTER INSERT ON votes
+    FOR EACH ROW UPDATE ideas SET score_cache = score_cache + NEW.value WHERE id = NEW.idea_id;
+
+DROP TRIGGER IF EXISTS trg_votes_after_update;
+CREATE TRIGGER trg_votes_after_update AFTER UPDATE ON votes
+    FOR EACH ROW UPDATE ideas SET score_cache = score_cache - OLD.value + NEW.value WHERE id = NEW.idea_id;
+
+DROP TRIGGER IF EXISTS trg_votes_after_delete;
+CREATE TRIGGER trg_votes_after_delete AFTER DELETE ON votes
+    FOR EACH ROW UPDATE ideas SET score_cache = score_cache - OLD.value WHERE id = OLD.idea_id;

@@ -4,30 +4,32 @@ declare(strict_types=1);
 
 namespace Votepit;
 
-final class SmtpConfig
+final readonly class SmtpConfig
 {
     private function __construct(
-        public readonly string $host,
-        public readonly int $port,
-        public readonly string $user,
-        public readonly string $pass,
-        public readonly string $encryption,
-        public readonly string $fromEmail,
-        public readonly string $fromName,
+        public string $host,
+        public int $port,
+        public string $user,
+        public string $pass,
+        public string $encryption,
+        public string $fromEmail,
+        public string $fromName,
     ) {}
 
+    /** @param array<string, mixed> $a */
     public static function fromArray(array $a): self
     {
         $fromEmail = trim((string) ($a['from_email'] ?? ''));
-        if ($fromEmail === '' || !filter_var($fromEmail, FILTER_VALIDATE_EMAIL)) {
+        if ($fromEmail === '' || filter_var($fromEmail, FILTER_VALIDATE_EMAIL) === false) {
             throw new ConfigException('config.smtp: "from_email" fehlt oder ungültig');
         }
+        $encryption = (string) ($a['encryption'] ?? 'tls');
         return new self(
             host: (string) ($a['host'] ?? ''),
             port: (int) ($a['port'] ?? 587),
             user: (string) ($a['user'] ?? ''),
             pass: (string) ($a['pass'] ?? ''),
-            encryption: in_array(($a['encryption'] ?? 'tls'), ['tls', 'ssl', ''], true) ? (string) ($a['encryption'] ?? 'tls') : 'tls',
+            encryption: in_array($encryption, ['tls', 'ssl', ''], true) ? $encryption : 'tls',
             fromEmail: $fromEmail,
             fromName: (string) ($a['from_name'] ?? 'Votepit'),
         );

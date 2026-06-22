@@ -17,6 +17,11 @@ composer.lock
 .ossallowlist
 phpunit.xml
 
+# Quality-Tooling-Konfiguration (PHPStan/PHP-CS-Fixer/Rector)
+phpstan.neon
+.php-cs-fixer.dist.php
+rector.php
+
 # Hook-Schutz (muss committet sein, um für Klonende zu gelten; öffentlich ok)
 .githooks/
 

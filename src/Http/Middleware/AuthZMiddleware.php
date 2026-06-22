@@ -25,15 +25,15 @@ use Psr\Http\Server\RequestHandlerInterface;
  * Sprint 2 die User-Hydratation liefert (vorher ist ATTR_USER immer null →
  * 'user'/'admin' weisen konsequent ab).
  */
-final class AuthZMiddleware implements MiddlewareInterface
+final readonly class AuthZMiddleware implements MiddlewareInterface
 {
     public const LEVEL_ANON  = 'anon';
     public const LEVEL_USER  = 'user';
     public const LEVEL_ADMIN = 'admin';
 
     private function __construct(
-        private readonly string $required,
-        private readonly ResponseFactoryInterface $responseFactory,
+        private string $required,
+        private ResponseFactoryInterface $responseFactory,
     ) {}
 
     public static function anon(ResponseFactoryInterface $rf): self
@@ -67,7 +67,7 @@ final class AuthZMiddleware implements MiddlewareInterface
         if ($this->required === self::LEVEL_ADMIN) {
             // Sprint 2+: is_admin aus dem hydratisierten User. Bis dahin
             // weisen Admin-Routen konsequent ab (User ist in Sprint 0 null).
-            $isAdmin = is_array($user) && ($user['is_admin'] ?? false);
+            $isAdmin = is_array($user) && (bool) ($user['is_admin'] ?? false);
             if (!$isAdmin) {
                 return $this->deny(403);
             }

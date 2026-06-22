@@ -48,6 +48,9 @@ final class SmokeTest extends TestCase
         // Body (Twig-Rendering mit Autoescape)
         $body = (string) $response->getBody();
         self::assertStringContainsString('Votepit', $body);
+
+        // CSRF-Synchronizer: die Pipeline stellt auf GET ein signiertes Cookie aus.
+        self::assertStringContainsString('votepit_csrf=', $response->getHeaderLine('Set-Cookie'));
     }
 
     public function test_config_rejects_empty_app_key(): void
