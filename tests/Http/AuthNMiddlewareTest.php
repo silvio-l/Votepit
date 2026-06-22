@@ -12,11 +12,12 @@ use Votepit\Tests\Support\CapturingHandler;
 use Votepit\Tests\Support\IntegrationTestCase;
 
 /**
- * AuthN-Hydratation (Sprint 2 — Issue 03).
+ * AuthN-Hydratation (Sprint 2 — Issue 03 + Issue 04).
  *
  * Beweist beobachtbar: bei vorhandener uid lädt die Middleware den User
  * (ATTR_USER = Datensatz) bzw. verwirft die Session (ATTR_USER = null), wenn
- * der Datensatz fehlt. Getestet über die öffentliche process()-Seam.
+ * der Datensatz fehlt oder token_version nicht übereinstimmt.
+ * Getestet über die öffentliche process()-Seam.
  */
 final class AuthNMiddlewareTest extends IntegrationTestCase
 {
@@ -34,7 +35,8 @@ final class AuthNMiddlewareTest extends IntegrationTestCase
         $handler = new CapturingHandler();
 
         $request = (new ServerRequestFactory())->createServerRequest('GET', '/')
-            ->withAttribute(SessionMiddleware::ATTR_USER_ID, $id);
+            ->withAttribute(SessionMiddleware::ATTR_USER_ID, $id)
+            ->withAttribute(SessionMiddleware::ATTR_SESSION, ['uid' => $id, 'v' => 0]);
 
         $mw->process($request, $handler);
 
@@ -50,7 +52,8 @@ final class AuthNMiddlewareTest extends IntegrationTestCase
         $handler = new CapturingHandler();
 
         $request = (new ServerRequestFactory())->createServerRequest('GET', '/')
-            ->withAttribute(SessionMiddleware::ATTR_USER_ID, 12345); // existiert nicht
+            ->withAttribute(SessionMiddleware::ATTR_USER_ID, 12345) // existiert nicht
+            ->withAttribute(SessionMiddleware::ATTR_SESSION, ['uid' => 12345, 'v' => 0]);
 
         $mw->process($request, $handler);
 
@@ -68,5 +71,30 @@ final class AuthNMiddlewareTest extends IntegrationTestCase
         $mw->process($request, $handler);
 
         self::assertNull($handler->seenUser);
+    }
+
+    public function test_discards_session_on_token_version_mismatch(): void
+    {
+        $this->conn->insert('users', [
+            'email'         => 'revoked@example.com',
+            'is_admin'      => 0,
+            'is_blocked'    => 0,
+            'token_version' => 1, // DB hat v=1 (nach Logout gebumpt)
+            'created_at'    => (new \DateTimeImmutable())->format('Y-m-d H:i:s'),
+        ]);
+        $id = (int) $this->conn->lastInsertId();
+
+        $mw      = new AuthNMiddleware(new UserRepository($this->conn));
+        $handler = new CapturingHandler();
+
+        // Altes Cookie: v=0 — stimmt nicht mehr mit DB token_version=1 überein.
+        $request = (new ServerRequestFactory())->createServerRequest('GET', '/')
+            ->withAttribute(SessionMiddleware::ATTR_USER_ID, $id)
+            ->withAttribute(SessionMiddleware::ATTR_SESSION, ['uid' => $id, 'v' => 0]);
+
+        $mw->process($request, $handler);
+
+        self::assertTrue($handler->called);
+        self::assertNull($handler->seenUser); // revoziert
     }
 }

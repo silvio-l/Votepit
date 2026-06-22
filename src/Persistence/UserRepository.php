@@ -81,6 +81,19 @@ final readonly class UserRepository
     }
 
     /**
+     * Erhöht token_version um 1 (Logout-Invalidierung aller aktiver Sessions).
+     *
+     * @throws DbalException
+     */
+    public function bumpTokenVersion(int $id): void
+    {
+        $this->conn->executeStatement(
+            'UPDATE users SET token_version = token_version + 1 WHERE id = :id',
+            ['id' => $id],
+        );
+    }
+
+    /**
      * Legt einen neuen User mit verifizierter E-Mail an.
      * Wirft DbalException bei Unique-Violation (race condition → außen fangen).
      *

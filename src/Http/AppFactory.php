@@ -114,9 +114,11 @@ final class AppFactory
         // Smoke-Route: beweist Boot + Pipeline + Twig + Security-Header.
         $app->get('/', function (ServerRequestInterface $request, ResponseInterface $response) use ($twig, $audit): MessageInterface {
             $audit->log('smoke.hit', ['ua' => $request->getHeaderLine('User-Agent')]);
-            $response = $twig->render($response, 'home.twig', [
-                'title'  => 'Votepit',
-                'status' => 'Security-Foundation aktiv.',
+            $csrfToken = $request->getAttribute(CsrfMiddleware::ATTR_TOKEN);
+            $response  = $twig->render($response, 'home.twig', [
+                'title'      => 'Votepit',
+                'status'     => 'Security-Foundation aktiv.',
+                'csrf_token' => is_string($csrfToken) ? $csrfToken : '',
             ]);
             return $response->withHeader('Content-Type', 'text/html; charset=utf-8');
         })->add(AuthZMiddleware::anon($responseFactory));
@@ -204,6 +206,21 @@ final class AppFactory
                     return is_string($ip) && $ip !== '' ? $ip : null;
                 },
             ));
+
+            // POST /logout — erhöht token_version (invalidiert alle Sessions) + löscht Cookie.
+            // AuthZ: user (anon → 401); CSRF: mutierendes Verb → global erzwungen.
+            $app->post('/logout', function (
+                ServerRequestInterface $request,
+                ResponseInterface $response,
+            ) use ($userRepo, $sessions, $audit): ResponseInterface {
+                /** @var array<string, mixed>|null $user */
+                $user = $request->getAttribute(AuthNMiddleware::ATTR_USER);
+                if (is_array($user)) {
+                    $userRepo->bumpTokenVersion((int) $user['id']);
+                    $audit->log('user.logout', ['uid' => (int) $user['id']]);
+                }
+                return $sessions->clear($response->withStatus(302)->withHeader('Location', '/login'));
+            })->add(AuthZMiddleware::user($responseFactory));
 
             // GET /login/verify?token=<klartext> — verifiziert den Magic-Link und
             // stellt eine frische Session aus (AuthZ: anon, GET → CSRF-exempt:

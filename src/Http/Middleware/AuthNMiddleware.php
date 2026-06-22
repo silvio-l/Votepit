@@ -21,7 +21,8 @@ use Votepit\Persistence\UserRepository;
  * sind nie vertrauenswürdig (Zero-Trust).
  *
  * Ohne UserRepository (DB-loser Smoke-Test) entfällt die Hydratation; der User
- * bleibt null. Die token_version-Revokationsprüfung folgt in Issue 04.
+ * bleibt null. Revokationsprüfung (Issue 04): Session-payload.v muss
+ * users.token_version matchen — sonst wird die Session verworfen (revoziert).
  */
 final readonly class AuthNMiddleware implements MiddlewareInterface
 {
@@ -31,11 +32,21 @@ final readonly class AuthNMiddleware implements MiddlewareInterface
 
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
-        $uid  = $request->getAttribute(SessionMiddleware::ATTR_USER_ID);
-        $user = null;
+        $uid     = $request->getAttribute(SessionMiddleware::ATTR_USER_ID);
+        $session = $request->getAttribute(SessionMiddleware::ATTR_SESSION);
+        $user    = null;
 
         if ($this->users instanceof UserRepository && is_int($uid)) {
-            $user = $this->users->findById($uid); // null bei fehlendem Datensatz → Session verworfen
+            $loaded = $this->users->findById($uid); // null bei fehlendem Datensatz → fail-secure
+
+            if (is_array($loaded)) {
+                // Revokationsprüfung: v aus der Session-Payload muss token_version in DB matchen.
+                // Mismatch → Session revoziert (z. B. nach Logout), user bleibt null.
+                $sessionV = is_array($session) ? (int) ($session['v'] ?? -1) : -1;
+                if ($sessionV === (int) $loaded['token_version']) {
+                    $user = $loaded;
+                }
+            }
         }
 
         return $handler->handle($request->withAttribute(self::ATTR_USER, $user));
