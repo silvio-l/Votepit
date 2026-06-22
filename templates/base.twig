@@ -41,14 +41,17 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% block title %}Votepit{% endblock %}</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
     <style>
         /* ── Marken-Tokens (Board-überschreibbar via Issue 08) ──────────── */
         :root {
-            --vp-primary:          #111111;
+            --vp-primary:          #15161A;
             --vp-secondary:        #475569;
             --vp-primary-contrast: #ffffff;
-            --vp-primary-glow:     rgba(17, 17, 17, 0.12);
-            --vp-bg:               #faf9f7;
+            --vp-primary-glow:     rgba(21, 22, 26, 0.12);
+            --vp-bg:               #F6F6F3;
             --vp-surface:          rgba(255, 255, 255, 0.72);
             --vp-surface-border:   rgba(255, 255, 255, 0.55);
             --vp-border:           rgba(15, 23, 42, 0.10);
@@ -61,14 +64,14 @@
         /* ── Semantische Tokens (NICHT Board-überschreibbar) ────────────── */
         :root {
             /* Voting — Grün (Up) / Vermillion (Down) */
-            --vp-vote-up:            #16a34a;
+            --vp-vote-up:            #0E9466;
             --vp-vote-up-bg:         #dcfce7;
-            --vp-vote-down:          #e03535;
+            --vp-vote-down:          #D8503C;
             --vp-vote-down-bg:       #fee2e2;
 
             /* Konsens */
-            --vp-consensus-high:     #16a34a;
-            --vp-consensus-low:      #e03535;
+            --vp-consensus-high:     #0E9466;
+            --vp-consensus-low:      #D8503C;
 
             /* Idea-Status */
             --vp-status-open:        #1d4ed8;
@@ -152,6 +155,15 @@
         .vp-link   { color: var(--vp-primary); }
         .vp-icon   { font-size: 2rem; margin-bottom: .75rem; display: block; }
 
+        /* Votepit-Wortbildmarke (Default-Markenzeichen, wenn kein Board-Logo) */
+        .vp-brand      { display: inline-flex; align-items: center; gap: .04em; margin-bottom: 1.25rem;
+                         text-decoration: none; font-family: var(--vp-font-head); font-weight: 800;
+                         letter-spacing: -.02em; font-size: 1.6rem; line-height: 1; }
+        .vp-brand-icon { height: 1.5em; width: auto; display: block; margin-right: .02em; }
+        .vp-brand-word { color: var(--vp-text); }
+        .vp-brand-pit  { color: var(--vp-vote-down); }
+        .vp-logo       { max-height: 2.5rem; width: auto; display: block; margin-bottom: 1.25rem; }
+
         {% block styles %}{% endblock %}
     </style>
     {% block head_extra %}{% endblock %}
@@ -162,6 +174,11 @@
         {% block brand_logo %}
         {% if brand_logo_url|default('') is not empty %}
         <img class="vp-logo" src="{{ brand_logo_url }}" alt="">
+        {% else %}
+        <a class="vp-brand" href="/" aria-label="Votepit">
+            <img class="vp-brand-icon" src="/assets/brand/votepit-icon.svg" alt="">
+            <span class="vp-brand-word">Vote<span class="vp-brand-pit">pit</span></span>
+        </a>
         {% endif %}
         {% endblock %}
         {% block content %}{% endblock %}

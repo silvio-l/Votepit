@@ -181,11 +181,11 @@ final class ThemeTokenTest extends TestCase
     {
         $html = $this->twig->render('base.twig', []);
 
-        // Ink/Schwarz — #111111 (CONTEXT.md: "Brand-Chrome = Ink (Schwarz)")
+        // Ink — #15161A (CONTEXT.md: "Brand-Chrome = Ink (Schwarz)")
         preg_match('/--vp-primary\s*:\s*([^;]+);/', $html, $match);
 
         self::assertArrayHasKey(1, $match, '--vp-primary muss definiert sein');
-        self::assertSame('#111111', trim($match[1]));
+        self::assertSame('#15161A', trim($match[1]));
     }
 
     public function test_default_vote_up_is_green(): void
@@ -196,7 +196,7 @@ final class ThemeTokenTest extends TestCase
 
         self::assertArrayHasKey(1, $match);
         // Grün (CONTEXT.md: "funktionale Farben nur Grün (Up)")
-        self::assertSame('#16a34a', trim($match[1]));
+        self::assertSame('#0E9466', trim($match[1]));
     }
 
     public function test_default_vote_down_is_vermillion(): void
@@ -207,7 +207,7 @@ final class ThemeTokenTest extends TestCase
 
         self::assertArrayHasKey(1, $match);
         // Vermillion (CONTEXT.md: "Vermillion (Down)")
-        self::assertSame('#e03535', trim($match[1]));
+        self::assertSame('#D8503C', trim($match[1]));
     }
 
     // ── AC5: Kein JS nötig (keine script-Tags außer optionalen externen) ─────
