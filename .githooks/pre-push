@@ -39,6 +39,7 @@ is_allowed() {
 }
 
 violations=()
+unique_violations=()
 zero="0000000000000000000000000000000000000000"
 
 while read -r local_ref local_sha remote_ref remote_sha; do
@@ -66,9 +67,8 @@ while read -r local_ref local_sha remote_ref remote_sha; do
   done < <(git ls-tree -r --name-only "$local_sha" 2>/dev/null || true)
 done
 
-# Dubletten herauswerfen.
+# Dubletten herauswerfen (nur wenn überhaupt Violations vorliegen).
 if [ ${#violations[@]} -gt 0 ]; then
-  unique_violations=()
   while IFS= read -r line; do
     [ -n "$line" ] && unique_violations+=("$line")
   done < <(printf '%s\n' "${violations[@]}" | sort -u)
