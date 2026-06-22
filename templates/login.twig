@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Anmelden · Votepit</title>
+    <style>
+        :root { --accent: #3b82f6; }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, sans-serif;
+            color: #0f172a;
+            background: #f8fafc;
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+        }
+        .wrap { max-width: 420px; margin: 12vh auto; padding: 2.5rem 1.5rem; }
+        .card {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 14px;
+            padding: 2rem 2.25rem;
+            box-shadow: 0 1px 2px rgba(15, 23, 42, .04);
+        }
+        h1 { margin: 0 0 .25rem; font-size: 1.5rem; letter-spacing: -.01em; }
+        p.lead { color: #475569; margin: .5rem 0 1.5rem; font-size: .95rem; }
+        label { display: block; font-size: .875rem; font-weight: 500; margin-bottom: .4rem; }
+        input[type="email"] {
+            width: 100%; padding: .6rem .8rem; border: 1px solid #cbd5e1;
+            border-radius: 8px; font-size: 1rem; outline: none;
+            transition: border-color .15s;
+        }
+        input[type="email"]:focus { border-color: var(--accent); }
+        button {
+            margin-top: 1rem; width: 100%; padding: .65rem 1rem;
+            background: var(--accent); color: #fff; border: none;
+            border-radius: 8px; font-size: 1rem; font-weight: 600;
+            cursor: pointer; transition: background .15s;
+        }
+        button:hover { background: #2563eb; }
+        footer { margin-top: 1.5rem; color: #94a3b8; font-size: .8rem; text-align: center; }
+    </style>
+</head>
+<body>
+    <main class="wrap">
+        <section class="card">
+            <h1>Anmelden</h1>
+            <p class="lead">Gib deine E-Mail-Adresse ein. Wir schicken dir einen Magic-Link.</p>
+            <form method="POST" action="/login">
+                <input type="hidden" name="_csrf" value="{{ csrf_token }}">
+                <label for="email">E-Mail-Adresse</label>
+                <input type="email" id="email" name="email" required autocomplete="email" autofocus placeholder="du@example.com">
+                <button type="submit">Magic-Link senden</button>
+            </form>
+        </section>
+        <footer>Votepit · Passwortlos anmelden</footer>
+    </main>
+</body>
+</html>
