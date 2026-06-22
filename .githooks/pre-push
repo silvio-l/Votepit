@@ -1,0 +1,90 @@
+#!/usr/bin/env bash
+#
+# Votepit — pre-push Hook (OSS-Allowlist-Guard, dritte Schicht)
+#
+# Fängt Commits ab, die den pre-commit-Hook umgangen haben
+# (`git commit --no-verify`). Prüft alle in diesem Push landenden Commits
+# sowie den HEAD-Baum selbst.
+#
+# Aktivierung: `git config core.hooksPath .githooks`.
+# Bash-3.2-kompatibel (macOS /bin/bash) — kein mapfile/readarray.
+#
+set -euo pipefail
+
+ROOT="$(git rev-parse --show-toplevel)"
+ALLOWLIST="$ROOT/.ossallowlist"
+
+if [ ! -f "$ALLOWLIST" ]; then
+  echo "pre-push: WARN — keine .ossallowlist gefunden, Guard inaktiv." >&2
+  exit 0
+fi
+
+ALLOWED=()
+while IFS= read -r line; do
+  case "$line" in
+    ''|\#*) continue ;;
+  esac
+  ALLOWED+=("$line")
+done < "$ALLOWLIST"
+
+is_allowed() {
+  local p="$1" a
+  for a in "${ALLOWED[@]}"; do
+    [ "$p" = "$a" ] && return 0
+    case "$a" in
+      */) [[ "$p" == "$a"* ]] && return 0 ;;
+    esac
+  done
+  return 1
+}
+
+violations=()
+zero="0000000000000000000000000000000000000000"
+
+while read -r local_ref local_sha remote_ref remote_sha; do
+  if [ "$remote_sha" = "$zero" ]; then
+    range="$local_sha"
+  else
+    range="${remote_sha}..${local_sha}"
+  fi
+
+  # (1) Jede in den zu pushenden Commits hinzugefügte Datei (fängt
+  #     "hinzugefügt und reverted" ab).
+  while IFS= read -r path; do
+    [ -z "$path" ] && continue
+    if ! is_allowed "$path"; then
+      violations+=("$path")
+    fi
+  done < <(git log --diff-filter=A --name-only --pretty=format: "$range" 2>/dev/null || true)
+
+  # (2) HEAD-Baum komplett (alle aktuell getrackten Dateien am zu pushenden Stand).
+  while IFS= read -r path; do
+    [ -z "$path" ] && continue
+    if ! is_allowed "$path"; then
+      violations+=("$path")
+    fi
+  done < <(git ls-tree -r --name-only "$local_sha" 2>/dev/null || true)
+done
+
+# Dubletten herauswerfen.
+if [ ${#violations[@]} -gt 0 ]; then
+  unique_violations=()
+  while IFS= read -r line; do
+    [ -n "$line" ] && unique_violations+=("$line")
+  done < <(printf '%s\n' "${violations[@]}" | sort -u)
+fi
+
+if [ ${#unique_violations[@]} -gt 0 ]; then
+  echo "" >&2
+  echo "PUSH BLOCKIERT durch .ossallowlist — nicht-öffentliche Pfade:" >&2
+  printf '  - %s\n' "${unique_violations[@]}" >&2
+  echo "" >&2
+  echo "Diese Dateien würden ins öffentliche Repo (origin) gelangen." >&2
+  echo "Interne Doku/Planung gehört nach .scratch/ (gitignored)." >&2
+  echo "Beheben: Datei aus dem Tracking nehmen (git rm --cached) oder nach" >&2
+  echo ".scratch/ verschieben. Bei bewusster Ausnahme .ossallowlist erweitern." >&2
+  echo "" >&2
+  exit 1
+fi
+
+exit 0

@@ -1,0 +1,15 @@
+# Votepit — Apache-Konfiguration für den Webroot (public/).
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Alle nicht existierenden Pfade auf den Front-Controller leiten.
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^ index.php [L]
+</IfModule>
+
+# Versteckte Dateien (z. B. .htaccess selbst) nicht ausliefern.
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>

@@ -1,0 +1,30 @@
+# macOS
+.DS_Store
+
+# Lokale Konfiguration mit Secrets — NIE einchecken
+/config/config.php
+.env
+
+# Composer-Abhängigkeiten (lokal gebaut, per FTPES als Build-Artefakt deployt)
+/vendor/
+
+# composer.lock WIRD committet (Reproduzierbarkeit + Integrität der Builds, siehe SECURITY A06).
+
+# Lokales Tracking (Issues, Roadmap, interne Planungs-Doku — nicht für die Öffentlichkeit)
+/.scratch/
+
+# Interne Planungs-/Architektur-Doku — nie öffentlich. Defense-in-Depth:
+# falls jemand etwas unterhalb von docs/ anlegt, wird es hier blockiert.
+/docs/
+
+# Audit-Logs (PII-arm, aber nicht für die Öffentlichkeit)
+/logs/
+
+# PHPUnit
+/.phpunit.cache/
+/.phpunit.result.cache
+/coverage/
+
+# IDE
+/.idea/
+/.vscode/

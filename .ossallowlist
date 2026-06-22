@@ -1,0 +1,29 @@
+# Votepit — OSS-Allowlist (öffentliche Pfade)
+#
+# Was hier NICHT steht, wird vom pre-commit- und pre-push-Hook blockiert
+# (.githooks/). Interne Doku/Planung gehört nach .scratch/ (gitignored).
+#
+# Erlaubt sind: exakte Dateipfade ODER Verzeichnis-Präfixe (mit "/").
+
+# Root-Markdown + Lizenz + Disclosure
+README.md
+SECURITY.md
+LICENSE
+
+# Build-/Paket-Metadaten
+composer.json
+composer.lock
+.gitignore
+.ossallowlist
+
+# Hook-Schutz (muss committet sein, um für Klonende zu gelten; öffentlich ok)
+.githooks/
+
+# Konfigurations-VORLAGE (keine Secrets)
+config/config.example.php
+
+# Öffentliche Code-/Schema-Verzeichnisse
+public/
+src/
+tests/
+db/

@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+#
+# Votepit — pre-commit Hook (OSS-Allowlist-Guard)
+#
+# Blockt jeden Commit, der Pfade enthält, die nicht in .ossallowlist stehen.
+# Defense in Depth: erste Schicht ist .gitignore, diese zweite Schicht fängt
+# `git add -f` (force) und versehentliches Stagen ab. Interne Doku/Planung
+# gehört nach .scratch/ (gitignored) — niemals ins öffentliche Repo.
+#
+# Aktivierung: `git config core.hooksPath .githooks` (pro Clone).
+# Umgehen mit `git commit --no-verify` → dann greift pre-push als dritte Schicht.
+#
+# Bash-3.2-kompatibel (macOS /bin/bash) — kein mapfile/readarray.
+#
+set -euo pipefail
+
+ROOT="$(git rev-parse --show-toplevel)"
+ALLOWLIST="$ROOT/.ossallowlist"
+
+if [ ! -f "$ALLOWLIST" ]; then
+  echo "pre-commit: WARN — keine .ossallowlist gefunden, Guard inaktiv." >&2
+  exit 0
+fi
+
+# Allowlist einlesen (Kommentar-/Leerzeilen raus).
+ALLOWED=()
+while IFS= read -r line; do
+  case "$line" in
+    ''|\#*) continue ;;
+  esac
+  ALLOWED+=("$line")
+done < "$ALLOWLIST"
+
+is_allowed() {
+  local p="$1" a
+  for a in "${ALLOWED[@]}"; do
+    [ "$p" = "$a" ] && return 0
+    case "$a" in
+      */) [[ "$p" == "$a"* ]] && return 0 ;;
+    esac
+  done
+  return 1
+}
+
+violations=()
+while IFS= read -r p; do
+  [ -z "$p" ] && continue
+  if ! is_allowed "$p"; then
+    violations+=("$p")
+  fi
+done < <(git diff --cached --name-only --diff-filter=ACM)
+
+if [ ${#violations[@]} -gt 0 ]; then
+  echo "" >&2
+  echo "BLOCKIERT durch .ossallowlist — nicht-öffentliche Pfade im Commit:" >&2
+  printf '  - %s\n' "${violations[@]}" >&2
+  echo "" >&2
+  echo "Interne Doku/Planung gehört nach .scratch/ (gitignored)." >&2
+  echo "Öffentlich erlaubte Pfade stehen in .ossallowlist." >&2
+  echo "Bei bewusster Ausnahme: .ossallowlist erweitern (nach Review)." >&2
+  echo "" >&2
+  exit 1
+fi
+
+exit 0
