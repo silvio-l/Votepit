@@ -26,6 +26,7 @@ use Votepit\Persistence\LoginTokenRepository;
 use Votepit\Persistence\UserRepository;
 use Votepit\Security\CsrfService;
 use Votepit\Security\RateLimiter;
+use Votepit\Security\ReturnToValidator;
 use Votepit\Security\SessionService;
 use Votepit\Security\TokenVault;
 
@@ -140,8 +141,12 @@ final class AppFactory
                 ResponseInterface $response,
             ) use ($twig): MessageInterface {
                 $csrfToken = $request->getAttribute(CsrfMiddleware::ATTR_TOKEN);
+                $params    = $request->getQueryParams();
+                $rawR      = is_string($params['r'] ?? null) ? $params['r'] : '';
+                $returnTo  = ReturnToValidator::isValid($rawR) ? $rawR : '';
                 $response  = $twig->render($response, 'login.twig', [
                     'csrf_token' => is_string($csrfToken) ? $csrfToken : '',
+                    'return_to'  => $returnTo,
                 ]);
                 return $response->withHeader('Content-Type', 'text/html; charset=utf-8');
             })->add(AuthZMiddleware::anon($responseFactory));
@@ -155,6 +160,8 @@ final class AppFactory
                 $parsed    = $request->getParsedBody();
                 $rawEmail  = is_array($parsed) ? (string) ($parsed['email'] ?? '') : '';
                 $email     = strtolower(trim($rawEmail));
+                $rawR      = is_array($parsed) ? (string) ($parsed['r'] ?? '') : '';
+                $returnTo  = ReturnToValidator::isValid($rawR) ? $rawR : '';
 
                 // Nur versenden wenn Syntax gültig — neutrale Behandlung (kein 4xx).
                 if ($email !== '' && filter_var($email, FILTER_VALIDATE_EMAIL) !== false) {
@@ -168,6 +175,10 @@ final class AppFactory
                     $tokenRepo->insert((int) $user['id'], $pair['hash'], $expiresAt);
 
                     $link = $config->appUrl . '/login/verify?token=' . $pair['token'];
+                    if ($returnTo !== '') {
+                        $link .= '&r=' . rawurlencode($returnTo);
+                    }
+
                     $resolvedMailer->send(
                         $email,
                         'Dein Votepit Login-Link',
@@ -230,8 +241,10 @@ final class AppFactory
                 ServerRequestInterface $request,
                 ResponseInterface $response,
             ) use ($twig, $userRepo, $tokenRepo, $vault, $audit, $config, $sessions, $conn): MessageInterface {
-                $params = $request->getQueryParams();
-                $token  = is_string($params['token'] ?? null) ? $params['token'] : '';
+                $params   = $request->getQueryParams();
+                $token    = is_string($params['token'] ?? null) ? $params['token'] : '';
+                $rawR     = is_string($params['r'] ?? null) ? $params['r'] : '';
+                $returnTo = ReturnToValidator::isValid($rawR) ? $rawR : '/';
 
                 $row = $token !== '' ? $tokenRepo->findActiveByHash($vault->hash($token)) : null;
 
@@ -275,9 +288,10 @@ final class AppFactory
                 }
 
                 // Frische Session — etwaiges Vor-Login-Cookie wird ignoriert/ersetzt
-                // (Session-Fixation-Schutz). Default-Pfad = Home (Issue 05: Return-Pfad).
+                // (Session-Fixation-Schutz). Redirect-Ziel: validierter Return-To-Pfad
+                // oder Default '/' (Issue 05: Open-Redirect-sicheres Deep-Linking).
                 $response = $sessions->issue(
-                    $response->withStatus(302)->withHeader('Location', '/'),
+                    $response->withStatus(302)->withHeader('Location', $returnTo),
                     ['uid' => $userId, 'v' => (int) ($user['token_version'] ?? 0)],
                 );
 

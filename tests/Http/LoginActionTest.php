@@ -27,15 +27,15 @@ final class LoginActionTest extends IntegrationTestCase
     }
 
     /** Erzeugt eine POST-Request mit gültigem CSRF-Cookie und -Feld. */
-    private function postLogin(string $email, ?string $extraField = null): \Psr\Http\Message\ServerRequestInterface
+    private function postLogin(string $email, ?string $returnTo = null): \Psr\Http\Message\ServerRequestInterface
     {
         $csrf   = $this->csrf();
         $token  = $csrf->generate();
         $signed = $csrf->sign($token);
 
         $body = ['email' => $email, '_csrf' => $token];
-        if ($extraField !== null) {
-            $body['_extra'] = $extraField;
+        if ($returnTo !== null) {
+            $body['r'] = $returnTo;
         }
 
         return (new ServerRequestFactory())->createServerRequest('POST', '/login')
@@ -251,5 +251,90 @@ final class LoginActionTest extends IntegrationTestCase
         // InMemoryMailer hat die Mail empfangen (kein Netzwerk-Aufruf)
         self::assertCount(1, $mailer->sent);
         self::assertStringContainsString('inject@example.com', $mailer->sent[0]['to']);
+    }
+
+    // -------------------------------------------------------------------------
+    // Issue 05: Return-To (Open-Redirect-sicheres Deep-Linking)
+    // -------------------------------------------------------------------------
+
+    public function test_valid_return_to_is_embedded_in_magic_link(): void
+    {
+        $mailer = new InMemoryMailer();
+        $app    = $this->createApp($mailer);
+
+        $app->handle($this->postLogin('deeplink@example.com', '/some/board/path'));
+
+        $mail = $mailer->lastSent();
+        self::assertNotNull($mail);
+        // Der Link muss den URL-codierten Return-To-Pfad enthalten.
+        self::assertStringContainsString('&r=', $mail['body']);
+        self::assertStringContainsString(rawurlencode('/some/board/path'), $mail['body']);
+    }
+
+    public function test_protocol_relative_return_to_is_not_embedded(): void
+    {
+        $mailer = new InMemoryMailer();
+        $app    = $this->createApp($mailer);
+
+        $app->handle($this->postLogin('evil@example.com', '//evil.com'));
+
+        $mail = $mailer->lastSent();
+        self::assertNotNull($mail);
+        // Ungültiger Return-To darf NICHT im Link erscheinen.
+        self::assertStringNotContainsString('evil.com', $mail['body']);
+        self::assertStringNotContainsString('&r=', $mail['body']);
+    }
+
+    public function test_absolute_url_return_to_is_not_embedded(): void
+    {
+        $mailer = new InMemoryMailer();
+        $app    = $this->createApp($mailer);
+
+        $app->handle($this->postLogin('abs@example.com', 'https://evil.com'));
+
+        $mail = $mailer->lastSent();
+        self::assertNotNull($mail);
+        self::assertStringNotContainsString('evil.com', $mail['body']);
+        self::assertStringNotContainsString('&r=', $mail['body']);
+    }
+
+    public function test_missing_return_to_produces_no_r_param_in_link(): void
+    {
+        $mailer = new InMemoryMailer();
+        $app    = $this->createApp($mailer);
+
+        $app->handle($this->postLogin('nort@example.com'));
+
+        $mail = $mailer->lastSent();
+        self::assertNotNull($mail);
+        self::assertStringNotContainsString('&r=', $mail['body']);
+    }
+
+    public function test_get_login_with_valid_r_renders_hidden_field(): void
+    {
+        $app     = $this->createApp();
+        $request = (new ServerRequestFactory())->createServerRequest('GET', '/login')
+            ->withQueryParams(['r' => '/some/board/path']);
+
+        $response = $app->handle($request);
+
+        self::assertSame(200, $response->getStatusCode());
+        $body = (string) $response->getBody();
+        self::assertStringContainsString('name="r"', $body);
+        self::assertStringContainsString('/some/board/path', $body);
+    }
+
+    public function test_get_login_with_invalid_r_does_not_render_hidden_field(): void
+    {
+        $app     = $this->createApp();
+        $request = (new ServerRequestFactory())->createServerRequest('GET', '/login')
+            ->withQueryParams(['r' => '//evil.com']);
+
+        $response = $app->handle($request);
+
+        self::assertSame(200, $response->getStatusCode());
+        $body = (string) $response->getBody();
+        // Kein hidden r-Feld mit bösartigem Wert
+        self::assertStringNotContainsString('evil.com', $body);
     }
 }

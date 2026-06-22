@@ -67,10 +67,15 @@ final class VerifyActionTest extends IntegrationTestCase
     }
 
     /** @param array<string, mixed> $cookies */
-    private function verifyRequest(string $token, array $cookies = []): ServerRequestInterface
+    private function verifyRequest(string $token, array $cookies = [], ?string $returnTo = null): ServerRequestInterface
     {
+        $params = ['token' => $token];
+        if ($returnTo !== null) {
+            $params['r'] = $returnTo;
+        }
+
         return (new ServerRequestFactory())->createServerRequest('GET', '/login/verify')
-            ->withQueryParams(['token' => $token])
+            ->withQueryParams($params)
             ->withCookieParams($cookies);
     }
 
@@ -364,5 +369,57 @@ final class VerifyActionTest extends IntegrationTestCase
         $log = $this->readAuditLog();
         self::assertStringContainsString('magic_link.verify_failed', $log);
         self::assertStringNotContainsString($garbage, $log);
+    }
+
+    // -------------------------------------------------------------------------
+    // Issue 05: Return-To (Open-Redirect-sicheres Deep-Linking)
+    // -------------------------------------------------------------------------
+
+    public function test_valid_return_to_redirects_to_that_path(): void
+    {
+        $plain  = bin2hex(random_bytes(32));
+        $userId = $this->seedUser('returnto@example.com');
+        $this->seedToken($userId, $plain, $this->future());
+
+        $response = $this->createApp()->handle($this->verifyRequest($plain, [], '/some/board/path'));
+
+        self::assertSame(302, $response->getStatusCode());
+        self::assertSame('/some/board/path', $response->getHeaderLine('Location'));
+    }
+
+    public function test_protocol_relative_return_to_falls_back_to_default(): void
+    {
+        $plain  = bin2hex(random_bytes(32));
+        $userId = $this->seedUser('rtproto@example.com');
+        $this->seedToken($userId, $plain, $this->future());
+
+        $response = $this->createApp()->handle($this->verifyRequest($plain, [], '//evil.com'));
+
+        self::assertSame(302, $response->getStatusCode());
+        self::assertSame('/', $response->getHeaderLine('Location'));
+    }
+
+    public function test_absolute_url_return_to_falls_back_to_default(): void
+    {
+        $plain  = bin2hex(random_bytes(32));
+        $userId = $this->seedUser('rtabs@example.com');
+        $this->seedToken($userId, $plain, $this->future());
+
+        $response = $this->createApp()->handle($this->verifyRequest($plain, [], 'https://evil.com'));
+
+        self::assertSame(302, $response->getStatusCode());
+        self::assertSame('/', $response->getHeaderLine('Location'));
+    }
+
+    public function test_missing_return_to_redirects_to_default(): void
+    {
+        $plain  = bin2hex(random_bytes(32));
+        $userId = $this->seedUser('rtnone@example.com');
+        $this->seedToken($userId, $plain, $this->future());
+
+        $response = $this->createApp()->handle($this->verifyRequest($plain));
+
+        self::assertSame(302, $response->getStatusCode());
+        self::assertSame('/', $response->getHeaderLine('Location'));
     }
 }
