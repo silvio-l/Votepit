@@ -16,27 +16,17 @@ use Votepit\SmtpConfig;
  * Baut den Symfony Mailer aus SmtpConfig (SMTP/TLS oder SMTPS) und versieht
  * jede Mail mit Absender-Name + -Adresse aus der Konfiguration. Nur Plaintext.
  * Wirft Symfony-Transport-Exceptions unverändert nach oben — keine Swallowing.
+ *
+ * Der Transport wird **lazy** beim ersten `send()` gebaut (memoisiert), nicht
+ * im Konstruktor: So scheitert das App-Booten nicht an einer leeren/ungültigen
+ * SMTP-Konfiguration — nur ein tatsächlicher Versand verlangt gültige Werte.
+ * Reine Seitenansichten (z. B. GET /login) brauchen keinen Mailer.
  */
-final readonly class SymfonyMailerAdapter implements Mailer
+final class SymfonyMailerAdapter implements Mailer
 {
-    private SymfonyMailer $mailer;
+    private ?SymfonyMailer $mailer = null;
 
-    public function __construct(private SmtpConfig $smtp)
-    {
-        $scheme = $smtp->encryption === 'ssl' ? 'smtps' : 'smtp';
-        $auth   = '';
-        if ($smtp->user !== '') {
-            $auth = rawurlencode($smtp->user);
-            if ($smtp->pass !== '') {
-                $auth .= ':' . rawurlencode($smtp->pass);
-            }
-
-            $auth .= '@';
-        }
-
-        $dsn          = "{$scheme}://{$auth}{$smtp->host}:{$smtp->port}";
-        $this->mailer = new SymfonyMailer(Transport::fromDsn($dsn));
-    }
+    public function __construct(private readonly SmtpConfig $smtp) {}
 
     public function send(string $toEmail, string $subject, string $textBody): void
     {
@@ -46,6 +36,25 @@ final readonly class SymfonyMailerAdapter implements Mailer
             ->subject($subject)
             ->text($textBody);
 
+        $this->mailer ??= $this->buildMailer();
         $this->mailer->send($message);
+    }
+
+    private function buildMailer(): SymfonyMailer
+    {
+        $scheme = $this->smtp->encryption === 'ssl' ? 'smtps' : 'smtp';
+        $auth   = '';
+        if ($this->smtp->user !== '') {
+            $auth = rawurlencode($this->smtp->user);
+            if ($this->smtp->pass !== '') {
+                $auth .= ':' . rawurlencode($this->smtp->pass);
+            }
+
+            $auth .= '@';
+        }
+
+        $dsn = "{$scheme}://{$auth}{$this->smtp->host}:{$this->smtp->port}";
+
+        return new SymfonyMailer(Transport::fromDsn($dsn));
     }
 }
