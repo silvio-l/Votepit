@@ -36,7 +36,7 @@
         </h1>
         <p class="vp-lead">Selbst-gehostetes Feature-Voting-Board mit Up- &amp; Down-Votes.</p>
         <span class="vp-badge-ok">● {{ status }}</span>
-        {% if csrf_token is defined and csrf_token %}
+        {% if is_authenticated is defined and is_authenticated and csrf_token %}
         <form method="post" action="/logout" style="margin-top:1.5rem;">
             <input type="hidden" name="_csrf" value="{{ csrf_token }}">
             <button type="submit" class="vp-btn" style="width:auto;padding:.45rem 1.25rem;">Abmelden</button>

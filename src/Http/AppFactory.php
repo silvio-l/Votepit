@@ -119,9 +119,10 @@ final class AppFactory
             $audit->log('smoke.hit', ['ua' => $request->getHeaderLine('User-Agent')]);
             $csrfToken = $request->getAttribute(CsrfMiddleware::ATTR_TOKEN);
             $response  = $twig->render($response, 'home.twig', [
-                'title'      => 'Votepit',
-                'status'     => 'Security-Foundation aktiv.',
-                'csrf_token' => is_string($csrfToken) ? $csrfToken : '',
+                'title'            => 'Votepit',
+                'status'           => 'Security-Foundation aktiv.',
+                'csrf_token'       => is_string($csrfToken) ? $csrfToken : '',
+                'is_authenticated' => $request->getAttribute(AuthNMiddleware::ATTR_USER) !== null,
             ]);
             return $response->withHeader('Content-Type', 'text/html; charset=utf-8');
         })->add(AuthZMiddleware::anon($responseFactory));
