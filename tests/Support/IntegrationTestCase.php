@@ -94,6 +94,22 @@ abstract class IntegrationTestCase extends TestCase
         // Ausgelassen: ENGINE, CHARSET, COLLATE, UNSIGNED, TINYINT(1),
         // FULLTEXT, ON DUPLICATE KEY UPDATE → nicht für Sprint-2-Tests nötig.
         $conn->executeStatement(
+            'CREATE TABLE IF NOT EXISTS boards (
+                id              INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                slug            VARCHAR(64) NOT NULL,
+                name            VARCHAR(128) NOT NULL,
+                accent_color    VARCHAR(16) NOT NULL DEFAULT \'#3b82f6\',
+                primary_color   VARCHAR(7) NULL,
+                secondary_color VARCHAR(7) NULL,
+                logo_url        VARCHAR(512) NULL,
+                intro           TEXT NULL,
+                is_default      INTEGER NOT NULL DEFAULT 0,
+                created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE (slug)
+            )',
+        );
+
+        $conn->executeStatement(
             'CREATE TABLE IF NOT EXISTS users (
                 id            INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
                 email         VARCHAR(254) NOT NULL,

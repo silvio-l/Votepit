@@ -22,8 +22,10 @@ use Votepit\Http\Middleware\SessionMiddleware;
 use Votepit\Logging\AuditLogger;
 use Votepit\Mail\Mailer;
 use Votepit\Mail\SymfonyMailerAdapter;
+use Votepit\Persistence\BoardRepository;
 use Votepit\Persistence\LoginTokenRepository;
 use Votepit\Persistence\UserRepository;
+use Votepit\Security\BrandingValidator;
 use Votepit\Security\CsrfService;
 use Votepit\Security\RateLimiter;
 use Votepit\Security\ReturnToValidator;
@@ -128,6 +130,7 @@ final class AppFactory
         if ($conn instanceof Connection) {
             $userRepo ??= new UserRepository($conn); // bereits oben gebaut; ??= narrowt den Typ
             $tokenRepo = new LoginTokenRepository($conn);
+            $boardRepo = new BoardRepository($conn);
             $vault     = new TokenVault();
             $resolvedMailer = $mailer ?? new SymfonyMailerAdapter($config->smtp);
 
@@ -297,6 +300,76 @@ final class AppFactory
 
                 return $response;
             })->add(AuthZMiddleware::anon($responseFactory));
+
+            // GET /admin/boards/{slug}/branding — Branding-Einstellseite (AuthZ: admin).
+            // Rendert das Base-Layout mit dem (validierten) Branding des Boards selbst:
+            // beweist den Konsum-Seam (Override greift / Default greift) observabel.
+            $app->get('/admin/boards/{slug}/branding', function (
+                ServerRequestInterface $request,
+                ResponseInterface $response,
+                array $args,
+            ) use ($twig, $boardRepo): MessageInterface {
+                $slug  = is_string($args['slug'] ?? null) ? $args['slug'] : '';
+                $board = $boardRepo->findBySlug($slug);
+                if (!is_array($board)) {
+                    $response->getBody()->write('Board not found.');
+                    return $response->withStatus(404);
+                }
+
+                $primary   = is_string($board['primary_color'] ?? null) ? $board['primary_color'] : '';
+                $secondary = is_string($board['secondary_color'] ?? null) ? $board['secondary_color'] : '';
+                $logo      = is_string($board['logo_url'] ?? null) ? $board['logo_url'] : '';
+                $csrfToken = $request->getAttribute(CsrfMiddleware::ATTR_TOKEN);
+
+                $response = $twig->render($response, 'admin/board-branding.twig', [
+                    'csrf_token'      => is_string($csrfToken) ? $csrfToken : '',
+                    'board_slug'      => $slug,
+                    'board_name'      => is_string($board['name'] ?? null) ? $board['name'] : $slug,
+                    'primary_color'   => $primary,
+                    'secondary_color' => $secondary,
+                    'logo_url'        => $logo,
+                    'brand_style'     => BrandingValidator::inlineStyle(
+                        $primary !== '' ? $primary : null,
+                        $secondary !== '' ? $secondary : null,
+                    ),
+                    'brand_logo_url'  => $logo !== '' ? (BrandingValidator::logoUrl($logo) ?? '') : '',
+                ]);
+                return $response->withHeader('Content-Type', 'text/html; charset=utf-8');
+            })->add(AuthZMiddleware::admin($responseFactory));
+
+            // POST /admin/boards/{slug}/branding — speichert das Branding (AuthZ: admin,
+            // CSRF global erzwungen). Jeder Wert wird VOR Speicherung streng validiert;
+            // ungültig → null → Default-Theme (kein roher Wert landet je in der DB/CSS).
+            $app->post('/admin/boards/{slug}/branding', function (
+                ServerRequestInterface $request,
+                ResponseInterface $response,
+                array $args,
+            ) use ($boardRepo, $audit): ResponseInterface {
+                $slug  = is_string($args['slug'] ?? null) ? $args['slug'] : '';
+                $board = $boardRepo->findBySlug($slug);
+                if (!is_array($board)) {
+                    $response->getBody()->write('Board not found.');
+                    return $response->withStatus(404);
+                }
+
+                $parsed       = $request->getParsedBody();
+                $rawPrimary   = is_array($parsed) ? (string) ($parsed['primary_color'] ?? '') : '';
+                $rawSecondary = is_array($parsed) ? (string) ($parsed['secondary_color'] ?? '') : '';
+                $rawLogo      = is_array($parsed) ? (string) ($parsed['logo_url'] ?? '') : '';
+
+                $boardRepo->updateBranding(
+                    (int) $board['id'],
+                    $rawPrimary !== '' ? BrandingValidator::color($rawPrimary) : null,
+                    $rawSecondary !== '' ? BrandingValidator::color($rawSecondary) : null,
+                    $rawLogo !== '' ? BrandingValidator::logoUrl($rawLogo) : null,
+                );
+
+                $audit->log('board.branding_updated', ['board_id' => (int) $board['id']]);
+
+                // Post/Redirect/Get: zurück auf die Einstellseite.
+                return $response->withStatus(302)
+                    ->withHeader('Location', '/admin/boards/' . rawurlencode($slug) . '/branding');
+            })->add(AuthZMiddleware::admin($responseFactory));
         }
 
         return $app;

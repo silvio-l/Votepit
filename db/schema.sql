@@ -19,13 +19,19 @@ SET NAMES utf8mb4;
 
 -- boards: ein Board pro Projekt (example, example, example …)
 CREATE TABLE IF NOT EXISTS boards (
-    id            BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-    slug          VARCHAR(64)     NOT NULL,
-    name          VARCHAR(128)    NOT NULL,
-    accent_color  VARCHAR(16)     NOT NULL DEFAULT '#3b82f6',
-    intro         TEXT            NULL,
-    is_default    TINYINT(1)      NOT NULL DEFAULT 0,
-    created_at    DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    id              BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    slug            VARCHAR(64)     NOT NULL,
+    name            VARCHAR(128)    NOT NULL,
+    accent_color    VARCHAR(16)     NOT NULL DEFAULT '#3b82f6',
+    -- Per-Board-Branding (Issue 08): überschreiben die Marken-Tokens (Issue 07)
+    -- zur Laufzeit. NULLable + additiv → bestehende Spalten unberührt. Hex-Werte
+    -- (#rrggbb / #rgb) werden VOR Speicherung + VOR CSS-Ausgabe streng validiert.
+    primary_color   VARCHAR(7)      NULL,
+    secondary_color VARCHAR(7)      NULL,
+    logo_url        VARCHAR(512)    NULL,
+    intro           TEXT            NULL,
+    is_default      TINYINT(1)      NOT NULL DEFAULT 0,
+    created_at      DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     UNIQUE KEY uq_boards_slug (slug)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

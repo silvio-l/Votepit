@@ -3,6 +3,7 @@
 
   ┌─ Marken-Tokens (pro Board in Issue 08 überschreibbar) ──────────────────┐
   │ --vp-primary            Brand-Primärfarbe (Ink/Schwarz Standard)         │
+  │ --vp-secondary          Brand-Sekundär-/Akzentfarbe                      │
   │ --vp-primary-contrast   Text auf --vp-primary                            │
   │ --vp-primary-glow       Dezenter Glow um primäre Elemente                │
   │ --vp-bg                 Seitenhintergrund (warm-neutral)                  │
@@ -29,7 +30,13 @@
   überschreibbar — Up/Down/Konsens-Lesbarkeit ist brand-unabhängig.
 #}
 <!DOCTYPE html>
-<html lang="de">
+{#
+  brand_style: vom Server (BrandingValidator::inlineStyle) erzeugter String aus
+  ausschließlich validierten Marken-Token-Overrides (--vp-primary/--vp-secondary).
+  Inline am <html> gewinnt per Kaskade gegen die :root-Defaults; ist er leer,
+  greift das Default-Theme. Semantische Tokens werden hier NIE überschrieben.
+#}
+<html lang="de"{% if brand_style|default('') is not empty %} style="{{ brand_style }}"{% endif %}>
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -38,6 +45,7 @@
         /* ── Marken-Tokens (Board-überschreibbar via Issue 08) ──────────── */
         :root {
             --vp-primary:          #111111;
+            --vp-secondary:        #475569;
             --vp-primary-contrast: #ffffff;
             --vp-primary-glow:     rgba(17, 17, 17, 0.12);
             --vp-bg:               #faf9f7;
@@ -151,6 +159,11 @@
 <body>
     {% block body %}
     <main class="vp-wrap">
+        {% block brand_logo %}
+        {% if brand_logo_url|default('') is not empty %}
+        <img class="vp-logo" src="{{ brand_logo_url }}" alt="">
+        {% endif %}
+        {% endblock %}
         {% block content %}{% endblock %}
         {% block footer %}
         <footer class="vp-footer">Votepit</footer>

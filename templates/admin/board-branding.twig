@@ -1,0 +1,30 @@
+{% extends 'base.twig' %}
+
+{% block title %}Branding — {{ board_name }}{% endblock %}
+
+{% block content %}
+<h1 class="vp-h1">Branding</h1>
+<p class="vp-lead">Board: {{ board_name }} ({{ board_slug }})</p>
+
+{% if saved|default(false) %}
+<p class="vp-lead">Gespeichert.</p>
+{% endif %}
+
+<form method="post" action="/admin/boards/{{ board_slug }}/branding">
+    <input type="hidden" name="_csrf" value="{{ csrf_token }}">
+
+    <label class="vp-label" for="primary_color">Primärfarbe (Hex, z.&nbsp;B. #111111)</label>
+    <input class="vp-input" type="text" id="primary_color" name="primary_color"
+           value="{{ primary_color }}" placeholder="#111111" autocomplete="off">
+
+    <label class="vp-label" for="secondary_color" style="margin-top:1rem;">Sekundärfarbe (Hex)</label>
+    <input class="vp-input" type="text" id="secondary_color" name="secondary_color"
+           value="{{ secondary_color }}" placeholder="#475569" autocomplete="off">
+
+    <label class="vp-label" for="logo_url" style="margin-top:1rem;">Logo-URL (relativer Pfad oder https)</label>
+    <input class="vp-input" type="text" id="logo_url" name="logo_url"
+           value="{{ logo_url }}" placeholder="/assets/logo.svg" autocomplete="off">
+
+    <button class="vp-btn" type="submit">Speichern</button>
+</form>
+{% endblock %}
