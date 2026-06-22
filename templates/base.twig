@@ -1,0 +1,161 @@
+{#
+  base.twig — Votepit Base-Layout (Issue 07, Sprint 2)
+
+  ┌─ Marken-Tokens (pro Board in Issue 08 überschreibbar) ──────────────────┐
+  │ --vp-primary            Brand-Primärfarbe (Ink/Schwarz Standard)         │
+  │ --vp-primary-contrast   Text auf --vp-primary                            │
+  │ --vp-primary-glow       Dezenter Glow um primäre Elemente                │
+  │ --vp-bg                 Seitenhintergrund (warm-neutral)                  │
+  │ --vp-surface            Frosted-Glass-Karten-Fläche                      │
+  │ --vp-surface-border     Glasrand                                          │
+  │ --vp-border             Subtile Trennlinie                                │
+  │ --vp-radius             Squircle-Näherung (Karte)                         │
+  │ --vp-radius-sm          Squircle-Näherung (kleine Elemente)               │
+  │ --vp-text               Primärtext                                        │
+  │ --vp-text-muted         Sekundärtext                                      │
+  └────────────────────────────────────────────────────────────────────────────┘
+
+  ┌─ Semantische Tokens (NICHT Board-überschreibbar) ──────────────────────┐
+  │ --vp-vote-up / --vp-vote-up-bg      Up-Vote (Grün)                      │
+  │ --vp-vote-down / --vp-vote-down-bg  Down-Vote (Vermillion)              │
+  │ --vp-consensus-high                 Hoher Konsens (Grün)                │
+  │ --vp-consensus-low                  Umstritten (Vermillion)             │
+  │ --vp-status-open/planned/…          Idea-Status-Farben                  │
+  │ --vp-font-sans/head/mono            Typografie-Stack                    │
+  └────────────────────────────────────────────────────────────────────────────┘
+
+  Issue 08 überschreibt ausschließlich die Marken-Tokens per Inline-Custom-
+  Properties am <html>-Element. Semantische Tokens sind bewusst nicht
+  überschreibbar — Up/Down/Konsens-Lesbarkeit ist brand-unabhängig.
+#}
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}Votepit{% endblock %}</title>
+    <style>
+        /* ── Marken-Tokens (Board-überschreibbar via Issue 08) ──────────── */
+        :root {
+            --vp-primary:          #111111;
+            --vp-primary-contrast: #ffffff;
+            --vp-primary-glow:     rgba(17, 17, 17, 0.12);
+            --vp-bg:               #faf9f7;
+            --vp-surface:          rgba(255, 255, 255, 0.72);
+            --vp-surface-border:   rgba(255, 255, 255, 0.55);
+            --vp-border:           rgba(15, 23, 42, 0.10);
+            --vp-radius:           16px;
+            --vp-radius-sm:        10px;
+            --vp-text:             #0f172a;
+            --vp-text-muted:       #64748b;
+        }
+
+        /* ── Semantische Tokens (NICHT Board-überschreibbar) ────────────── */
+        :root {
+            /* Voting — Grün (Up) / Vermillion (Down) */
+            --vp-vote-up:            #16a34a;
+            --vp-vote-up-bg:         #dcfce7;
+            --vp-vote-down:          #e03535;
+            --vp-vote-down-bg:       #fee2e2;
+
+            /* Konsens */
+            --vp-consensus-high:     #16a34a;
+            --vp-consensus-low:      #e03535;
+
+            /* Idea-Status */
+            --vp-status-open:        #1d4ed8;
+            --vp-status-planned:     #7c3aed;
+            --vp-status-in-progress: #b45309;
+            --vp-status-done:        #15803d;
+            --vp-status-declined:    #6b7280;
+
+            /* Typografie (Archivo Headlines + Inter Body + JetBrains Mono Zahlen) */
+            --vp-font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            --vp-font-head: "Archivo", "Inter", ui-sans-serif, system-ui, sans-serif;
+            --vp-font-mono: "JetBrains Mono", ui-monospace, "Cascadia Code", "Fira Code", monospace;
+        }
+
+        /* ── Reset ───────────────────────────────────────────────────────── */
+        *, *::before, *::after { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font-family: var(--vp-font-sans);
+            color: var(--vp-text);
+            background: var(--vp-bg);
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* ── Karte (Frosted-Glass + Squircle-Näherung) ───────────────────── */
+        .vp-card {
+            background: var(--vp-surface);
+            border: 1px solid var(--vp-surface-border);
+            border-radius: var(--vp-radius);
+            padding: 2rem 2.25rem;
+            box-shadow:
+                0 0 0 1px var(--vp-border),
+                0 4px 24px var(--vp-primary-glow),
+                0 1px 3px rgba(15, 23, 42, .06);
+            backdrop-filter: blur(16px) saturate(1.2);
+            -webkit-backdrop-filter: blur(16px) saturate(1.2);
+        }
+
+        /* ── Primär-Button ───────────────────────────────────────────────── */
+        .vp-btn {
+            display: inline-block;
+            width: 100%;
+            margin-top: 1rem;
+            padding: .65rem 1rem;
+            background: var(--vp-primary);
+            color: var(--vp-primary-contrast);
+            border: none;
+            border-radius: var(--vp-radius-sm);
+            font-family: var(--vp-font-sans);
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity .15s;
+            text-align: center;
+        }
+        .vp-btn:hover { opacity: .85; }
+
+        /* ── Eingabefeld ─────────────────────────────────────────────────── */
+        .vp-input {
+            width: 100%;
+            padding: .6rem .8rem;
+            border: 1px solid var(--vp-border);
+            border-radius: var(--vp-radius-sm);
+            font-family: var(--vp-font-sans);
+            font-size: 1rem;
+            color: var(--vp-text);
+            background: var(--vp-surface);
+            outline: none;
+            transition: border-color .15s;
+        }
+        .vp-input:focus { border-color: var(--vp-primary); }
+
+        /* ── Typografie-Helfer ───────────────────────────────────────────── */
+        .vp-wrap   { max-width: 460px; margin: 12vh auto; padding: 2.5rem 1.5rem; }
+        .vp-h1     { margin: 0 0 .25rem; font-family: var(--vp-font-head); font-size: 1.5rem; letter-spacing: -.02em; }
+        .vp-lead   { color: var(--vp-text-muted); margin: .5rem 0 1.5rem; font-size: .95rem; }
+        .vp-label  { display: block; font-size: .875rem; font-weight: 500; margin-bottom: .4rem; }
+        .vp-footer { margin-top: 1.5rem; color: var(--vp-text-muted); font-size: .8rem; text-align: center; }
+        .vp-link   { color: var(--vp-primary); }
+        .vp-icon   { font-size: 2rem; margin-bottom: .75rem; display: block; }
+
+        {% block styles %}{% endblock %}
+    </style>
+    {% block head_extra %}{% endblock %}
+</head>
+<body>
+    {% block body %}
+    <main class="vp-wrap">
+        {% block content %}{% endblock %}
+        {% block footer %}
+        <footer class="vp-footer">Votepit</footer>
+        {% endblock %}
+    </main>
+    {% endblock %}
+</body>
+</html>

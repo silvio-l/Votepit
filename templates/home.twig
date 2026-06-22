@@ -1,49 +1,47 @@
-<!DOCTYPE html>
-<html lang="de">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{{ title|default('Votepit') }}</title>
-    <style>
-        :root { --accent: #3b82f6; }
-        * { box-sizing: border-box; }
-        body {
-            margin: 0;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, sans-serif;
-            color: #0f172a;
-            background: #f8fafc;
-            line-height: 1.5;
-            -webkit-font-smoothing: antialiased;
-        }
-        .wrap { max-width: 640px; margin: 12vh auto; padding: 2.5rem 1.5rem; }
-        .card {
-            background: #fff;
-            border: 1px solid #e2e8f0;
-            border-radius: 14px;
-            padding: 2rem 2.25rem;
-            box-shadow: 0 1px 2px rgba(15, 23, 42, .04);
-        }
-        h1 { margin: 0 0 .25rem; font-size: 1.75rem; letter-spacing: -.01em; }
-        .accent { display: inline-block; width: 10px; height: 10px; border-radius: 999px; background: var(--accent); margin-right: .5rem; vertical-align: middle; }
-        p.lead { color: #475569; margin: .5rem 0 1.5rem; }
-        .status {
-            display: inline-flex; align-items: center; gap: .5rem;
-            background: #ecfdf5; color: #047857;
-            border: 1px solid #a7f3d0; border-radius: 999px;
-            padding: .35rem .85rem; font-size: .85rem; font-weight: 600;
-        }
-        footer { margin-top: 1.5rem; color: #94a3b8; font-size: .8rem; text-align: center; }
-        a { color: var(--accent); }
-    </style>
-</head>
-<body>
-    <main class="wrap">
-        <section class="card">
-            <h1><span class="accent"></span>{{ title }}</h1>
-            <p class="lead">Selbst-gehostetes Feature-Voting-Board mit Up- &amp; Down-Votes.</p>
-            <span class="status">● {{ status }}</span>
-        </section>
-        <footer>Votepit · Security by Design · <a href="https://github.com/silvio-l/Votepit">GitHub</a></footer>
-    </main>
-</body>
-</html>
+{% extends 'base.twig' %}
+
+{% block title %}{{ title|default('Votepit') }}{% endblock %}
+
+{% block styles %}
+.vp-wrap--wide { max-width: 640px; }
+.vp-accent-dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 999px;
+    background: var(--vp-primary);
+    margin-right: .5rem;
+    vertical-align: middle;
+}
+.vp-badge-ok {
+    display: inline-flex;
+    align-items: center;
+    gap: .5rem;
+    background: var(--vp-vote-up-bg);
+    color: var(--vp-vote-up);
+    border: 1px solid var(--vp-vote-up);
+    border-radius: 999px;
+    padding: .35rem .85rem;
+    font-size: .85rem;
+    font-weight: 600;
+}
+{% endblock %}
+
+{% block body %}
+<main class="vp-wrap vp-wrap--wide">
+    {% block content %}
+    <section class="vp-card">
+        <h1 class="vp-h1" style="font-size: 1.75rem;">
+            <span class="vp-accent-dot" aria-hidden="true"></span>{{ title }}
+        </h1>
+        <p class="vp-lead">Selbst-gehostetes Feature-Voting-Board mit Up- &amp; Down-Votes.</p>
+        <span class="vp-badge-ok">● {{ status }}</span>
+    </section>
+    {% endblock %}
+    {% block footer %}
+    <footer class="vp-footer">
+        Votepit · Security by Design · <a class="vp-link" href="https://github.com/silvio-l/Votepit">GitHub</a>
+    </footer>
+    {% endblock %}
+</main>
+{% endblock %}
