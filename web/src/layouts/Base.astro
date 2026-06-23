@@ -22,6 +22,40 @@ const { title, description, lang, canonicalURL, altEn = '/', altDe = '/de/' } = 
   <meta name="description" content={description} />
   {canonicalURL && <link rel="canonical" href={canonicalURL} />}
 
+  <!-- OpenGraph + Twitter Card -->
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Votepit" />
+  <meta property="og:title" content={title} />
+  <meta property="og:description" content={description} />
+  <meta property="og:url" content={canonicalURL ?? 'https://votepit.com'} />
+  <meta property="og:image" content="https://votepit.com/assets/og/votepit-og.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:locale" content={lang === 'de' ? 'de_DE' : 'en_US'} />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content={title} />
+  <meta name="twitter:description" content={description} />
+  <meta name="twitter:image" content="https://votepit.com/assets/og/votepit-og.png" />
+
+  <!-- Structured Data -->
+  <script type="application/ld+json" set:html={JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Votepit",
+    "applicationCategory": "BusinessApplication",
+    "operatingSystem": "PHP 8.2+ / MySQL on shared hosting",
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+    "license": "https://opensource.org/licenses/MIT",
+    "description": description,
+  })} />
+  <script type="application/ld+json" set:html={JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "Votepit",
+    "url": "https://votepit.com",
+    "logo": "https://votepit.com/assets/brand/votepit-lockup-light.png",
+  })} />
+
   <!-- Favicons -->
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
   <link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png" />
