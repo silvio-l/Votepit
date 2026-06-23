@@ -3,86 +3,86 @@
 {% block title %}Moderation — {{ board_name }}{% endblock %}
 
 {% block styles %}
-.vp-admin-card {
-    background: var(--vp-surface); border: 1px solid var(--vp-surface-border); border-radius: var(--vp-radius);
-    padding: 1.75rem 2rem; margin-bottom: 1rem;
-    box-shadow: 0 0 0 1px var(--vp-border), 0 4px 24px var(--vp-primary-glow), 0 1px 3px rgba(21,22,26,.05);
-    backdrop-filter: blur(16px) saturate(1.2); -webkit-backdrop-filter: blur(16px) saturate(1.2);
-}
-.vp-admin-card h2 { margin: 0 0 1rem; font-family: var(--vp-font-head); font-weight: 700; font-size: 1.15rem; letter-spacing: -.01em; }
-.vp-switch { display: flex; align-items: center; gap: .6rem; margin: .25rem 0 1.25rem; font-size: .95rem; }
-.vp-saved { display: inline-block; margin-bottom: 1rem; padding: .3rem .7rem; border-radius: 999px; font-size: .8rem; font-weight: 600; background: rgba(14,148,102,.12); color: var(--vp-status-done); }
-.vp-wordlist { list-style: none; padding: 0; margin: 0 0 1.25rem; display: flex; flex-direction: column; gap: .5rem; }
-.vp-wordlist li { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .5rem .85rem; border: 1px solid var(--vp-border); border-radius: var(--vp-radius-sm); background: var(--vp-surface-subtle); }
-.vp-wordlist .w { font-family: var(--vp-font-mono); font-size: .9rem; }
+.vp-admin-hero { padding: 40px 0 8px; }
+.vp-admin-hero h1 { margin: 0; font-family: var(--vp-font-head); font-weight: 700; font-size: clamp(26px,4vw,34px); letter-spacing: -.02em; color: var(--vp-text); }
+.vp-admin-hero p { margin: 8px 0 0; color: var(--vp-text-muted); font-size: 15px; }
+.vp-admin-card { background: var(--vp-surface); border: 1px solid var(--vp-border); border-radius: 16px; box-shadow: var(--vp-row-shadow); padding: 22px 24px; margin-top: 16px; backdrop-filter: blur(14px) saturate(1.18); -webkit-backdrop-filter: blur(14px) saturate(1.18); }
+.vp-admin-card h2 { margin: 0 0 14px; font-family: var(--vp-font-head); font-weight: 600; font-size: 18px; letter-spacing: -.01em; color: var(--vp-text); }
+.vp-switch { display: flex; align-items: center; gap: .6rem; margin: 4px 0 18px; font-size: 15px; }
+.vp-saved { display: inline-block; margin-top: 16px; padding: .3rem .7rem; border-radius: 999px; font-size: 12px; font-weight: 600; background: rgba(14,148,102,.12); color: var(--vp-status-done); }
+.vp-wordlist { list-style: none; padding: 0; margin: 0 0 18px; display: flex; flex-direction: column; gap: 8px; }
+.vp-wordlist li { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 8px 14px; border: 1px solid var(--vp-border); border-radius: var(--vp-radius-sm); background: var(--vp-surface-subtle); }
+.vp-wordlist .w { font-family: var(--vp-font-mono); font-size: 14px; }
+.vp-btn2--danger { background: transparent; color: var(--vp-vote-down); border-color: rgba(216,80,60,.35); }
+.vp-btn2--danger:hover { background: var(--vp-vote-down-bg); border-color: var(--vp-vote-down); }
+.vp-foot { padding: 32px 0 48px; color: var(--vp-text-faint); font-size: 13px; }
+.vp-foot a { color: var(--vp-text-muted); }
 {% endblock %}
 
 {% block body %}
-<main class="vp-shell">
-
-    <header class="vp-topbar">
-        <a class="vp-topbar-ctx" href="/{{ board_slug }}">
-            <span class="vp-topbar-avatar">{{ board_name|slice(0,1)|upper }}</span>
-            <span>{{ board_name }}</span>
-        </a>
-        <span class="vp-pill vp-pill--ghost" style="cursor:default;">Admin</span>
+<div class="vp-shell">
+    <header class="vp-header">
+        <div class="vp-header-inner">
+            <a class="vp-logo-ctx" href="/{{ board_slug }}">
+                <span class="vp-logo-avatar">{{ board_name|slice(0,1)|upper }}</span>
+                <span class="vp-logo-ctx-name">{{ board_name }}</span>
+            </a>
+            <span class="vp-nav-link">Admin</span>
+        </div>
     </header>
 
-    <section class="vp-hero">
-        <h1 class="vp-hero-title">Moderation</h1>
-        <p class="vp-hero-sub">Wortfilter und board-eigene Blockliste für „{{ board_name }}".</p>
-    </section>
+    <main class="vp-container">
+        <section class="vp-admin-hero">
+            <h1>Moderation</h1>
+            <p>Wortfilter und board-eigene Blockliste für „{{ board_name }}".</p>
+        </section>
 
-    {% if saved|default(false) %}<span class="vp-saved">Gespeichert</span>{% endif %}
+        {% if saved|default(false) %}<span class="vp-saved">Gespeichert</span>{% endif %}
 
-    {# Toggle #}
-    <div class="vp-admin-card">
-        <h2>Wortfilter</h2>
-        <form method="post" action="/admin/boards/{{ board_slug }}/moderation">
-            <input type="hidden" name="_csrf" value="{{ csrf_token }}">
-            <input type="hidden" name="action" value="toggle">
-            <label class="vp-switch">
-                <input type="checkbox" id="moderation_enabled" name="moderation_enabled" value="1" {% if moderation_enabled %}checked{% endif %}>
-                Wortfilter aktiviert
-            </label>
-            <button class="vp-pill vp-pill--primary" type="submit">Toggle speichern</button>
-        </form>
-    </div>
+        <div class="vp-admin-card">
+            <h2>Wortfilter</h2>
+            <form method="post" action="/admin/boards/{{ board_slug }}/moderation">
+                <input type="hidden" name="_csrf" value="{{ csrf_token }}">
+                <input type="hidden" name="action" value="toggle">
+                <label class="vp-switch">
+                    <input type="checkbox" id="moderation_enabled" name="moderation_enabled" value="1" {% if moderation_enabled %}checked{% endif %}>
+                    Wortfilter aktiviert
+                </label>
+                <button class="vp-btn2 vp-btn2--primary vp-btn2--sm" type="submit">Toggle speichern</button>
+            </form>
+        </div>
 
-    {# Blockliste #}
-    <div class="vp-admin-card">
-        <h2>Board-eigene Blockliste</h2>
-
-        {% if words|length > 0 %}
-        <ul class="vp-wordlist">
-            {% for entry in words %}
-            <li>
-                <span class="w">{{ entry.word }}</span>
-                <form method="post" action="/admin/boards/{{ board_slug }}/moderation" style="margin:0;">
-                    <input type="hidden" name="_csrf" value="{{ csrf_token }}">
-                    <input type="hidden" name="action" value="remove">
-                    <input type="hidden" name="word_id" value="{{ entry.id }}">
-                    <button class="vp-pill vp-pill--danger" type="submit" style="padding:.3rem .8rem;font-size:.8rem;">Entfernen</button>
-                </form>
-            </li>
-            {% endfor %}
-        </ul>
-        {% else %}
-        <p class="vp-lead" style="font-size:.9rem;margin:0 0 1.25rem;">Keine eigenen Wörter gespeichert.</p>
-        {% endif %}
-
-        <form method="post" action="/admin/boards/{{ board_slug }}/moderation">
-            <input type="hidden" name="_csrf" value="{{ csrf_token }}">
-            <input type="hidden" name="action" value="add">
-            <label class="vp-label" for="new_word">Wort hinzufügen (Plaintext, max. 200 Zeichen)</label>
-            <input class="vp-input" type="text" id="new_word" name="new_word" value="{{ new_word|default('') }}" placeholder="z. B. spam" maxlength="200" autocomplete="off">
-            {% if word_error|default('') %}
-            <p style="color:var(--vp-vote-down);font-size:.875rem;margin:.35rem 0 0;">{{ word_error }}</p>
+        <div class="vp-admin-card">
+            <h2>Board-eigene Blockliste</h2>
+            {% if words|length > 0 %}
+            <ul class="vp-wordlist">
+                {% for entry in words %}
+                <li>
+                    <span class="w">{{ entry.word }}</span>
+                    <form method="post" action="/admin/boards/{{ board_slug }}/moderation" style="margin:0;">
+                        <input type="hidden" name="_csrf" value="{{ csrf_token }}">
+                        <input type="hidden" name="action" value="remove">
+                        <input type="hidden" name="word_id" value="{{ entry.id }}">
+                        <button class="vp-btn2 vp-btn2--danger vp-btn2--sm" type="submit">Entfernen</button>
+                    </form>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p class="vp-form-lead" style="font-size:14px;color:var(--vp-text-faint);margin:0 0 18px;">Keine eigenen Wörter gespeichert.</p>
             {% endif %}
-            <button class="vp-pill vp-pill--primary" type="submit" style="margin-top:.85rem;">Wort hinzufügen</button>
-        </form>
-    </div>
 
-    <footer class="vp-footer" style="margin-top:2rem;">{{ board_name }} · <a class="vp-link" href="/">Votepit</a></footer>
-</main>
+            <form method="post" action="/admin/boards/{{ board_slug }}/moderation">
+                <input type="hidden" name="_csrf" value="{{ csrf_token }}">
+                <input type="hidden" name="action" value="add">
+                <label class="vp-label" for="new_word">Wort hinzufügen (Plaintext, max. 200 Zeichen)</label>
+                <input class="vp-input" type="text" id="new_word" name="new_word" value="{{ new_word|default('') }}" placeholder="z. B. spam" maxlength="200" autocomplete="off">
+                {% if word_error|default('') %}
+                <p style="color:var(--vp-vote-down);font-size:.875rem;margin:.35rem 0 0;">{{ word_error }}</p>
+                {% endif %}
+                <button class="vp-btn2 vp-btn2--primary vp-btn2--sm" type="submit" style="margin-top:.85rem;">Wort hinzufügen</button>
+            </form>
+        </div>
+    </main>
+</div>
 {% endblock %}

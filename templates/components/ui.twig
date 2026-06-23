@@ -1,0 +1,111 @@
+{#
+  Votepit UI-Komponenten — 1:1 zu Figma Variante F, Referenz-Screen 80:33
+  (File LF4w4ib8q7m8EAemr0P4k6). Wiederverwendbare Macros; CSS in base.twig.
+  Import:  {% import 'components/ui.twig' as ui %}
+
+  Status-Werte (DB): open · planned · in_progress · done · declined
+#}
+
+{% set _status_labels = {'open':'Offen','planned':'Geplant','in_progress':'In Arbeit','done':'Erledigt','declined':'Abgelehnt'} %}
+
+{# Vote-Control (Figma VoteWidget 71:69). tone: '' neutral (heller Up) | 'up' leading (grüner Up).
+   size: '' (Liste) | 'lg' (Detail). Anzeige-only — Interaktion folgt Sprint 4. #}
+{% macro vote(score, tone = '', size = '') %}
+<div class="vp-vote{{ size == 'lg' ? ' vp-vote--lg' : '' }}{{ tone == 'up' ? ' vp-vote--up' : '' }}" aria-label="Score {{ score }}">
+    <span class="vp-vote-btn vp-vote-up" aria-hidden="true"><svg viewBox="0 0 12 8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 6 6 1.5 10.5 6"/></svg></span>
+    <span class="vp-vote-score{{ score < 0 ? ' vp-vote-score--neg' : '' }}">{{ score }}</span>
+    <span class="vp-vote-btn vp-vote-down" aria-hidden="true"><svg viewBox="0 0 12 8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 2 6 6.5 10.5 2"/></svg></span>
+</div>
+{% endmacro %}
+
+{# Status-Badge Pill (Figma StatusBadge 61:47) — Frost-Pill, farbiger 6px-Punkt, Label Inter 12px secondary. #}
+{% macro status_badge(s) %}
+{% set labels = {'open':'Offen','planned':'Geplant','in_progress':'In Arbeit','done':'Erledigt','declined':'Abgelehnt'} %}
+<span class="vp-badge vp-badge-{{ s }}"><span class="vp-badge-dot"></span><span class="vp-badge-label">{{ labels[s] ?? s }}</span></span>
+{% endmacro %}
+
+{# ConsensusBar (Figma 63:32) — Prozent (mono, primary) + „Konsens" + 152px-Track mit grünem Fill. #}
+{% macro consensus_bar(pct) %}
+<div class="vp-cons">
+    <div class="vp-cons-head"><span class="vp-cons-pct">{{ pct }}%</span><span class="vp-cons-label">Konsens</span></div>
+    <div class="vp-cons-track"><span class="vp-cons-fill" style="width: {{ pct }}%;"></span></div>
+</div>
+{% endmacro %}
+
+{# Relative Zeitangabe „vor N Tagen" aus DATETIME-String. #}
+{% macro ago(datetime) %}
+{%- set days = ((('now'|date('U')) - (datetime|date('U'))) / 86400)|round(0, 'floor') -%}
+{%- if days <= 0 -%}heute{%- elseif days == 1 -%}vor 1 Tag{%- else -%}vor {{ days }} Tagen{%- endif -%}
+{% endmacro %}
+
+{# IdeaListRow (Figma 74:87) — neutral Vote + Titel/Excerpt/Meta + rechte ConsensusBar + ›. #}
+{% macro idea_row(idea, board_slug) %}
+{% import _self as ui %}
+<a class="vp-row" href="/{{ board_slug }}/ideas/{{ idea.id }}">
+    {{ ui.vote(idea.score_cache) }}
+    <div class="vp-row-content">
+        <h2 class="vp-row-title">{{ idea.title }}</h2>
+        {% if idea.body %}<p class="vp-row-excerpt">{{ idea.body }}</p>{% endif %}
+        <div class="vp-row-meta">
+            {{ ui.status_badge(idea.status) }}
+            <span class="vp-meta-txt">{{ idea.comment_count|default(0) }} Kommentare</span>
+            <span class="vp-meta-txt">·</span>
+            <span class="vp-meta-txt">{{ ui.ago(idea.created_at) }}</span>
+        </div>
+    </div>
+    {% set _tot = (idea.up_count|default(0)) + (idea.down_count|default(0)) %}
+    {% if _tot > 0 %}
+    <div class="vp-row-stats">{{ ui.consensus_bar(((idea.up_count / _tot) * 100)|round) }}</div>
+    {% endif %}
+    <span class="vp-row-chev" aria-hidden="true">›</span>
+</a>
+{% endmacro %}
+
+{# FeaturedIdeaCard (Figma 69:85) — links Top-Idee (leading Vote), rechts Stats-Bento. #}
+{% macro featured_card(idea, board_slug, stats) %}
+{% import _self as ui %}
+<div class="vp-feat">
+    <a class="vp-feat-card" href="/{{ board_slug }}/ideas/{{ idea.id }}">
+        {{ ui.vote(idea.score_cache, 'up') }}
+        <div class="vp-feat-content">
+            <p class="vp-feat-eyebrow">TOP-IDEE</p>
+            <h2 class="vp-feat-title">{{ idea.title }}</h2>
+            {% if idea.body %}<p class="vp-feat-desc">{{ idea.body }}</p>{% endif %}
+            <div class="vp-feat-meta">
+                {{ ui.status_badge(idea.status) }}
+                <span class="vp-meta-txt">{{ idea.comment_count|default(0) }} Kommentare</span>
+                {% set _tot = (idea.up_count|default(0)) + (idea.down_count|default(0)) %}
+                {% if _tot > 0 %}{{ ui.consensus_bar(((idea.up_count / _tot) * 100)|round) }}{% endif %}
+            </div>
+        </div>
+    </a>
+    {% if stats is defined and stats %}
+    <aside class="vp-bento">
+        <p class="vp-bento-label">ÜBERSICHT</p>
+        <div class="vp-bento-stat"><p class="vp-bento-num">{{ stats.votes_total }}</p><p class="vp-bento-cap">Stimmen gesamt</p></div>
+        <div class="vp-bento-stat"><p class="vp-bento-num">{{ stats.ideas_total }}</p><p class="vp-bento-cap">Ideen</p></div>
+        <div class="vp-bento-stat"><p class="vp-bento-num vp-bento-num--green">{{ stats.consensus_avg }}%</p><p class="vp-bento-cap">Ø Konsens</p></div>
+    </aside>
+    {% endif %}
+</div>
+{% endmacro %}
+
+{# Filter-Chips (Figma 81:64) — Status-Filter; aktiver Chip = Brand-Primary. #}
+{% macro filter_chips(board_slug, active_status) %}
+{% set labels = {'open':'Offen','planned':'Geplant','in_progress':'In Arbeit','done':'Erledigt','declined':'Abgelehnt'} %}
+<nav class="vp-chips" aria-label="Status-Filter">
+    <a class="vp-chip{{ active_status is null ? ' vp-chip--active' : '' }}" href="/{{ board_slug }}">Alle</a>
+    {% for s in ['open','planned','in_progress','done','declined'] %}
+    <a class="vp-chip{{ active_status == s ? ' vp-chip--active' : '' }}" href="/{{ board_slug }}?status={{ s }}">{{ labels[s] }}</a>
+    {% endfor %}
+</nav>
+{% endmacro %}
+
+{# SortTabs (Figma 67:45) — Top / Neu / Umstritten. „Neu" aktiv (Newest); Top/Umstritten ab Sprint 4. #}
+{% macro sort_tabs() %}
+<div class="vp-sorttabs">
+    <span class="vp-sorttab" title="Verfügbar mit Voting (Sprint 4)">Top</span>
+    <span class="vp-sorttab vp-sorttab--active">Neu</span>
+    <span class="vp-sorttab" title="Verfügbar mit Voting (Sprint 4)">Umstritten</span>
+</div>
+{% endmacro %}

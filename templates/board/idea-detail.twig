@@ -1,78 +1,72 @@
 {% extends 'base.twig' %}
+{% import 'components/ui.twig' as ui %}
 
 {% block title %}{{ idea.title }} · {{ board_name }} · Votepit{% endblock %}
 
 {% block styles %}
-.vp-back { display: inline-flex; align-items: center; gap: .35rem; font-size: .875rem; color: var(--vp-text-muted); text-decoration: none; font-weight: 500; margin-bottom: 1.25rem; transition: color .12s; }
+.vp-back { display: inline-flex; align-items: center; gap: .35rem; font-family: var(--vp-font-sans); font-weight: 500; font-size: 14px; color: var(--vp-text-muted); text-decoration: none; margin: 24px 0 18px; transition: color .12s; }
 .vp-back:hover { color: var(--vp-text); }
-
-.vp-detail-card {
-    background: var(--vp-surface); border: 1px solid var(--vp-surface-border); border-radius: var(--vp-radius);
-    padding: 1.75rem 2rem 2rem;
-    box-shadow: 0 0 0 1px var(--vp-border), 0 8px 30px var(--vp-primary-glow), 0 1px 2px rgba(21,22,26,.04);
-    backdrop-filter: blur(16px) saturate(1.2); -webkit-backdrop-filter: blur(16px) saturate(1.2);
-}
-.vp-detail-head { display: flex; align-items: flex-start; gap: 1.25rem; }
-.vp-detail-main { flex: 1; min-width: 0; }
-.vp-detail-title { margin: 0 0 .6rem; font-family: var(--vp-font-head); font-weight: 700; font-size: 1.6rem; line-height: 1.2; letter-spacing: -.02em; color: var(--vp-text); word-wrap: break-word; }
-.vp-detail-meta { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; font-size: .82rem; color: var(--vp-text-muted); }
-.vp-detail-meta .vp-mono { font-size: .78rem; }
-.vp-detail-body { font-size: .98rem; line-height: 1.75; color: var(--vp-text); white-space: pre-wrap; word-wrap: break-word; margin: 0; }
-
-.vp-owner-actions { display: flex; align-items: center; gap: .6rem; margin-top: .25rem; }
-.vp-pill--danger { background: transparent; color: var(--vp-vote-down); border-color: rgba(216,80,60,.35); }
-.vp-pill--danger:hover { background: var(--vp-vote-down-bg); border-color: var(--vp-vote-down); }
+.vp-detail-card { display: flex; gap: 24px; align-items: flex-start; background: rgba(255,255,255,.74); border: 1px solid var(--vp-border); border-radius: 20px; box-shadow: var(--vp-row-shadow); padding: 28px 30px 28px 28px; backdrop-filter: blur(16px) saturate(1.2); -webkit-backdrop-filter: blur(16px) saturate(1.2); }
+.vp-detail-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 14px; }
+.vp-detail-title { margin: 0; font-family: var(--vp-font-head); font-weight: 700; font-size: 28px; line-height: 1.14; letter-spacing: -.02em; color: var(--vp-text); word-wrap: break-word; }
+.vp-detail-meta { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+.vp-detail-sub { font-family: var(--vp-font-sans); font-weight: 400; font-size: 13px; color: var(--vp-text-faint); }
+.vp-detail-body { margin: 0; font-family: var(--vp-font-sans); font-weight: 400; font-size: 15px; line-height: 1.55; color: var(--vp-text-muted); white-space: pre-wrap; word-wrap: break-word; }
+.vp-comments-head { margin: 28px 0 0; font-family: var(--vp-font-head); font-weight: 600; font-size: 18px; color: var(--vp-text); }
+.vp-comments-note { margin: 10px 0 0; font-family: var(--vp-font-sans); font-size: 14px; color: var(--vp-text-faint); }
+.vp-owner { display: flex; gap: 10px; align-items: center; margin-top: 20px; }
+.vp-btn2--danger { background: transparent; color: var(--vp-vote-down); border-color: rgba(216,80,60,.35); }
+.vp-btn2--danger:hover { background: var(--vp-vote-down-bg); border-color: var(--vp-vote-down); }
+.vp-foot { padding: 32px 0 48px; color: var(--vp-text-faint); font-size: 13px; }
+.vp-foot a { color: var(--vp-text-muted); }
 {% endblock %}
 
 {% block body %}
-<main class="vp-shell">
+<div class="vp-shell">
 
-    {# Topbar mit Board-Kontext #}
-    <header class="vp-topbar">
-        <a class="vp-topbar-ctx" href="/{{ board_slug }}">
-            <span class="vp-topbar-avatar">{{ board_name|slice(0,1)|upper }}</span>
-            <span>{{ board_name }}</span>
-        </a>
-        {% if current_user_id is not null and current_user_id == idea.author_id %}
-        <a class="vp-pill vp-pill--outline" href="/{{ board_slug }}/ideas/{{ idea.id }}/edit">Bearbeiten</a>
-        {% endif %}
+    {# Header mit Board-Kontext (Figma 19:4) #}
+    <header class="vp-header">
+        <div class="vp-header-inner">
+            <a class="vp-logo-ctx" href="/{{ board_slug }}">
+                <span class="vp-logo-avatar">{{ board_name|slice(0,1)|upper }}</span>
+                <span class="vp-logo-ctx-name">{{ board_name }}</span>
+            </a>
+            {% if current_user_id is not null and current_user_id == idea.author_id %}
+            <a class="vp-btn2 vp-btn2--secondary vp-btn2--sm" href="/{{ board_slug }}/ideas/{{ idea.id }}/edit">Bearbeiten</a>
+            {% endif %}
+        </div>
     </header>
 
-    <a class="vp-back" href="/{{ board_slug }}">← Zurück zum Board</a>
+    <main class="vp-container">
+        <a class="vp-back" href="/{{ board_slug }}">← Zurück zum Board</a>
 
-    <article class="vp-detail-card">
-        <div class="vp-detail-head">
-            <div class="vp-votebox vp-votebox--lg" aria-label="Score {{ idea.score_cache }}">
-                <span class="vp-votebox-btn" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 15l7-7 7 7"/></svg></span>
-                <span class="vp-votebox-score{% if idea.score_cache < 0 %} vp-votebox-score--neg{% endif %}">{{ idea.score_cache }}</span>
-                <span class="vp-votebox-btn" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 9l7 7 7-7"/></svg></span>
-            </div>
+        <article class="vp-detail-card">
+            {{ ui.vote(idea.score_cache, '', 'lg') }}
             <div class="vp-detail-main">
                 <h1 class="vp-detail-title">{{ idea.title }}</h1>
                 <div class="vp-detail-meta">
-                    {% set labels = {'open':'Offen','planned':'Geplant','in_progress':'In Arbeit','done':'Erledigt','declined':'Abgelehnt'} %}
-                    <span class="vp-status-badge vp-status-{{ idea.status }}">{{ labels[idea.status] ?? idea.status }}</span>
-                    <span class="vp-mono">{{ idea.created_at|date('d.m.Y') }}</span>
+                    {{ ui.status_badge(idea.status) }}
+                    {% set _tot = (idea.up_count|default(0)) + (idea.down_count|default(0)) %}
+                    {% if _tot > 0 %}{{ ui.consensus_bar(((idea.up_count / _tot) * 100)|round) }}{% endif %}
+                    <span class="vp-detail-sub">eingereicht {{ ui.ago(idea.created_at) }}</span>
                 </div>
+                <p class="vp-detail-body">{{ idea.body }}</p>
             </div>
-        </div>
+        </article>
 
-        <hr class="vp-divider">
-
-        <p class="vp-detail-body">{{ idea.body }}</p>
+        {# Kommentare: Anzahl jetzt, Verfassen/Anzeige folgt Sprint 6 #}
+        <h2 class="vp-comments-head">{{ idea.comment_count|default(0) }} Kommentare</h2>
+        <p class="vp-comments-note">Kommentare kommen in einem späteren Sprint.</p>
 
         {% if current_user_id is not null and current_user_id == idea.author_id %}
-        <hr class="vp-divider">
-        <div class="vp-owner-actions">
+        <div class="vp-owner">
             <form method="post" action="/{{ board_slug }}/ideas/{{ idea.id }}/withdraw"
                   onsubmit="return confirm('Idee wirklich zurückziehen? Diese Aktion kann nicht rückgängig gemacht werden.');">
                 <input type="hidden" name="_csrf" value="{{ csrf_token }}">
-                <button type="submit" class="vp-pill vp-pill--danger">Idee zurückziehen</button>
+                <button type="submit" class="vp-btn2 vp-btn2--danger vp-btn2--sm">Idee zurückziehen</button>
             </form>
         </div>
         {% endif %}
-    </article>
-
-    <footer class="vp-footer" style="margin-top:2.5rem;">{{ board_name }} · <a class="vp-link" href="/">Votepit</a></footer>
-</main>
+    </main>
+</div>
 {% endblock %}

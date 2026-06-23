@@ -176,6 +176,34 @@ abstract class IntegrationTestCase extends TestCase
                 FOREIGN KEY (author_id) REFERENCES users(id)   ON DELETE RESTRICT
             )',
         );
+
+        // Sprint 4/6 (read-path): votes + comments. Aktuell nur Anzeige-Aggregate
+        // (Score/Konsens/Kommentarzahl); die Mutations-Endpoints folgen in den
+        // jeweiligen Sprints. Portables Subset (ohne UNSIGNED/ENGINE).
+        $conn->executeStatement(
+            'CREATE TABLE IF NOT EXISTS votes (
+                id         INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                idea_id    INTEGER NOT NULL,
+                user_id    INTEGER NOT NULL,
+                value      INTEGER NOT NULL,
+                created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE (idea_id, user_id),
+                FOREIGN KEY (idea_id) REFERENCES ideas(id) ON DELETE CASCADE,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            )',
+        );
+
+        $conn->executeStatement(
+            'CREATE TABLE IF NOT EXISTS comments (
+                id         INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                idea_id    INTEGER NOT NULL,
+                author_id  INTEGER NOT NULL,
+                body       TEXT NOT NULL,
+                created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (idea_id)   REFERENCES ideas(id)  ON DELETE CASCADE,
+                FOREIGN KEY (author_id) REFERENCES users(id)  ON DELETE CASCADE
+            )',
+        );
     }
 
     // -------------------------------------------------------------------------

@@ -1,134 +1,99 @@
 {% extends 'base.twig' %}
+{% import 'components/ui.twig' as ui %}
 
 {% block title %}{{ board_name }} · Votepit{% endblock %}
 
 {% block styles %}
-/* ── Filter-Tabs ───────────────────────────────────────────────────── */
-.vp-tabs { display: flex; align-items: center; gap: .4rem; margin-bottom: 1.25rem; flex-wrap: wrap; }
-.vp-tab {
-    padding: .4rem .9rem; border-radius: 999px; font-size: .83rem; font-weight: 500;
-    text-decoration: none; color: var(--vp-text-muted);
-    border: 1px solid transparent; transition: background .12s, color .12s, border-color .12s;
-}
-.vp-tab:hover { color: var(--vp-text); background: var(--vp-surface-hover); }
-.vp-tab--active { color: var(--vp-text); background: var(--vp-surface); border-color: var(--vp-border); font-weight: 600; }
-
-/* ── Ideen-Liste ───────────────────────────────────────────────────── */
-.vp-list { display: flex; flex-direction: column; gap: .75rem; list-style: none; margin: 0; padding: 0; }
-
-.vp-row {
-    display: flex; align-items: flex-start; gap: 1rem;
-    background: var(--vp-surface);
-    border: 1px solid var(--vp-surface-border);
-    border-radius: var(--vp-radius);
-    padding: 1.1rem 1.25rem;
-    box-shadow: 0 0 0 1px var(--vp-border), 0 4px 20px var(--vp-primary-glow), 0 1px 2px rgba(21,22,26,.04);
-    backdrop-filter: blur(14px) saturate(1.18); -webkit-backdrop-filter: blur(14px) saturate(1.18);
-    text-decoration: none; color: inherit;
-    transition: transform .12s ease, box-shadow .12s ease;
-}
-.vp-row:hover { transform: translateY(-1px); box-shadow: 0 0 0 1px var(--vp-border), 0 8px 28px var(--vp-primary-glow), 0 2px 4px rgba(21,22,26,.06); }
-
-.vp-row-main { flex: 1; min-width: 0; }
-.vp-row-title { margin: .05rem 0 .3rem; font-family: var(--vp-font-head); font-weight: 600; font-size: 1.05rem; line-height: 1.3; letter-spacing: -.01em; color: var(--vp-text); }
-.vp-row-excerpt { margin: 0 0 .6rem; color: var(--vp-text-muted); font-size: .9rem; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.vp-row-meta { display: flex; align-items: center; gap: .7rem; flex-wrap: wrap; font-size: .8rem; color: var(--vp-text-muted); }
-.vp-row-date { font-family: var(--vp-font-mono); font-size: .76rem; }
-
-/* ── Empty-State ───────────────────────────────────────────────────── */
-.vp-empty { text-align: center; padding: 3.5rem 1rem; color: var(--vp-text-muted); }
+.vp-empty { text-align: center; padding: 4rem 1rem; color: var(--vp-text-muted); background: var(--vp-surface-frost); border: 1px solid var(--vp-border); border-radius: 16px; box-shadow: var(--vp-row-shadow); }
 .vp-empty-icon { font-size: 2.5rem; margin-bottom: .75rem; display: block; }
 .vp-empty-title { font-family: var(--vp-font-head); font-weight: 700; font-size: 1.15rem; color: var(--vp-text); margin: 0 0 .5rem; }
 .vp-empty-text { font-size: .92rem; margin: 0; }
-
-/* ── Pagination ────────────────────────────────────────────────────── */
-.vp-pagination { display: flex; justify-content: center; align-items: center; gap: .75rem; margin-top: 1.75rem; }
-.vp-page-info { font-size: .8rem; color: var(--vp-text-muted); font-family: var(--vp-font-mono); }
+.vp-pagination { display: flex; justify-content: center; align-items: center; gap: .75rem; padding: 0 0 48px; }
+.vp-page-info { font-size: 13px; color: var(--vp-text-muted); font-family: var(--vp-font-mono); }
+.vp-foot { padding: 8px 0 48px; color: var(--vp-text-faint); font-size: 13px; }
+.vp-foot a { color: var(--vp-text-muted); }
 {% endblock %}
 
 {% block body %}
-<main class="vp-shell">
+<div class="vp-shell">
 
-    {# Topbar #}
-    <header class="vp-topbar">
-        <a class="vp-topbar-brand" href="/" aria-label="Votepit">
-            <img src="/assets/brand/votepit-icon.svg" alt="">
-            <span class="w">Vote<span class="p">pit</span></span>
-        </a>
-        <div class="vp-topbar-actions">
-            {% if is_authenticated %}
-            <a class="vp-pill vp-pill--primary" href="/{{ board_slug }}/ideas/new">+ Neue Idee</a>
-            {% else %}
-            <a class="vp-pill vp-pill--ghost" href="/login?r=/{{ board_slug }}">Anmelden</a>
-            <a class="vp-pill vp-pill--primary" href="/login?r=/{{ board_slug }}/ideas/new">Idee einreichen</a>
-            {% endif %}
+    {# Header — full-bleed, sticky (Figma 66:32) #}
+    <header class="vp-header">
+        <div class="vp-header-inner">
+            <a class="vp-logo" href="/" aria-label="Votepit">
+                <img src="/assets/brand/votepit-icon.svg" alt="">
+                <span class="vp-logo-word">Vote<span class="p">pit</span></span>
+            </a>
+            <nav class="vp-nav">
+                <a class="vp-nav-link" href="/{{ board_slug }}">Roadmap</a>
+                {% if is_authenticated %}
+                <a class="vp-btn2 vp-btn2--primary vp-btn2--sm" href="/{{ board_slug }}/ideas/new">Neue Idee</a>
+                {% else %}
+                <a class="vp-btn2 vp-btn2--primary vp-btn2--sm" href="/login?r=/{{ board_slug }}">Anmelden</a>
+                {% endif %}
+            </nav>
         </div>
     </header>
 
-    {# Hero #}
-    <section class="vp-hero">
-        <h1 class="vp-hero-title">{{ board_name }}</h1>
-        {% if board_intro %}<p class="vp-hero-sub">{{ board_intro }}</p>{% endif %}
-    </section>
+    <main class="vp-container">
 
-    {# Status-Filter #}
-    <nav class="vp-tabs" aria-label="Status-Filter">
-        <a href="/{{ board_slug }}" class="vp-tab{% if active_status is null %} vp-tab--active{% endif %}">Alle</a>
-        {% set labels = {'open':'Offen','planned':'Geplant','in_progress':'In Arbeit','done':'Erledigt','declined':'Abgelehnt'} %}
-        {% for s in ['open','planned','in_progress','done','declined'] %}
-        <a href="/{{ board_slug }}?status={{ s }}" class="vp-tab{% if active_status == s %} vp-tab--active{% endif %}">{{ labels[s] }}</a>
-        {% endfor %}
-    </nav>
+        {# Hero (Figma 81:57) #}
+        <section class="vp-hero">
+            <h1 class="vp-hero-title">{{ board_name }}</h1>
+            {% if board_intro %}<p class="vp-hero-sub">{{ board_intro }}</p>{% endif %}
+            <a class="vp-btn2 vp-btn2--primary" href="{{ is_authenticated ? '/' ~ board_slug ~ '/ideas/new' : '/login?r=/' ~ board_slug ~ '/ideas/new' }}">＋ Neue Idee</a>
+        </section>
 
-    {# Ideenliste #}
-    {% if ideas|length == 0 %}
-    <div class="vp-card vp-empty">
-        <span class="vp-empty-icon">💡</span>
-        <p class="vp-empty-title">Noch keine Ideen</p>
-        <p class="vp-empty-text">
-            {% if active_status is not null %}
-                Keine Ideen mit diesem Status. <a class="vp-link" href="/{{ board_slug }}">Alle anzeigen</a>
-            {% else %}
-                Sei der Erste und reiche eine Idee ein!
+        {# Filter-Chips + SortTabs (Figma 81:63) #}
+        <div class="vp-filter">
+            {{ ui.filter_chips(board_slug, active_status) }}
+            {{ ui.sort_tabs() }}
+        </div>
+
+        {# Cards (Figma 81:84) #}
+        {% if ideas|length == 0 %}
+        <div class="vp-cards">
+            <div class="vp-empty">
+                <span class="vp-empty-icon">💡</span>
+                <p class="vp-empty-title">Noch keine Ideen</p>
+                <p class="vp-empty-text">
+                    {% if active_status is not null %}
+                        Keine Ideen mit diesem Status. <a class="vp-link" href="/{{ board_slug }}">Alle anzeigen</a>
+                    {% else %}
+                        Sei der Erste und reiche eine Idee ein!
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+        {% else %}
+        {% set show_featured = active_status is null and page == 1 %}
+        {% if show_featured %}
+            {% set featured = ideas|sort((a, b) => b.score_cache <=> a.score_cache)|first %}
+            {% set rows = ideas|filter(i => i.id != featured.id) %}
+            {% set v_total = ideas|reduce((c, i) => c + i.up_count + i.down_count, 0) %}
+            {% set cons_list = ideas|filter(i => (i.up_count + i.down_count) > 0)|map(i => i.up_count / (i.up_count + i.down_count) * 100) %}
+            {% set cons_avg = cons_list|length > 0 ? (cons_list|reduce((c, x) => c + x, 0) / cons_list|length)|round : 0 %}
+            {% set stats = {'votes_total': v_total, 'ideas_total': total_ideas|default(ideas|length), 'consensus_avg': cons_avg} %}
+        {% else %}
+            {% set rows = ideas %}
+        {% endif %}
+        <div class="vp-cards">
+            {% if show_featured %}{{ ui.featured_card(featured, board_slug, stats) }}{% endif %}
+            {% for idea in rows %}{{ ui.idea_row(idea, board_slug) }}{% endfor %}
+        </div>
+        {% endif %}
+
+        {% if total_pages|default(1) > 1 %}
+        <nav class="vp-pagination" aria-label="Seitennavigation">
+            {% if page > 1 %}
+            <a class="vp-btn2 vp-btn2--secondary vp-btn2--sm" href="/{{ board_slug }}?page={{ page - 1 }}{% if active_status is not null %}&amp;status={{ active_status }}{% endif %}">← Zurück</a>
             {% endif %}
-        </p>
-    </div>
-    {% else %}
-    <ul class="vp-list">
-        {% for idea in ideas %}
-        <li>
-            <a class="vp-row" href="/{{ board_slug }}/ideas/{{ idea.id }}">
-                <div class="vp-votebox" aria-label="Score {{ idea.score_cache }}">
-                    <span class="vp-votebox-btn" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 15l7-7 7 7"/></svg></span>
-                    <span class="vp-votebox-score{% if idea.score_cache < 0 %} vp-votebox-score--neg{% endif %}">{{ idea.score_cache }}</span>
-                    <span class="vp-votebox-btn" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 9l7 7 7-7"/></svg></span>
-                </div>
-                <div class="vp-row-main">
-                    <h2 class="vp-row-title">{{ idea.title }}</h2>
-                    {% if idea.body %}<p class="vp-row-excerpt">{{ idea.body|length > 130 ? idea.body|slice(0, 130)|trim ~ '…' : idea.body }}</p>{% endif %}
-                    <div class="vp-row-meta">
-                        <span class="vp-status-badge vp-status-{{ idea.status }}">{{ labels[idea.status] ?? idea.status }}</span>
-                        <span class="vp-row-date">{{ idea.created_at|date('d.m.Y') }}</span>
-                    </div>
-                </div>
-            </a>
-        </li>
-        {% endfor %}
-    </ul>
-
-    {% if total_pages > 1 %}
-    <nav class="vp-pagination" aria-label="Seitennavigation">
-        {% if page > 1 %}
-        <a class="vp-pill vp-pill--outline" href="/{{ board_slug }}?page={{ page - 1 }}{% if active_status is not null %}&amp;status={{ active_status }}{% endif %}">← Zurück</a>
+            <span class="vp-page-info">{{ page }} / {{ total_pages }}</span>
+            {% if page < total_pages %}
+            <a class="vp-btn2 vp-btn2--secondary vp-btn2--sm" href="/{{ board_slug }}?page={{ page + 1 }}{% if active_status is not null %}&amp;status={{ active_status }}{% endif %}">Weiter →</a>
+            {% endif %}
+        </nav>
         {% endif %}
-        <span class="vp-page-info">{{ page }} / {{ total_pages }}</span>
-        {% if page < total_pages %}
-        <a class="vp-pill vp-pill--outline" href="/{{ board_slug }}?page={{ page + 1 }}{% if active_status is not null %}&amp;status={{ active_status }}{% endif %}">Weiter →</a>
-        {% endif %}
-    </nav>
-    {% endif %}
-    {% endif %}
-
-    <footer class="vp-footer" style="margin-top:2.5rem;">{{ board_name }} · <a class="vp-link" href="/">Votepit</a></footer>
-</main>
+    </main>
+</div>
 {% endblock %}

@@ -114,7 +114,7 @@ final readonly class IdeaRepository
     public function findInBoard(int $boardId, int $id): ?array
     {
         $row = $this->conn->fetchAssociative(
-            'SELECT id, board_id, author_id, title, body, status, score_cache, created_at, updated_at
+            'SELECT id, board_id, author_id, title, body, status, score_cache, created_at, updated_at, (SELECT COUNT(*) FROM comments WHERE comments.idea_id = ideas.id) AS comment_count, (SELECT COUNT(*) FROM votes WHERE votes.idea_id = ideas.id AND votes.value > 0) AS up_count, (SELECT COUNT(*) FROM votes WHERE votes.idea_id = ideas.id AND votes.value < 0) AS down_count
              FROM ideas
              WHERE board_id = :board_id AND id = :id',
             ['board_id' => $boardId, 'id' => $id],
@@ -211,7 +211,7 @@ final readonly class IdeaRepository
 
         if ($validStatus !== null) {
             $rows = $this->conn->fetchAllAssociative(
-                'SELECT id, board_id, author_id, title, body, status, score_cache, created_at, updated_at
+                'SELECT id, board_id, author_id, title, body, status, score_cache, created_at, updated_at, (SELECT COUNT(*) FROM comments WHERE comments.idea_id = ideas.id) AS comment_count, (SELECT COUNT(*) FROM votes WHERE votes.idea_id = ideas.id AND votes.value > 0) AS up_count, (SELECT COUNT(*) FROM votes WHERE votes.idea_id = ideas.id AND votes.value < 0) AS down_count
                  FROM ideas
                  WHERE board_id = :board_id AND status = :status
                  ORDER BY ' . $orderBy . '
@@ -225,7 +225,7 @@ final readonly class IdeaRepository
             );
         } else {
             $rows = $this->conn->fetchAllAssociative(
-                'SELECT id, board_id, author_id, title, body, status, score_cache, created_at, updated_at
+                'SELECT id, board_id, author_id, title, body, status, score_cache, created_at, updated_at, (SELECT COUNT(*) FROM comments WHERE comments.idea_id = ideas.id) AS comment_count, (SELECT COUNT(*) FROM votes WHERE votes.idea_id = ideas.id AND votes.value > 0) AS up_count, (SELECT COUNT(*) FROM votes WHERE votes.idea_id = ideas.id AND votes.value < 0) AS down_count
                  FROM ideas
                  WHERE board_id = :board_id
                  ORDER BY ' . $orderBy . '
