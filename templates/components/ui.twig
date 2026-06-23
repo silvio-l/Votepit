@@ -58,11 +58,15 @@
 <span class="vp-badge vp-badge-{{ s }}"><span class="vp-badge-dot"></span><span class="vp-badge-label">{{ labels[s] ?? s }}</span></span>
 {% endmacro %}
 
-{# ConsensusBar (Figma 63:32) — Prozent (mono, primary) + „Konsens" + 152px-Track mit grünem Fill. #}
+{# ConsensusBar (Figma 63:32) — Prozent (mono, primary) + Label + 152px-Track mit Fill.
+   Konsens-Signal (USP): pct = up/(up+down). < 50 % = „umstritten" → Fill + Prozent in
+   Vermillion (`--vp-consensus-low`), sonst Grün. SSR-korrekt (auch ohne JS), zusätzlich
+   live von vote.js animiert. data-Hooks bleiben class-unabhängig für das JS-Update. #}
 {% macro consensus_bar(pct) %}
-<div class="vp-cons">
-    <div class="vp-cons-head"><span class="vp-cons-pct">{{ pct }}%</span><span class="vp-cons-label">Konsens</span></div>
-    <div class="vp-cons-track"><span class="vp-cons-fill" style="width: {{ pct }}%;"></span></div>
+{% set _low = pct < 50 %}
+<div class="vp-cons{{ _low ? ' vp-cons--low' : '' }}" data-cons>
+    <div class="vp-cons-head"><span class="vp-cons-pct" data-cons-pct>{{ pct }}%</span><span class="vp-cons-label" data-cons-label>{{ _low ? 'Umstritten' : 'Konsens' }}</span></div>
+    <div class="vp-cons-track"><span class="vp-cons-fill" data-cons-fill style="width: {{ pct }}%;"></span></div>
 </div>
 {% endmacro %}
 

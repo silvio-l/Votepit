@@ -1,56 +1,176 @@
 /**
- * vote.js — Progressives Enhancement für Vote-Controls (Issue 04, Sprint 4).
+ * vote.js — Progressives Enhancement + Mikroanimationen für Vote-Controls
+ * (Sprint 4, Issue 04 + 05).
  *
  * Fängt den Submit der Vote-Mini-Forms ab und postet via fetch mit
  * Accept: application/json. Die JSON-Antwort { score, my_vote, up_count, down_count }
- * aktualisiert Score + Control-Zustand ohne Seitenneuladen.
+ * aktualisiert Score, Control-Zustand und Konsens-Balken ohne Seitenneuladen — und
+ * gibt zurückhaltendes Feedback wie auf der Landing-Page: Button-Pop, token-gefärbtes
+ * Konfetti (Up grün / Down vermillion, Rückzug ohne Konfetti) und ein Score-Tick.
  *
  * Ohne JS funktioniert der Form-POST (PRG) unverändert — keine harte Abhängigkeit.
- * prefers-reduced-motion: keine erzwungenen Animationen; CSS-Transitions
- * sind bereits in der Seite per @media (prefers-reduced-motion: reduce) abgesichert.
+ * prefers-reduced-motion: alle JS-Animationen werden übersprungen (reine
+ * State-Übernahme bleibt), CSS-Transitions sind in base.twig separat gegated.
  *
  * Vorausgesetzte DOM-Struktur (ui.twig vote_form-Macro):
- *   .vp-vote[data-idea-id] enthält zwei .vp-vote-form (je up/down).
- *   .vp-vote-score zeigt den Score.
- *   .vp-vote-up / .vp-vote-down sind die Submit-Buttons.
+ *   .vp-vote[ enthält zwei .vp-vote-form (je up/down) ]
+ *   .vp-vote-score zeigt den Score · .vp-vote-up / .vp-vote-down sind die Buttons.
+ * Konsens-Balken (ui.twig consensus_bar) wird, falls in derselben Karte vorhanden,
+ * über die data-cons*-Hooks live nachgeführt.
  */
 
 (function () {
     'use strict';
 
-    /**
-     * Aktualisiert den visuellen Zustand eines Vote-Widgets.
-     *
-     * @param {HTMLElement} widget   - .vp-vote-Element
-     * @param {number}      score    - neuer Score
-     * @param {string}      myVote   - 'up' | 'down' | 'none'
-     */
-    function applyState(widget, score, myVote) {
-        var scoreEl = widget.querySelector('.vp-vote-score');
-        if (scoreEl) {
-            scoreEl.textContent = String(score);
-            scoreEl.classList.toggle('vp-vote-score--neg', score < 0);
-        }
+    var REDUCE = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-        widget.classList.remove('vp-vote--up', 'vp-vote--down');
-        if (myVote === 'up') {
-            widget.classList.add('vp-vote--up');
-        } else if (myVote === 'down') {
-            widget.classList.add('vp-vote--down');
-        }
+    // Token-Farben aus dem CSS lesen — keine Hex-Werte im JS hartkodieren.
+    function token(name, fallback) {
+        var v = getComputedStyle(document.documentElement).getPropertyValue(name);
+        return (v && v.trim()) || fallback;
+    }
+    var UP_COLOR = token('--vp-vote-up', '#0E9466');
+    var DOWN_COLOR = token('--vp-vote-down', '#D8503C');
+
+    /** Kurzer Scale-Pop auf dem geklickten Button (Web Animations API). */
+    function pop(el) {
+        if (REDUCE || !el || !el.animate) { return; }
+        el.animate(
+            [{ transform: 'scale(.82)' }, { transform: 'scale(1.14)' }, { transform: 'scale(1)' }],
+            { duration: 280, easing: 'cubic-bezier(.2,.8,.3,1.2)' }
+        );
     }
 
     /**
-     * Hängt den fetch-Handler an alle Vote-Forms innerhalb eines Widgets.
-     *
-     * @param {HTMLElement} widget - .vp-vote-Element
+     * Token-gefärbtes Konfetti aus dem geklickten Button heraus.
+     * Up = grün (gelegentlich ein dezentes Emoji), Down = vermillion (nur Partikel).
      */
+    function burst(widget, btn, color, festive) {
+        if (REDUCE || !widget || !btn || !widget.animate) { return; }
+        var wr = widget.getBoundingClientRect();
+        var br = btn.getBoundingClientRect();
+        var cx = br.left - wr.left + br.width / 2;
+        var cy = br.top - wr.top + br.height / 2;
+        var emojis = ['🎉', '✨'];
+        var n = festive ? 12 : 8;
+        for (var i = 0; i < n; i++) {
+            var p = document.createElement('span');
+            p.className = 'vp-particle';
+            if (festive && Math.random() < 0.3) {
+                p.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+            } else {
+                p.style.background = color;
+                p.style.borderRadius = Math.random() < 0.5 ? '50%' : '2px';
+            }
+            p.style.left = cx + 'px';
+            p.style.top = cy + 'px';
+            widget.appendChild(p);
+            var dx = (Math.random() * 2 - 1) * (festive ? 64 : 46);
+            var dy = -(22 + Math.random() * (festive ? 78 : 54));
+            var rot = Math.random() * 320 - 160;
+            p.animate(
+                [
+                    { transform: 'translate(0,0) scale(1) rotate(0)', opacity: 1 },
+                    { transform: 'translate(' + dx + 'px,' + dy + 'px) scale(.5) rotate(' + rot + 'deg)', opacity: 0 }
+                ],
+                { duration: 620 + Math.random() * 380, easing: 'cubic-bezier(.15,.7,.3,1)' }
+            ).onfinish = (function (node) { return function () { node.remove(); }; }(p));
+        }
+    }
+
+    /** Score animiert von alt → neu hochzählen (oder bei reduced-motion/rapid snappen). */
+    function setScore(scoreEl, from, to, animate) {
+        scoreEl.classList.toggle('vp-vote-score--neg', to < 0);
+        if (REDUCE || !animate || from === to) {
+            scoreEl.textContent = String(to);
+            scoreEl.classList.remove('is-ticking');
+            return;
+        }
+        scoreEl.classList.add('is-ticking');
+        var diff = to - from;
+        var dur = Math.min(300, 110 + 35 * Math.abs(diff));
+        var t0 = performance.now();
+        (function step(now) {
+            var prog = Math.min(1, (now - t0) / dur);
+            var e = 1 - Math.pow(1 - prog, 3);
+            scoreEl.textContent = String(Math.round(from + diff * e));
+            if (prog < 1) {
+                requestAnimationFrame(step);
+            } else {
+                scoreEl.textContent = String(to);
+                scoreEl.classList.remove('is-ticking');
+            }
+        }(t0));
+    }
+
+    /** Konsens-Balken in derselben Karte aus up/down nachführen (Breite, Farbe, Label). */
+    function updateConsensus(widget, upCount, downCount) {
+        var card = widget.closest('.vp-row, .vp-feat-card, .vp-detail-card');
+        var cons = card && card.querySelector('[data-cons]');
+        if (!cons) { return; }
+        var total = upCount + downCount;
+        if (total <= 0) { return; }
+        var pct = Math.round((upCount / total) * 100);
+        var low = pct < 50;
+        var fill = cons.querySelector('[data-cons-fill]');
+        var pctEl = cons.querySelector('[data-cons-pct]');
+        var labelEl = cons.querySelector('[data-cons-label]');
+        if (fill) { fill.style.width = pct + '%'; }
+        if (pctEl) { pctEl.textContent = pct + '%'; }
+        if (labelEl) { labelEl.textContent = low ? 'Umstritten' : 'Konsens'; }
+        cons.classList.toggle('vp-cons--low', low);
+    }
+
+    /**
+     * Übernimmt die Server-Antwort: Klassen-Zustand + animierter Score + Feedback.
+     *
+     * @param {HTMLElement} widget   - .vp-vote-Element
+     * @param {object}      data     - { score, my_vote, up_count, down_count }
+     * @param {string}      clicked  - 'up' | 'down' (welcher Button gesendet hat)
+     * @param {boolean}     animate  - false bei schnellem Klick-Streak (snap)
+     */
+    function applyState(widget, data, clicked, animate) {
+        var scoreEl = widget.querySelector('.vp-vote-score');
+        var from = parseInt((scoreEl && scoreEl.textContent) || '0', 10);
+        if (isNaN(from)) { from = 0; }
+        if (scoreEl) { setScore(scoreEl, from, data.score, animate); }
+
+        widget.classList.remove('vp-vote--up', 'vp-vote--down');
+        if (data.my_vote === 'up') {
+            widget.classList.add('vp-vote--up');
+        } else if (data.my_vote === 'down') {
+            widget.classList.add('vp-vote--down');
+        }
+
+        var btn = widget.querySelector(clicked === 'up' ? '.vp-vote-up' : '.vp-vote-down');
+        pop(btn);
+        // Konfetti nur bei aktiver Stimme — ein Rückzug (my_vote 'none') feiert nicht.
+        if (data.my_vote === 'up') {
+            burst(widget, btn, UP_COLOR, true);
+        } else if (data.my_vote === 'down') {
+            burst(widget, btn, DOWN_COLOR, false);
+        }
+
+        if (typeof data.up_count === 'number' && typeof data.down_count === 'number') {
+            updateConsensus(widget, data.up_count, data.down_count);
+        }
+    }
+
+    /** Hängt den fetch-Handler an alle Vote-Forms innerhalb eines Widgets. */
     function initWidget(widget) {
         var forms = widget.querySelectorAll('.vp-vote-form');
+        var lastClickT = -1e9;
 
         forms.forEach(function (form) {
             form.addEventListener('submit', function (evt) {
                 evt.preventDefault();
+
+                var valueField = form.querySelector('input[name="value"]');
+                var clicked = (valueField && valueField.value) === 'down' ? 'down' : 'up';
+
+                var now = (window.performance && performance.now) ? performance.now() : 0;
+                var animate = (now - lastClickT) >= 220; // Streak → snap, bewusster Klick → animieren
+                lastClickT = now;
 
                 var formData = new FormData(form);
                 var body = new URLSearchParams();
@@ -62,9 +182,9 @@
                     method: 'POST',
                     headers: {
                         'Accept': 'application/json',
-                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'Content-Type': 'application/x-www-form-urlencoded'
                     },
-                    body: body.toString(),
+                    body: body.toString()
                 })
                     .then(function (res) {
                         if (!res.ok) {
@@ -76,7 +196,7 @@
                     })
                     .then(function (data) {
                         if (data && typeof data.score === 'number' && typeof data.my_vote === 'string') {
-                            applyState(widget, data.score, data.my_vote);
+                            applyState(widget, data, clicked, animate);
                         }
                     })
                     .catch(function () {
