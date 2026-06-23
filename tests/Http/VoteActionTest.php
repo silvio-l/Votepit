@@ -200,6 +200,165 @@ final class VoteActionTest extends IntegrationTestCase
         self::assertStringNotContainsString('vote-audit-secret@example.com', $log);
     }
 
+    // --- JSON content-negotiation (Issue 04: Accept:application/json) -----------
+
+    private function postVoteJson(string $slug, int $ideaId, string $value, int $userId, string $acceptHeader = 'application/json'): ServerRequestInterface
+    {
+        $csrf   = $this->csrf();
+        $token  = $csrf->generate();
+        $signed = $csrf->sign($token);
+
+        return (new ServerRequestFactory())
+            ->createServerRequest('POST', '/' . $slug . '/ideas/' . $ideaId . '/vote')
+            ->withCookieParams([
+                $csrf->cookieName()  => $signed,
+                'votepit_sess'       => $this->sessionCookie($userId),
+            ])
+            ->withParsedBody(['_csrf' => $token, 'value' => $value])
+            ->withHeader('Accept', $acceptHeader);
+    }
+
+    private function postVoteXhr(string $slug, int $ideaId, string $value, int $userId): ServerRequestInterface
+    {
+        $csrf   = $this->csrf();
+        $token  = $csrf->generate();
+        $signed = $csrf->sign($token);
+
+        return (new ServerRequestFactory())
+            ->createServerRequest('POST', '/' . $slug . '/ideas/' . $ideaId . '/vote')
+            ->withCookieParams([
+                $csrf->cookieName()  => $signed,
+                'votepit_sess'       => $this->sessionCookie($userId),
+            ])
+            ->withParsedBody(['_csrf' => $token, 'value' => $value])
+            ->withHeader('X-Requested-With', 'XMLHttpRequest');
+    }
+
+    /** Accept: application/json → 200, application/json Content-Type. */
+    public function test_json_accept_returns_200_with_json_content_type(): void
+    {
+        $boardId = $this->insertBoard('vjson-ct');
+        $userId  = $this->insertUser('vjson-ct@example.com');
+        $ideaId  = $this->seedIdea($boardId, $userId);
+
+        $response = $this->createApp()->handle($this->postVoteJson('vjson-ct', $ideaId, 'up', $userId));
+
+        self::assertSame(200, $response->getStatusCode());
+        self::assertStringContainsString('application/json', $response->getHeaderLine('Content-Type'));
+    }
+
+    /** JSON-Body enthält alle vier Felder mit korrekten Typen. */
+    public function test_json_response_contains_score_my_vote_up_down_count(): void
+    {
+        $boardId = $this->insertBoard('vjson-fields');
+        $userId  = $this->insertUser('vjson-fields@example.com');
+        $ideaId  = $this->seedIdea($boardId, $userId);
+
+        $response = $this->createApp()->handle($this->postVoteJson('vjson-fields', $ideaId, 'up', $userId));
+        $body     = (string) $response->getBody();
+        $data     = json_decode($body, true);
+
+        self::assertIsArray($data);
+        self::assertArrayHasKey('score', $data);
+        self::assertArrayHasKey('my_vote', $data);
+        self::assertArrayHasKey('up_count', $data);
+        self::assertArrayHasKey('down_count', $data);
+        self::assertSame(1, $data['score']);
+        self::assertSame('up', $data['my_vote']);
+        self::assertSame(1, $data['up_count']);
+        self::assertSame(0, $data['down_count']);
+    }
+
+    /** Retract via JSON: score 0, my_vote none. */
+    public function test_json_retract_returns_score_zero_and_my_vote_none(): void
+    {
+        $boardId = $this->insertBoard('vjson-retract');
+        $userId  = $this->insertUser('vjson-retract@example.com');
+        $ideaId  = $this->seedIdea($boardId, $userId);
+
+        $app = $this->createApp();
+        $app->handle($this->postVoteJson('vjson-retract', $ideaId, 'up', $userId));
+        $response = $app->handle($this->postVoteJson('vjson-retract', $ideaId, 'up', $userId));
+        $data     = json_decode((string) $response->getBody(), true);
+
+        self::assertIsArray($data);
+        self::assertSame(0, $data['score']);
+        self::assertSame('none', $data['my_vote']);
+        self::assertSame(0, $data['up_count']);
+    }
+
+    /** X-Requested-With: XMLHttpRequest erzeugt ebenfalls JSON-Antwort. */
+    public function test_xhr_header_returns_json(): void
+    {
+        $boardId = $this->insertBoard('vjson-xhr');
+        $userId  = $this->insertUser('vjson-xhr@example.com');
+        $ideaId  = $this->seedIdea($boardId, $userId);
+
+        $response = $this->createApp()->handle($this->postVoteXhr('vjson-xhr', $ideaId, 'down', $userId));
+
+        self::assertSame(200, $response->getStatusCode());
+        self::assertStringContainsString('application/json', $response->getHeaderLine('Content-Type'));
+        $data = json_decode((string) $response->getBody(), true);
+        self::assertIsArray($data);
+        self::assertSame(-1, $data['score']);
+        self::assertSame('down', $data['my_vote']);
+        self::assertSame(0, $data['up_count']);
+        self::assertSame(1, $data['down_count']);
+    }
+
+    /** JSON-Pfad: anon → immer noch 401 (Pipeline unverändert). */
+    public function test_json_anon_returns_401(): void
+    {
+        $boardId = $this->insertBoard('vjson-anon');
+        $userId  = $this->insertUser('vjson-anon@example.com');
+        $ideaId  = $this->seedIdea($boardId, $userId);
+
+        $csrf   = $this->csrf();
+        $token  = $csrf->generate();
+        $signed = $csrf->sign($token);
+
+        $request = (new ServerRequestFactory())
+            ->createServerRequest('POST', '/vjson-anon/ideas/' . $ideaId . '/vote')
+            ->withCookieParams([$csrf->cookieName() => $signed])
+            ->withParsedBody(['_csrf' => $token, 'value' => 'up'])
+            ->withHeader('Accept', 'application/json');
+
+        $response = $this->createApp()->handle($request);
+        self::assertSame(401, $response->getStatusCode());
+        self::assertSame(0, $this->rowCount($ideaId));
+    }
+
+    /** JSON-Pfad: fehlender CSRF → 403 (CSRF-Middleware unverändert). */
+    public function test_json_missing_csrf_returns_403(): void
+    {
+        $boardId = $this->insertBoard('vjson-csrf');
+        $userId  = $this->insertUser('vjson-csrf@example.com');
+        $ideaId  = $this->seedIdea($boardId, $userId);
+
+        $request = (new ServerRequestFactory())
+            ->createServerRequest('POST', '/vjson-csrf/ideas/' . $ideaId . '/vote')
+            ->withCookieParams(['votepit_sess' => $this->sessionCookie($userId)])
+            ->withParsedBody(['value' => 'up'])
+            ->withHeader('Accept', 'application/json');
+
+        $response = $this->createApp()->handle($request);
+        self::assertSame(403, $response->getStatusCode());
+        self::assertSame(0, $this->rowCount($ideaId));
+    }
+
+    /** Kein JSON-Accept-Header → weiterhin 302 PRG (Non-JS-Pfad intakt). */
+    public function test_no_json_accept_still_returns_302(): void
+    {
+        $boardId = $this->insertBoard('vjson-prg');
+        $userId  = $this->insertUser('vjson-prg@example.com');
+        $ideaId  = $this->seedIdea($boardId, $userId);
+
+        $response = $this->createApp()->handle($this->postVote('vjson-prg', $ideaId, 'up', $userId));
+
+        self::assertSame(302, $response->getStatusCode());
+        self::assertSame('/vjson-prg/ideas/' . $ideaId, $response->getHeaderLine('Location'));
+    }
+
     // --- Detail-page vote controls (Issue 02: anon → login-links; auth → forms) --
 
     /** Anon sieht Login-Links statt Forms (Issue 02). */

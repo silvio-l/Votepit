@@ -35,12 +35,15 @@ final readonly class VoteRepository
      * Pro (Idee, Nutzer) existiert danach genau eine oder keine Zeile — nie zwei
      * (Service-Logik + DB-UNIQUE als Backstop).
      *
-     * @return array{my_vote: 'up'|'down'|'none', score: int} Resultierender Zustand.
+     * up_count/down_count werden in derselben Transaktion gelesen (kein Re-Query
+     * außerhalb) — für den JSON-Pfad (Issue 04) ohne zweite DB-Abfrage in der Action.
+     *
+     * @return array{my_vote: 'up'|'down'|'none', score: int, up_count: int, down_count: int} Resultierender Zustand.
      * @throws DbalException
      */
     public function cast(int $boardId, int $ideaId, int $userId, int $value): array
     {
-        /** @var array{my_vote: 'up'|'down'|'none', score: int} $result */
+        /** @var array{my_vote: 'up'|'down'|'none', score: int, up_count: int, down_count: int} $result */
         $result = $this->conn->transactional(
             function (Connection $conn) use ($boardId, $ideaId, $userId, $value): array {
                 $existing = $conn->fetchOne(
@@ -85,9 +88,21 @@ final readonly class VoteRepository
                     ['idea' => $ideaId, 'board' => $boardId],
                 );
 
+                // up_count / down_count in derselben Transaktion — kein Re-Query außerhalb.
+                $upCount = $conn->fetchOne(
+                    'SELECT COUNT(*) FROM votes WHERE idea_id = :idea AND value > 0',
+                    ['idea' => $ideaId],
+                );
+                $downCount = $conn->fetchOne(
+                    'SELECT COUNT(*) FROM votes WHERE idea_id = :idea AND value < 0',
+                    ['idea' => $ideaId],
+                );
+
                 return [
-                    'my_vote' => $newValue > 0 ? 'up' : ($newValue < 0 ? 'down' : 'none'),
-                    'score'   => is_numeric($score) ? (int) $score : 0,
+                    'my_vote'    => $newValue > 0 ? 'up' : ($newValue < 0 ? 'down' : 'none'),
+                    'score'      => is_numeric($score) ? (int) $score : 0,
+                    'up_count'   => is_numeric($upCount) ? (int) $upCount : 0,
+                    'down_count' => is_numeric($downCount) ? (int) $downCount : 0,
                 ];
             },
         );
