@@ -164,6 +164,10 @@
         .vp-brand-pit  { color: var(--vp-vote-down); }
         .vp-logo       { max-height: 2.5rem; width: auto; display: block; margin-bottom: 1.25rem; }
 
+        /* ── Persistente Attribution (nicht board-überschreibbar) ────────── */
+        .vp-attr { margin: 1rem 0 0; color: var(--vp-text-muted); font-size: .75rem; text-align: center; opacity: .7; }
+        .vp-attr a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
+
         {% block styles %}{% endblock %}
     </style>
     {% block head_extra %}{% endblock %}
@@ -187,5 +191,8 @@
         {% endblock %}
     </main>
     {% endblock %}
+    {# Persistente Votepit-Attribution — außerhalb aller überschreibbaren Blöcke,
+       nicht via Board-Branding entfernbar. Fester Text/Link, kein |raw. #}
+    <p class="vp-attr">Bereitgestellt mit <a href="https://votepit.com">Votepit</a></p>
 </body>
 </html>
