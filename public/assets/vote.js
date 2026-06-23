@@ -206,10 +206,54 @@
         });
     }
 
+    /**
+     * Zahl beim Laden von 0 auf ihren Zielwert hochzählen — die „Daten als
+     * Signatur"-Geste der Landing, jetzt auf den Voting-Kernzahlen (Score,
+     * Konsens-%, Bento-Aggregate). Vorzeichen/Suffix (z. B. „%") bleiben erhalten.
+     */
+    function countUp(el, delay) {
+        var raw = el.textContent.trim();
+        var m = raw.match(/^(-?)(\d+)(\D*)$/);
+        if (!m) { return; }
+        var to = parseInt(m[1] + m[2], 10);
+        var suffix = m[3] || '';
+        var dur = 700;
+        el.textContent = '0' + suffix;
+        window.setTimeout(function () {
+            el.classList.add('is-ticking');
+            var t0 = performance.now();
+            (function step(now) {
+                var prog = Math.min(1, (now - t0) / dur);
+                var e = 1 - Math.pow(1 - prog, 3);
+                el.textContent = String(Math.round(to * e)) + suffix;
+                if (prog < 1) {
+                    requestAnimationFrame(step);
+                } else {
+                    el.textContent = raw;
+                    el.classList.remove('is-ticking');
+                }
+            }(t0));
+        }, delay);
+    }
+
+    /** Start-Pass: zählt alle Voting-Kernzahlen beim Laden hoch (gestaffelt). */
+    function startReveal() {
+        if (REDUCE) { return; } // reduced-motion: SSR-Werte stehen lassen
+        var scores = document.querySelectorAll('.vp-vote-score');
+        scores.forEach(function (el, i) { countUp(el, 80 + i * 55); });
+        var pcts = document.querySelectorAll('[data-cons-pct]');
+        pcts.forEach(function (el, i) { countUp(el, 140 + i * 55); });
+        var bento = document.querySelectorAll('.vp-bento-num');
+        bento.forEach(function (el, i) { countUp(el, 120 + i * 70); });
+    }
+
     // Alle .vp-vote-Elemente initialisieren, die mindestens eine .vp-vote-form enthalten.
     document.querySelectorAll('.vp-vote').forEach(function (widget) {
         if (widget.querySelector('.vp-vote-form')) {
             initWidget(widget);
         }
     });
+
+    // Voting-Kernzahlen beim Laden lebendig starten — auch für ausgeloggte Besucher.
+    startReveal();
 }());

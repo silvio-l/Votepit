@@ -27,9 +27,9 @@
 {% endblock %}
 
 {% block head_extra %}
-{% if current_user_id is not null %}
+{# vote.js liefert die interaktiven Vote-Updates (eingeloggt) UND die Start-/
+   Hochzähl-Animation der Voting-Zahlen (für alle, auch anonym). #}
 <script src="/assets/vote.js" defer></script>
-{% endif %}
 {% endblock %}
 
 {% block body %}

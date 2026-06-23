@@ -295,8 +295,24 @@
         .vp-vote-score { transition: color .2s ease; }
         .vp-vote-score.is-ticking { color: var(--vp-vote-up); }
         .vp-vote-score--neg.is-ticking { color: var(--vp-vote-down); }
+        .vp-vote-btn { transition: transform .14s cubic-bezier(.2,.8,.3,1.2), border-color .14s, background .14s; }
+        .vp-vote:hover .vp-vote-up:not(:hover) svg,
+        .vp-vote:hover .vp-vote-down:not(:hover) svg { opacity: .85; }
+        button.vp-vote-btn:hover, a.vp-vote-btn:hover { transform: translateY(-1px); }
+        button.vp-vote-btn:active { transform: translateY(0) scale(.94); }
         @media (prefers-reduced-motion: reduce) {
             .vp-vote-score { transition: none; }
+            .vp-vote-btn { transition: none; }
+        }
+        /* Start-/Reveal-Animation der Voting-Kernelemente (Sprint 4, Issue 05):
+           beim Laden poppt das Control sanft auf, der Konsens-Balken wächst von
+           links rein — wie die Voting-Karte der Landing. Zahlen zählen per vote.js
+           hoch. Nur bei no-preference; reduced-motion zeigt den Endzustand sofort. */
+        @media (prefers-reduced-motion: no-preference) {
+            @keyframes vp-vote-in { from { opacity: 0; transform: translateY(7px) scale(.94); } to { opacity: 1; transform: none; } }
+            .vp-vote { animation: vp-vote-in .42s cubic-bezier(.2,.8,.3,1.1) both; }
+            @keyframes vp-cons-grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+            .vp-cons-fill { transform-origin: left center; animation: vp-cons-grow .85s cubic-bezier(.2,.8,.3,1) .06s both; }
         }
 
         /* ── StatusBadge Pill (Figma 61:47) ───────────────────────────────── */
