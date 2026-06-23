@@ -62,4 +62,8 @@ if [ ${#violations[@]} -gt 0 ]; then
   exit 1
 fi
 
+# Doc-Gate (zweite Prüfung): Internas/Infra-Leaks, Sprache, Security-Werbung,
+# Identität, Platzhalter in den öffentlichen Inhalten dieses Commits.
+bash "$ROOT/.githooks/check-docs.sh" staged || exit 1
+
 exit 0

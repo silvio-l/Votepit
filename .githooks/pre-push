@@ -87,4 +87,8 @@ if [ ${#unique_violations[@]} -gt 0 ]; then
   exit 1
 fi
 
+# Doc-Gate (dritte Schicht): Internas/Infra-Leaks, Sprache, Security-Werbung,
+# Identität, Platzhalter im gesamten zu pushenden HEAD-Baum.
+bash "$ROOT/.githooks/check-docs.sh" head || exit 1
+
 exit 0

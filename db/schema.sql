@@ -17,7 +17,7 @@
 
 SET NAMES utf8mb4;
 
--- boards: ein Board pro Projekt (example, example, example …)
+-- boards: ein Board pro Projekt (z. B. /mobile-app, /website, /api …)
 CREATE TABLE IF NOT EXISTS boards (
     id              BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     slug            VARCHAR(64)     NOT NULL,

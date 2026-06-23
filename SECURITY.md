@@ -46,6 +46,5 @@ Out of scope: vulnerabilities in third-party dependencies (report them upstream)
 self-inflicted issues from ignoring this documentation, or findings from
 automated scanners without a working proof of concept.
 
-Votepit is designed **security-by-default** (server-side integrity, prepared
-statements only, output escaping, CSRF protection, rate limiting). Reports that
-confirm these guarantees hold are appreciated too.
+Reports that confirm an intended protection holds — rather than break it — are
+welcome too.

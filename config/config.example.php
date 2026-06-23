@@ -35,7 +35,7 @@ return [
         'charset' => 'utf8mb4',
     ],
 
-    // SMTP für Magic-Link-Versand (z. B. your mail provider).
+    // SMTP für Magic-Link-Versand (SMTP-Zugang deines Hosters/Mailproviders).
     'smtp' => [
         'host'       => '',
         'port'       => 587,

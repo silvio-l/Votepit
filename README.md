@@ -1,73 +1,76 @@
-# Votepit
+<div align="center">
 
-Selbst-gehostetes **Feature-Voting-Board** mit echten **Up- _und_ Down-Votes** — für klassisches PHP/MySQL-Shared-Hosting, ohne Docker, ohne fremde Runtime. Eine Installation bedient mehrere Boards (ein Board pro Projekt). Anmeldung passwortlos per Magic-Link.
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="public/assets/brand/votepit-lockup-dark.png">
+  <img alt="Votepit" src="public/assets/brand/votepit-lockup-light.png" width="320">
+</picture>
 
-> Status: **Frühe Initialisierung.** Die Implementierung beginnt mit dem Security-Foundation-Sprint (Skeleton, Routing, Config, Schema, Schutzschichten).
+**The self-hosted feature-voting board with real up- _and_ down-votes.**
 
-## Warum
+[votepit.com](https://votepit.com) · [Documentation](https://votepit.com/docs) · [MIT License](LICENSE)
 
-Kommerzielle Tools (Canny, Featurebase, Nolt …) haben meist **keine Down-Votes** oder deckeln das Free-Tier; die gepflegten Self-hosted-OSS-Lösungen sind Docker-basiert und nicht Shared-Hosting-tauglich. Votepit schließt die Lücke: läuft dort, wo ohnehin Webspace ist (z. B. shared hosting), per FTPES deploybar, kostenlos, MIT-lizenziert.
+</div>
 
-## Features (MVP-Ziel)
+---
 
-- Öffentliche Boards pro Projekt, Sortierung nach **Top** (Score) und **Neueste**, Filter nach Status
-- **Up-/Down-Vote**, genau eine Stimme pro Idee pro Nutzer — serverseitig per `UNIQUE`-Constraint erzwungen
-- Passwortlose **Magic-Link-Auth** (E-Mail), persistente Session, Rate-Limiting
-- Ideen einreichen, bearbeiten, zurückziehen; Kommentare
-- **Duplikat-Erkennung beim Tippen** (As-you-type): MySQL-FULLTEXT-Recall + Jaro-Winkler-Reranking, ohne LLM/externe Dienste
-- Admin-Moderation: Status setzen, anpinnen, fremde Beiträge moderieren, Nutzer sperren, Boards anlegen
-- **Multi-Board** aus einer Installation (`/{board-slug}/…`)
+Votepit is a self-hosted **feature-voting board** with genuine **up- _and_ down-votes** — for classic PHP/MySQL shared hosting, no Docker, no extra runtime. One installation serves many boards (one board per project). Passwordless sign-in via magic link.
 
-Bewusst **nicht** im MVP: Embed-Widget, OAuth, E-Mail-Benachrichtigungen, öffentliche API, Realtime. Siehe „Out of Scope" im PRD.
+> **Status: early initialization.** Implementation starts with the security-foundation sprint (skeleton, routing, config, schema, protection layers).
 
-## Anforderungen
+## Why
 
-- PHP **8.2+** mit `pdo`, `mbstring`, `intl`
-- MySQL **5.7+** / MariaDB **10.0+** (InnoDB-FULLTEXT für die Duplikat-Suche; PHP-Fallback ohne FULLTEXT vorhanden)
-- SMTP-Zugang für den Magic-Link-Versand
-- Kein Docker, kein SSH-Zwang, kein `composer install` auf dem Server nötig
+Commercial tools (Canny, Featurebase, Nolt, …) usually have **no down-votes** or cap their free tier; the maintained self-hosted OSS options are Docker-based and not suited to shared hosting. Votepit closes the gap: it runs on the webspace you already have, deploys over FTPES, is free, and MIT-licensed.
 
-## Technologie
+## Features (MVP goal)
 
-Aufbau auf einem **schlanken Stack aus geprüften Komponenten**: [Slim 4](https://www.slimframework.com/) (PSR-15-Middleware-Pipeline), [Twig 3](https://twig.symfony.com/) (Templates mit Autoescape), ausgewählte [Symfony-Komponenten](https://symfony.com/components) (Validator, Mailer) und [Doctrine DBAL](https://www.doctrine-project.org/projects/doctrine-dbal.html) (Prepared-Statements-only). Bewusst kein Full-Stack-Framework — Shared-Hosting-tauglich, kleine Angriffsfläche, Security-Primitive aus aktiv gepflegten, auditierten Quellen.
+- Public boards per project, sorted by **Top** (score) and **Newest**, filterable by status
+- **Up/down voting**, exactly one vote per idea per user — enforced server-side via a `UNIQUE` constraint
+- Passwordless **magic-link auth** (email), persistent session, rate limiting
+- Submit, edit, and withdraw ideas; comments
+- **Duplicate detection as you type**: MySQL FULLTEXT recall + Jaro–Winkler reranking, no LLM or external service
+- Admin moderation: set status, pin, moderate others' posts, block users, create boards
+- **Multi-board** from a single installation (`/{board-slug}/…`)
+
+Deliberately **not** in the MVP: embed widget, OAuth, email notifications, public API, realtime. See "Out of scope" in the PRD.
+
+## Requirements
+
+- PHP **8.2+** with `pdo`, `mbstring`, `intl`
+- MySQL **5.7+** / MariaDB **10.0+** (InnoDB FULLTEXT for duplicate search; a PHP fallback without FULLTEXT is included)
+- SMTP access for sending magic links
+- No Docker, no mandatory SSH, no `composer install` on the server
+
+## Tech
+
+Built on a lean stack of established components: [Slim 4](https://www.slimframework.com/) (PSR-15 middleware pipeline), [Twig 3](https://twig.symfony.com/) (auto-escaping templates), selected [Symfony components](https://symfony.com/components) (Validator, Mailer), and [Doctrine DBAL](https://www.doctrine-project.org/projects/doctrine-dbal.html) (prepared statements only). Deliberately not a full-stack framework — it stays shared-hosting-friendly and builds on actively maintained, audited components.
 
 ## Installation
 
-1. Repo klonen, Abhängigkeiten **lokal** bauen:
+1. Clone the repo and build dependencies **locally**:
    ```bash
    composer install --no-dev --optimize-autoloader
    ```
-   `vendor/` wird mit dem Build-Artefakt per FTPES hochgeladen (nicht im Repo eingecheckt).
-2. Konfiguration anlegen:
+   `vendor/` is uploaded with the build artifact over FTPES (it is not committed to the repo).
+2. Create the configuration:
    ```bash
    cp config/config.example.php config/config.php
    ```
-   In `config/config.php` DB-Zugang, SMTP, `app_url`, `admin_emails` und einen `app_key` eintragen
-   (`php -r "echo bin2hex(random_bytes(32));"`).
-3. Datenbank-Schema einspielen (idempotentes Setup-Skript — folgt im Security-Foundation-Sprint, siehe `db/`).
-4. Webroot auf `public/` zeigen lassen. Ist der Webroot nicht frei wählbar, schützt die mitgelieferte `.htaccess` die Pfade außerhalb von `public/` (Details folgen in der Deploy-Doku).
+   In `config/config.php`, set the database access, SMTP, `app_url`, `admin_emails`, and an `app_key` (`php -r "echo bin2hex(random_bytes(32));"`).
+3. Import the database schema (idempotent setup script — lands in the security-foundation sprint, see `db/`).
+4. Point the web root at `public/`. If the web root is not configurable, the bundled `.htaccess` protects the paths outside `public/` (details in the deploy docs).
 
-## Deployment (shared hosting / Shared-Hosting)
+## Deployment (shared hosting)
 
-Build inkl. `vendor/` lokal erzeugen → den fertigen Ordner per **FTPES** in den Subdomain-Docroot hochladen. Kein Docker, kein Server-seitiges Composer.
+Build locally including `vendor/`, then upload the finished folder over **FTPES** into the docroot. No Docker, no server-side Composer.
 
-## Konfiguration mehrerer Boards
+## Multiple boards
 
-Eine Installation bedient mehrere Boards path-basiert (`/example`, `/example`, `/example` …). Boards werden im Admin angelegt; Branding (Name, Slug, Akzentfarbe, Intro) ist pro Board konfigurierbar.
+One installation serves many boards, addressed by path (`/mobile-app`, `/website`, `/api`, …). Boards are created in the admin area; branding (name, slug, accent color, intro) is configurable per board.
 
-## Sicherheit
+## Security
 
-Schutzschichten (Security-Header, Middleware-Pipeline, deny-by-default-Autorisierung) sind Teil des Fundaments. Im Einzelnen:
+Found a vulnerability? Please see [`SECURITY.md`](SECURITY.md) for coordinated disclosure.
 
-- Ausschließlich Prepared Statements (Doctrine DBAL über PDO) → keine SQL-Injection
-- **Twig mit Autoescape (Default)** → kontextgerechtes Output-Escaping, kein XSS
-- Integrität (eine Stimme pro Idee/Nutzer, Status-Übergänge, Ownership) ausschließlich serverseitig
-- CSRF-Token (`slim/csrf`) auf allen mutierenden Requests, serverseitiges Rate-Limiting
-- Magic-Link-Tokens werden nur gehasht gespeichert, sind einmalig und befristet
-- Webroot ist `public/`; Config, Code und Logs liegen außerhalb
-
-Eine Sicherheitslücke gefunden? Siehe [`SECURITY.md`](SECURITY.md) (verantwortungsvolle Offenlegung / Coordinated Disclosure).
-
-## Lizenz
+## License
 
 [MIT](LICENSE) — © 2026 Silvio Lindstedt.
