@@ -46,8 +46,8 @@
 
         {# Filter-Chips + SortTabs (Figma 81:63) #}
         <div class="vp-filter">
-            {{ ui.filter_chips(board_slug, active_status) }}
-            {{ ui.sort_tabs() }}
+            {{ ui.filter_chips(board_slug, active_status, active_sort) }}
+            {{ ui.sort_tabs(board_slug, active_sort, active_status, page) }}
         </div>
 
         {# Cards (Figma 81:84) #}
@@ -84,13 +84,14 @@
         {% endif %}
 
         {% if total_pages|default(1) > 1 %}
+        {% set _sort_qs = active_sort is defined and active_sort != 'newest' ? '&amp;sort=' ~ active_sort : '' %}
         <nav class="vp-pagination" aria-label="Seitennavigation">
             {% if page > 1 %}
-            <a class="vp-btn2 vp-btn2--secondary vp-btn2--sm" href="/{{ board_slug }}?page={{ page - 1 }}{% if active_status is not null %}&amp;status={{ active_status }}{% endif %}">← Zurück</a>
+            <a class="vp-btn2 vp-btn2--secondary vp-btn2--sm" href="/{{ board_slug }}?page={{ page - 1 }}{{ _sort_qs }}{% if active_status is not null %}&amp;status={{ active_status }}{% endif %}">← Zurück</a>
             {% endif %}
             <span class="vp-page-info">{{ page }} / {{ total_pages }}</span>
             {% if page < total_pages %}
-            <a class="vp-btn2 vp-btn2--secondary vp-btn2--sm" href="/{{ board_slug }}?page={{ page + 1 }}{% if active_status is not null %}&amp;status={{ active_status }}{% endif %}">Weiter →</a>
+            <a class="vp-btn2 vp-btn2--secondary vp-btn2--sm" href="/{{ board_slug }}?page={{ page + 1 }}{{ _sort_qs }}{% if active_status is not null %}&amp;status={{ active_status }}{% endif %}">Weiter →</a>
             {% endif %}
         </nav>
         {% endif %}

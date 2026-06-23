@@ -141,22 +141,34 @@
 </div>
 {% endmacro %}
 
-{# Filter-Chips (Figma 81:64) — Status-Filter; aktiver Chip = Brand-Primary. #}
-{% macro filter_chips(board_slug, active_status) %}
+{# Filter-Chips (Figma 81:64) — Status-Filter; aktiver Chip = Brand-Primary.
+   active_sort: wird in alle Filter-Links durchgereicht, damit Sort-Auswahl erhalten bleibt. #}
+{% macro filter_chips(board_slug, active_status, active_sort) %}
 {% set labels = {'open':'Offen','planned':'Geplant','in_progress':'In Arbeit','done':'Erledigt','declined':'Abgelehnt'} %}
+{% set _sort = active_sort|default('newest') %}
+{% set _sort_qs = _sort != 'newest' ? '?sort=' ~ _sort : '' %}
 <nav class="vp-chips" aria-label="Status-Filter">
-    <a class="vp-chip{{ active_status is null ? ' vp-chip--active' : '' }}" href="/{{ board_slug }}">Alle</a>
+    <a class="vp-chip{{ active_status is null ? ' vp-chip--active' : '' }}" href="/{{ board_slug }}{{ _sort_qs }}">Alle</a>
     {% for s in ['open','planned','in_progress','done','declined'] %}
-    <a class="vp-chip{{ active_status == s ? ' vp-chip--active' : '' }}" href="/{{ board_slug }}?status={{ s }}">{{ labels[s] }}</a>
+    {% set _sep = _sort_qs != '' ? '&amp;' : '?' %}
+    <a class="vp-chip{{ active_status == s ? ' vp-chip--active' : '' }}" href="/{{ board_slug }}{{ _sort_qs }}{{ _sep }}status={{ s }}">{{ labels[s] }}</a>
     {% endfor %}
 </nav>
 {% endmacro %}
 
-{# SortTabs (Figma 67:45) — Top / Neu / Umstritten. „Neu" aktiv (Newest); Top/Umstritten ab Sprint 4. #}
-{% macro sort_tabs() %}
+{# SortTabs (Figma 67:45) — Top / Neu / Umstritten.
+   board_slug: Board-Slug für den Link-Pfad.
+   active_sort: aktive Sortierachse ('newest' | 'top'); steuert vp-sorttab--active.
+   active_status: aktueller Status-Filter (wird in Links durchgereicht, null = kein Filter).
+   page: aktuelle Seite (wird in Links zurückgesetzt auf 1 beim Sort-Wechsel).
+   „Umstritten" bleibt inaktiv — kein ?sort=controversial (Backlog laut PRD). #}
+{% macro sort_tabs(board_slug, active_sort, active_status, page) %}
+{% set _sort = active_sort|default('newest') %}
+{% set _base = '/' ~ board_slug ~ '?' %}
+{% set _status_qs = active_status is not null ? '&amp;status=' ~ active_status : '' %}
 <div class="vp-sorttabs">
-    <span class="vp-sorttab" title="Verfügbar mit Voting (Sprint 4)">Top</span>
-    <span class="vp-sorttab vp-sorttab--active">Neu</span>
-    <span class="vp-sorttab" title="Verfügbar mit Voting (Sprint 4)">Umstritten</span>
+    <a class="vp-sorttab{{ _sort == 'top' ? ' vp-sorttab--active' : '' }}" href="{{ _base }}sort=top{{ _status_qs }}">Top</a>
+    <a class="vp-sorttab{{ _sort == 'newest' or _sort is not defined ? ' vp-sorttab--active' : '' }}" href="{{ _base }}sort=newest{{ _status_qs }}">Neu</a>
+    <span class="vp-sorttab" aria-disabled="true" title="Folgt in einem späteren Sprint">Umstritten</span>
 </div>
 {% endmacro %}

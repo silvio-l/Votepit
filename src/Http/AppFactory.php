@@ -345,13 +345,17 @@ final class AppFactory
                 $limit   = IdeaRepository::DEFAULT_PAGE_SIZE;
                 $offset  = ($page - 1) * $limit;
 
+                // Sortierachse: ?sort= gegen Allow-List validieren; unbekannt → DEFAULT_SORT.
+                $rawSort    = is_string($params['sort'] ?? null) ? $params['sort'] : IdeaRepository::DEFAULT_SORT;
+                $activeSort = array_key_exists($rawSort, IdeaRepository::SORT_AXES) ? $rawSort : IdeaRepository::DEFAULT_SORT;
+
                 // Issue 02: eingeloggter User → my_vote je Idee via set-basierter Subquery.
                 $currentUser   = $request->getAttribute(AuthNMiddleware::ATTR_USER);
                 $isAuth        = $currentUser !== null;
                 $currentUserId = is_array($currentUser) ? (int) ($currentUser['id'] ?? 0) : null;
                 $csrfToken     = $request->getAttribute(CsrfMiddleware::ATTR_TOKEN);
 
-                $ideas = $ideaRepo->listByBoard((int) $board['id'], $activeStatus, $limit, $offset, IdeaRepository::DEFAULT_SORT, $currentUserId);
+                $ideas = $ideaRepo->listByBoard((int) $board['id'], $activeStatus, $limit, $offset, $activeSort, $currentUserId);
 
                 // Gesamtzahl für Pagination (nur wenn nötig: Seite > 1 oder volle Seite).
                 $totalPages = 1;
@@ -366,6 +370,7 @@ final class AppFactory
                     'board_intro'      => is_string($board['intro'] ?? null) ? $board['intro'] : '',
                     'ideas'            => $ideas,
                     'active_status'    => $activeStatus,
+                    'active_sort'      => $activeSort,
                     'page'             => $page,
                     'total_pages'      => $totalPages,
                     'is_authenticated' => $isAuth,
