@@ -12,6 +12,8 @@ use Slim\App;
 use Slim\Psr7\Factory\ResponseFactory;
 use Slim\Views\Twig;
 use Votepit\Config;
+use Votepit\Domain\TitleNormalizer;
+use Votepit\Http\Action\IdeaCreateAction;
 use Votepit\Http\Middleware\AuthNMiddleware;
 use Votepit\Http\Middleware\AuthZMiddleware;
 use Votepit\Http\Middleware\BlockCheckMiddleware;
@@ -386,6 +388,61 @@ final class AppFactory
                 ]);
                 return $response->withHeader('Content-Type', 'text/html; charset=utf-8');
             })->add(AuthZMiddleware::anon($responseFactory));
+
+            // GET /{board}/ideas/new — Submit-Formular (Sprint 3, Issue 05).
+            // AuthZ: anon; anon-Nutzer werden in der Action per Redirect zum Login geleitet
+            // (Return-To auf die aktuelle URL gesetzt). Eingeloggte sehen das Formular.
+            // POST-Route ist user-gated; das Formular selbst enthält keine Secrets.
+            $app->get('/{board}/ideas/new', function (
+                ServerRequestInterface $request,
+                ResponseInterface $response,
+                array $args,
+            ) use ($twig, $boardRepo): MessageInterface {
+                $slug  = is_string($args['board'] ?? null) ? $args['board'] : '';
+                $board = $boardRepo->findBySlug($slug);
+                if (!is_array($board)) {
+                    $response->getBody()->write('Board not found.');
+                    return $response->withStatus(404);
+                }
+
+                // Anon → Redirect auf Login mit Return-To (Open-Redirect-sicher via rawurlencode).
+                $user = $request->getAttribute(AuthNMiddleware::ATTR_USER);
+                if (!is_array($user)) {
+                    $returnTo = '/' . rawurlencode($slug) . '/ideas/new';
+                    return $response
+                        ->withStatus(302)
+                        ->withHeader('Location', '/login?r=' . rawurlencode($returnTo));
+                }
+
+                $csrfToken = $request->getAttribute(CsrfMiddleware::ATTR_TOKEN);
+                $response  = $twig->render($response, 'board/idea-submit.twig', [
+                    'board_slug' => $slug,
+                    'board_name' => is_string($board['name'] ?? null) ? $board['name'] : $slug,
+                    'csrf_token' => is_string($csrfToken) ? $csrfToken : '',
+                    'values'     => ['title' => '', 'body' => ''],
+                    'errors'     => [],
+                ]);
+                return $response->withHeader('Content-Type', 'text/html; charset=utf-8');
+            })->add(AuthZMiddleware::anon($responseFactory));
+
+            // POST /{board}/ideas — Idee anlegen (Sprint 3, Issue 05).
+            // AuthZ: user (anon → 401); CSRF global erzwungen; per-Action-RateLimit idea:submit.
+            $submitRateLimit = $config->rateLimit('idea:submit');
+            $normalizer      = new TitleNormalizer();
+
+            $app->post('/{board}/ideas', new IdeaCreateAction($twig, $boardRepo, $ideaRepo, $normalizer, $audit))
+            ->add(AuthZMiddleware::user($responseFactory))
+            ->add(RateLimitMiddleware::perAction(
+                new RateLimiter($conn),
+                $responseFactory,
+                'idea:submit',
+                $submitRateLimit['limit'],
+                $submitRateLimit['window'],
+                static function (ServerRequestInterface $r): ?string {
+                    $user = $r->getAttribute(AuthNMiddleware::ATTR_USER);
+                    return is_array($user) ? (string) ($user['id'] ?? '') : null;
+                },
+            ));
 
             // GET /admin/boards/{slug}/branding — Branding-Einstellseite (AuthZ: admin).
             // Rendert das Base-Layout mit dem (validierten) Branding des Boards selbst:

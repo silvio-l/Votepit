@@ -87,7 +87,7 @@ final class IdeaDetailActionTest extends IntegrationTestCase
     public function test_idea_from_other_board_returns_404(): void
     {
         $boardAId = $this->insertBoard('board-leak-a');
-        $boardBId = $this->insertBoard('board-leak-b');
+        $this->insertBoard('board-leak-b');
         $authorId = $this->insertUser('leak@example.com');
 
         // Idee wird in Board A angelegt

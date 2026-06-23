@@ -43,6 +43,38 @@ final readonly class IdeaRepository
     public function __construct(private Connection $conn) {}
 
     /**
+     * Legt eine neue Idee board-scoped an (Prepared-Statement, kein String-Konkat).
+     *
+     * Status startet per Schema-Default 'open'. `title_normalized` wird vom
+     * Aufrufer (IdeaCreateAction via TitleNormalizer) gesetzt — kein Fork der
+     * Normalisierungs-Logik hier.
+     *
+     * @throws DbalException
+     * @return int Die neue Idee-ID (last insert id).
+     */
+    public function create(
+        int $boardId,
+        int $authorId,
+        string $title,
+        string $titleNormalized,
+        string $body,
+    ): int {
+        $this->conn->executeStatement(
+            'INSERT INTO ideas (board_id, author_id, title, title_normalized, body, status, created_at, updated_at)
+             VALUES (:board_id, :author_id, :title, :title_normalized, :body, \'open\', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)',
+            [
+                'board_id'         => $boardId,
+                'author_id'        => $authorId,
+                'title'            => $title,
+                'title_normalized' => $titleNormalized,
+                'body'             => $body,
+            ],
+        );
+
+        return (int) $this->conn->lastInsertId();
+    }
+
+    /**
      * Zählt Ideen eines Boards (board-scoped), optional gefiltert nach Status.
      *
      * Wird für die Pagination-Berechnung genutzt.

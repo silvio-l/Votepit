@@ -1,0 +1,168 @@
+{% extends 'base.twig' %}
+
+{% block title %}Neue Idee · {{ board_name }} · Votepit{% endblock %}
+
+{% block styles %}
+/* ── Idea-Submit Layout ─────────────────────────────────────────────── */
+.vp-wrap--submit { max-width: 720px; }
+
+.vp-submit-nav {
+    margin-bottom: 1.5rem;
+}
+
+.vp-submit-back {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    font-size: .875rem;
+    color: var(--vp-text-muted);
+    text-decoration: none;
+    font-weight: 500;
+    transition: color .12s;
+}
+
+.vp-submit-back:hover { color: var(--vp-text); }
+
+.vp-submit-card {
+    background: var(--vp-surface);
+    border: 1px solid var(--vp-surface-border);
+    border-radius: var(--vp-radius);
+    padding: 2rem 2.25rem;
+    box-shadow:
+        0 0 0 1px var(--vp-border),
+        0 4px 24px var(--vp-primary-glow),
+        0 1px 3px rgba(21, 22, 26, .06);
+    backdrop-filter: blur(16px) saturate(1.2);
+    -webkit-backdrop-filter: blur(16px) saturate(1.2);
+}
+
+.vp-submit-heading {
+    margin: 0 0 .3rem;
+    font-family: var(--vp-font-head);
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--vp-text);
+    letter-spacing: -.02em;
+}
+
+.vp-submit-lead {
+    margin: 0 0 1.75rem;
+    color: var(--vp-text-muted);
+    font-size: .9rem;
+}
+
+.vp-field { margin-bottom: 1.25rem; }
+
+.vp-field-error {
+    margin: .35rem 0 0;
+    color: var(--vp-vote-down);
+    font-size: .825rem;
+}
+
+.vp-input--error {
+    border-color: var(--vp-vote-down);
+}
+
+.vp-textarea {
+    width: 100%;
+    padding: .6rem .8rem;
+    border: 1px solid var(--vp-border);
+    border-radius: var(--vp-radius-sm);
+    font-family: var(--vp-font-sans);
+    font-size: 1rem;
+    color: var(--vp-text);
+    background: var(--vp-surface);
+    outline: none;
+    transition: border-color .15s;
+    resize: vertical;
+    min-height: 8rem;
+    line-height: 1.5;
+}
+
+.vp-textarea:focus { border-color: var(--vp-primary); }
+.vp-textarea--error { border-color: var(--vp-vote-down); }
+
+.vp-char-count {
+    display: block;
+    text-align: right;
+    font-size: .75rem;
+    font-family: var(--vp-font-mono);
+    color: var(--vp-text-muted);
+    margin-top: .25rem;
+}
+{% endblock %}
+
+{% block body %}
+<main class="vp-wrap vp-wrap--submit">
+
+    {# Back-Navigation #}
+    <nav class="vp-submit-nav" aria-label="Navigation">
+        <a class="vp-submit-back" href="/{{ board_slug }}">← {{ board_name }}</a>
+    </nav>
+
+    {# Submit-Formular #}
+    <div class="vp-submit-card">
+        <h1 class="vp-submit-heading">Neue Idee einreichen</h1>
+        <p class="vp-submit-lead">Beschreibe deinen Vorschlag klar und präzise. Reiner Text, kein Markdown.</p>
+
+        <form method="post" action="/{{ board_slug }}/ideas" novalidate>
+            <input type="hidden" name="_csrf" value="{{ csrf_token }}">
+
+            {# Titel #}
+            <div class="vp-field">
+                <label class="vp-label" for="idea-title">Titel <span aria-hidden="true" style="color:var(--vp-vote-down)">*</span></label>
+                <input
+                    id="idea-title"
+                    class="vp-input{% if errors.title is defined %} vp-input--error{% endif %}"
+                    type="text"
+                    name="title"
+                    value="{{ values.title }}"
+                    maxlength="200"
+                    required
+                    autocomplete="off"
+                    aria-required="true"
+                    {% if errors.title is defined %}aria-describedby="title-error"{% endif %}
+                >
+                {% if errors.title is defined %}
+                <ul id="title-error" class="vp-field-error" role="alert" style="list-style:none;margin:.35rem 0 0;padding:0;">
+                    {% for msg in errors.title %}
+                    <li>{{ msg }}</li>
+                    {% endfor %}
+                </ul>
+                {% endif %}
+            </div>
+
+            {# Beschreibung #}
+            <div class="vp-field">
+                <label class="vp-label" for="idea-body">Beschreibung <span aria-hidden="true" style="color:var(--vp-vote-down)">*</span></label>
+                <textarea
+                    id="idea-body"
+                    class="vp-textarea{% if errors.body is defined %} vp-textarea--error{% endif %}"
+                    name="body"
+                    required
+                    aria-required="true"
+                    {% if errors.body is defined %}aria-describedby="body-error"{% endif %}
+                >{{ values.body }}</textarea>
+                {% if errors.body is defined %}
+                <ul id="body-error" class="vp-field-error" role="alert" style="list-style:none;margin:.35rem 0 0;padding:0;">
+                    {% for msg in errors.body %}
+                    <li>{{ msg }}</li>
+                    {% endfor %}
+                </ul>
+                {% endif %}
+            </div>
+
+            <button type="submit" class="vp-btn" style="width:auto;padding:.65rem 1.75rem;margin-top:.5rem;">
+                Idee einreichen
+            </button>
+        </form>
+    </div>
+
+    {% block footer %}
+    <footer class="vp-footer" style="margin-top:2rem;">
+        {{ board_name }} · <a class="vp-link" href="/">Votepit</a>
+    </footer>
+    {% endblock %}
+
+</main>
+{% endblock %}
