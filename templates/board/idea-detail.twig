@@ -3,155 +3,76 @@
 {% block title %}{{ idea.title }} · {{ board_name }} · Votepit{% endblock %}
 
 {% block styles %}
-/* ── Idea-Detail Layout ─────────────────────────────────────────────── */
-.vp-wrap--detail { max-width: 720px; }
-
-.vp-detail-nav {
-    margin-bottom: 1.5rem;
-}
-
-.vp-detail-back {
-    display: inline-flex;
-    align-items: center;
-    gap: .35rem;
-    font-size: .875rem;
-    color: var(--vp-text-muted);
-    text-decoration: none;
-    font-weight: 500;
-    transition: color .12s;
-}
-
-.vp-detail-back:hover { color: var(--vp-text); }
+.vp-back { display: inline-flex; align-items: center; gap: .35rem; font-size: .875rem; color: var(--vp-text-muted); text-decoration: none; font-weight: 500; margin-bottom: 1.25rem; transition: color .12s; }
+.vp-back:hover { color: var(--vp-text); }
 
 .vp-detail-card {
-    background: var(--vp-surface);
-    border: 1px solid var(--vp-surface-border);
-    border-radius: var(--vp-radius);
-    padding: 2rem 2rem 2rem;
-    box-shadow:
-        0 0 0 1px var(--vp-border),
-        0 2px 12px var(--vp-primary-glow),
-        0 1px 2px rgba(21, 22, 26, .04);
-    backdrop-filter: blur(12px) saturate(1.15);
-    -webkit-backdrop-filter: blur(12px) saturate(1.15);
+    background: var(--vp-surface); border: 1px solid var(--vp-surface-border); border-radius: var(--vp-radius);
+    padding: 1.75rem 2rem 2rem;
+    box-shadow: 0 0 0 1px var(--vp-border), 0 8px 30px var(--vp-primary-glow), 0 1px 2px rgba(21,22,26,.04);
+    backdrop-filter: blur(16px) saturate(1.2); -webkit-backdrop-filter: blur(16px) saturate(1.2);
 }
+.vp-detail-head { display: flex; align-items: flex-start; gap: 1.25rem; }
+.vp-detail-main { flex: 1; min-width: 0; }
+.vp-detail-title { margin: 0 0 .6rem; font-family: var(--vp-font-head); font-weight: 700; font-size: 1.6rem; line-height: 1.2; letter-spacing: -.02em; color: var(--vp-text); word-wrap: break-word; }
+.vp-detail-meta { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; font-size: .82rem; color: var(--vp-text-muted); }
+.vp-detail-meta .vp-mono { font-size: .78rem; }
+.vp-detail-body { font-size: .98rem; line-height: 1.75; color: var(--vp-text); white-space: pre-wrap; word-wrap: break-word; margin: 0; }
 
-.vp-detail-header {
-    margin-bottom: 1.5rem;
-}
-
-.vp-detail-title {
-    margin: 0 0 .75rem;
-    font-family: var(--vp-font-head);
-    font-size: 1.5rem;
-    font-weight: 800;
-    color: var(--vp-text);
-    line-height: 1.25;
-    letter-spacing: -.02em;
-    word-wrap: break-word;
-}
-
-.vp-detail-meta {
-    display: flex;
-    align-items: center;
-    gap: .75rem;
-    flex-wrap: wrap;
-    font-size: .825rem;
-    color: var(--vp-text-muted);
-}
-
-.vp-status-badge {
-    padding: .15rem .5rem;
-    border-radius: 999px;
-    font-size: .7rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: .04em;
-}
-
-.vp-status-open        { background: rgba(151,155,163,.12); color: var(--vp-status-open); }
-.vp-status-planned     { background: rgba(46,115,214,.1);   color: var(--vp-status-planned); }
-.vp-status-in_progress { background: rgba(192,130,26,.1);   color: var(--vp-status-in-progress); }
-.vp-status-done        { background: rgba(14,148,102,.1);   color: var(--vp-status-done); }
-.vp-status-declined    { background: rgba(216,80,60,.1);    color: var(--vp-status-declined); }
-
-.vp-detail-score {
-    display: inline-flex;
-    align-items: center;
-    gap: .3rem;
-}
-
-.vp-detail-score-num {
-    font-family: var(--vp-font-mono);
-    font-weight: 700;
-    color: var(--vp-text);
-}
-
-.vp-detail-divider {
-    border: none;
-    border-top: 1px solid var(--vp-border);
-    margin: 1.25rem 0;
-}
-
-.vp-detail-body {
-    font-size: .95rem;
-    line-height: 1.7;
-    color: var(--vp-text);
-    white-space: pre-wrap;
-    word-wrap: break-word;
-    margin: 0;
-}
+.vp-owner-actions { display: flex; align-items: center; gap: .6rem; margin-top: .25rem; }
+.vp-pill--danger { background: transparent; color: var(--vp-vote-down); border-color: rgba(216,80,60,.35); }
+.vp-pill--danger:hover { background: var(--vp-vote-down-bg); border-color: var(--vp-vote-down); }
 {% endblock %}
 
 {% block body %}
-<main class="vp-wrap vp-wrap--detail">
+<main class="vp-shell">
 
-    {# Back-Navigation #}
-    <nav class="vp-detail-nav" aria-label="Navigation">
-        <a class="vp-detail-back" href="/{{ board_slug }}">← {{ board_name }}</a>
-    </nav>
+    {# Topbar mit Board-Kontext #}
+    <header class="vp-topbar">
+        <a class="vp-topbar-ctx" href="/{{ board_slug }}">
+            <span class="vp-topbar-avatar">{{ board_name|slice(0,1)|upper }}</span>
+            <span>{{ board_name }}</span>
+        </a>
+        {% if current_user_id is not null and current_user_id == idea.author_id %}
+        <a class="vp-pill vp-pill--outline" href="/{{ board_slug }}/ideas/{{ idea.id }}/edit">Bearbeiten</a>
+        {% endif %}
+    </header>
 
-    {# Idee-Card #}
+    <a class="vp-back" href="/{{ board_slug }}">← Zurück zum Board</a>
+
     <article class="vp-detail-card">
-        <header class="vp-detail-header">
-            <h1 class="vp-detail-title">{{ idea.title }}</h1>
-            <div class="vp-detail-meta">
-                <span class="vp-status-badge vp-status-{{ idea.status }}">
-                    {{ {
-                        'open':        'Offen',
-                        'planned':     'Geplant',
-                        'in_progress': 'In Arbeit',
-                        'done':        'Erledigt',
-                        'declined':    'Abgelehnt'
-                    }[idea.status] ?? idea.status }}
-                </span>
-                <span>{{ idea.created_at|date('d.m.Y') }}</span>
-                <span class="vp-detail-score" aria-label="Score {{ idea.score_cache }}">
-                    <span class="vp-detail-score-num">{{ idea.score_cache }}</span>
-                    <span>Punkte</span>
-                </span>
+        <div class="vp-detail-head">
+            <div class="vp-votebox vp-votebox--lg" aria-label="Score {{ idea.score_cache }}">
+                <span class="vp-votebox-btn" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 15l7-7 7 7"/></svg></span>
+                <span class="vp-votebox-score{% if idea.score_cache < 0 %} vp-votebox-score--neg{% endif %}">{{ idea.score_cache }}</span>
+                <span class="vp-votebox-btn" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 9l7 7 7-7"/></svg></span>
             </div>
-        </header>
+            <div class="vp-detail-main">
+                <h1 class="vp-detail-title">{{ idea.title }}</h1>
+                <div class="vp-detail-meta">
+                    {% set labels = {'open':'Offen','planned':'Geplant','in_progress':'In Arbeit','done':'Erledigt','declined':'Abgelehnt'} %}
+                    <span class="vp-status-badge vp-status-{{ idea.status }}">{{ labels[idea.status] ?? idea.status }}</span>
+                    <span class="vp-mono">{{ idea.created_at|date('d.m.Y') }}</span>
+                </div>
+            </div>
+        </div>
 
-        <hr class="vp-detail-divider">
+        <hr class="vp-divider">
 
         <p class="vp-detail-body">{{ idea.body }}</p>
 
         {% if current_user_id is not null and current_user_id == idea.author_id %}
-        <hr class="vp-detail-divider">
-        <form method="post" action="/{{ board_slug }}/ideas/{{ idea.id }}/withdraw"
-              onsubmit="return confirm('Idee wirklich zurückziehen? Diese Aktion kann nicht rückgängig gemacht werden.');">
-            <input type="hidden" name="_csrf" value="{{ csrf_token }}">
-            <button type="submit" class="vp-btn vp-btn--danger">Idee zurückziehen</button>
-        </form>
+        <hr class="vp-divider">
+        <div class="vp-owner-actions">
+            <form method="post" action="/{{ board_slug }}/ideas/{{ idea.id }}/withdraw"
+                  onsubmit="return confirm('Idee wirklich zurückziehen? Diese Aktion kann nicht rückgängig gemacht werden.');">
+                <input type="hidden" name="_csrf" value="{{ csrf_token }}">
+                <button type="submit" class="vp-pill vp-pill--danger">Idee zurückziehen</button>
+            </form>
+        </div>
         {% endif %}
     </article>
 
-    {% block footer %}
-    <footer class="vp-footer" style="margin-top:2rem;">
-        {{ board_name }} · <a class="vp-link" href="/">Votepit</a>
-    </footer>
-    {% endblock %}
-
+    <footer class="vp-footer" style="margin-top:2.5rem;">{{ board_name }} · <a class="vp-link" href="/">Votepit</a></footer>
 </main>
 {% endblock %}

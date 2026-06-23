@@ -2,63 +2,87 @@
 
 {% block title %}Moderation — {{ board_name }}{% endblock %}
 
-{% block content %}
-<h1 class="vp-h1">Moderation</h1>
-<p class="vp-lead">Board: {{ board_name }} ({{ board_slug }})</p>
+{% block styles %}
+.vp-admin-card {
+    background: var(--vp-surface); border: 1px solid var(--vp-surface-border); border-radius: var(--vp-radius);
+    padding: 1.75rem 2rem; margin-bottom: 1rem;
+    box-shadow: 0 0 0 1px var(--vp-border), 0 4px 24px var(--vp-primary-glow), 0 1px 3px rgba(21,22,26,.05);
+    backdrop-filter: blur(16px) saturate(1.2); -webkit-backdrop-filter: blur(16px) saturate(1.2);
+}
+.vp-admin-card h2 { margin: 0 0 1rem; font-family: var(--vp-font-head); font-weight: 700; font-size: 1.15rem; letter-spacing: -.01em; }
+.vp-switch { display: flex; align-items: center; gap: .6rem; margin: .25rem 0 1.25rem; font-size: .95rem; }
+.vp-saved { display: inline-block; margin-bottom: 1rem; padding: .3rem .7rem; border-radius: 999px; font-size: .8rem; font-weight: 600; background: rgba(14,148,102,.12); color: var(--vp-status-done); }
+.vp-wordlist { list-style: none; padding: 0; margin: 0 0 1.25rem; display: flex; flex-direction: column; gap: .5rem; }
+.vp-wordlist li { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .5rem .85rem; border: 1px solid var(--vp-border); border-radius: var(--vp-radius-sm); background: var(--vp-surface-subtle); }
+.vp-wordlist .w { font-family: var(--vp-font-mono); font-size: .9rem; }
+{% endblock %}
 
-{% if saved|default(false) %}
-<p class="vp-lead">Gespeichert.</p>
-{% endif %}
+{% block body %}
+<main class="vp-shell">
 
-<form method="post" action="/admin/boards/{{ board_slug }}/moderation">
-    <input type="hidden" name="_csrf" value="{{ csrf_token }}">
-    <input type="hidden" name="action" value="toggle">
+    <header class="vp-topbar">
+        <a class="vp-topbar-ctx" href="/{{ board_slug }}">
+            <span class="vp-topbar-avatar">{{ board_name|slice(0,1)|upper }}</span>
+            <span>{{ board_name }}</span>
+        </a>
+        <span class="vp-pill vp-pill--ghost" style="cursor:default;">Admin</span>
+    </header>
 
-    <label class="vp-label" for="moderation_enabled">Wortfilter</label>
-    <label style="display:flex;align-items:center;gap:.5rem;margin-bottom:1rem;">
-        <input type="checkbox" id="moderation_enabled" name="moderation_enabled" value="1"
-               {% if moderation_enabled %}checked{% endif %}>
-        Wortfilter aktiviert
-    </label>
+    <section class="vp-hero">
+        <h1 class="vp-hero-title">Moderation</h1>
+        <p class="vp-hero-sub">Wortfilter und board-eigene Blockliste für „{{ board_name }}".</p>
+    </section>
 
-    <button class="vp-btn" type="submit">Toggle speichern</button>
-</form>
+    {% if saved|default(false) %}<span class="vp-saved">Gespeichert</span>{% endif %}
 
-<hr style="margin:2rem 0;">
-
-<h2 class="vp-h2" style="font-size:1.1rem;margin-bottom:1rem;">Board-eigene Blocklist</h2>
-
-{% if words|length > 0 %}
-<ul style="list-style:none;padding:0;margin-bottom:1rem;">
-    {% for entry in words %}
-    <li style="display:flex;align-items:center;gap:1rem;margin-bottom:.5rem;">
-        <span>{{ entry.word }}</span>
-        <form method="post" action="/admin/boards/{{ board_slug }}/moderation" style="margin:0;">
+    {# Toggle #}
+    <div class="vp-admin-card">
+        <h2>Wortfilter</h2>
+        <form method="post" action="/admin/boards/{{ board_slug }}/moderation">
             <input type="hidden" name="_csrf" value="{{ csrf_token }}">
-            <input type="hidden" name="action" value="remove">
-            <input type="hidden" name="word_id" value="{{ entry.id }}">
-            <button class="vp-btn" type="submit"
-                    style="padding:.2rem .6rem;font-size:.85rem;">Entfernen</button>
+            <input type="hidden" name="action" value="toggle">
+            <label class="vp-switch">
+                <input type="checkbox" id="moderation_enabled" name="moderation_enabled" value="1" {% if moderation_enabled %}checked{% endif %}>
+                Wortfilter aktiviert
+            </label>
+            <button class="vp-pill vp-pill--primary" type="submit">Toggle speichern</button>
         </form>
-    </li>
-    {% endfor %}
-</ul>
-{% else %}
-<p class="vp-lead" style="font-size:.9rem;">Keine eigenen Wörter gespeichert.</p>
-{% endif %}
+    </div>
 
-<form method="post" action="/admin/boards/{{ board_slug }}/moderation">
-    <input type="hidden" name="_csrf" value="{{ csrf_token }}">
-    <input type="hidden" name="action" value="add">
+    {# Blockliste #}
+    <div class="vp-admin-card">
+        <h2>Board-eigene Blockliste</h2>
 
-    <label class="vp-label" for="new_word">Wort hinzufügen (Plaintext, max. 200 Zeichen)</label>
-    <input class="vp-input" type="text" id="new_word" name="new_word"
-           value="{{ new_word|default('') }}" placeholder="z. B. spam" maxlength="200" autocomplete="off">
+        {% if words|length > 0 %}
+        <ul class="vp-wordlist">
+            {% for entry in words %}
+            <li>
+                <span class="w">{{ entry.word }}</span>
+                <form method="post" action="/admin/boards/{{ board_slug }}/moderation" style="margin:0;">
+                    <input type="hidden" name="_csrf" value="{{ csrf_token }}">
+                    <input type="hidden" name="action" value="remove">
+                    <input type="hidden" name="word_id" value="{{ entry.id }}">
+                    <button class="vp-pill vp-pill--danger" type="submit" style="padding:.3rem .8rem;font-size:.8rem;">Entfernen</button>
+                </form>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p class="vp-lead" style="font-size:.9rem;margin:0 0 1.25rem;">Keine eigenen Wörter gespeichert.</p>
+        {% endif %}
 
-    {% if word_error|default('') %}
-    <p style="color:var(--vp-danger,#dc2626);font-size:.875rem;margin:.25rem 0 0;">{{ word_error }}</p>
-    {% endif %}
+        <form method="post" action="/admin/boards/{{ board_slug }}/moderation">
+            <input type="hidden" name="_csrf" value="{{ csrf_token }}">
+            <input type="hidden" name="action" value="add">
+            <label class="vp-label" for="new_word">Wort hinzufügen (Plaintext, max. 200 Zeichen)</label>
+            <input class="vp-input" type="text" id="new_word" name="new_word" value="{{ new_word|default('') }}" placeholder="z. B. spam" maxlength="200" autocomplete="off">
+            {% if word_error|default('') %}
+            <p style="color:var(--vp-vote-down);font-size:.875rem;margin:.35rem 0 0;">{{ word_error }}</p>
+            {% endif %}
+            <button class="vp-pill vp-pill--primary" type="submit" style="margin-top:.85rem;">Wort hinzufügen</button>
+        </form>
+    </div>
 
-    <button class="vp-btn" type="submit" style="margin-top:.75rem;">Wort hinzufügen</button>
-</form>
+    <footer class="vp-footer" style="margin-top:2rem;">{{ board_name }} · <a class="vp-link" href="/">Votepit</a></footer>
+</main>
 {% endblock %}

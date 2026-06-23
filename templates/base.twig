@@ -45,6 +45,15 @@
     <link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png">
     <link rel="apple-touch-icon" href="/apple-touch-icon.png">
     <style>
+        /* ── Self-hosted Webfonts (Light Modern: Archivo/Inter/JetBrains Mono) ── */
+        @font-face { font-family: "Archivo"; font-style: normal; font-weight: 600; font-display: swap; src: url("/assets/fonts/archivo-600.woff2") format("woff2"); }
+        @font-face { font-family: "Archivo"; font-style: normal; font-weight: 700; font-display: swap; src: url("/assets/fonts/archivo-700.woff2") format("woff2"); }
+        @font-face { font-family: "Inter"; font-style: normal; font-weight: 400; font-display: swap; src: url("/assets/fonts/inter-400.woff2") format("woff2"); }
+        @font-face { font-family: "Inter"; font-style: normal; font-weight: 500; font-display: swap; src: url("/assets/fonts/inter-500.woff2") format("woff2"); }
+        @font-face { font-family: "Inter"; font-style: normal; font-weight: 600; font-display: swap; src: url("/assets/fonts/inter-600.woff2") format("woff2"); }
+        @font-face { font-family: "JetBrains Mono"; font-style: normal; font-weight: 600; font-display: swap; src: url("/assets/fonts/jbmono-600.woff2") format("woff2"); }
+        @font-face { font-family: "JetBrains Mono"; font-style: normal; font-weight: 700; font-display: swap; src: url("/assets/fonts/jbmono-700.woff2") format("woff2"); }
+
         /* ── Marken-Tokens (Board-überschreibbar via Issue 08) ──────────── */
         :root {
             --vp-primary:          #15161A;
@@ -170,6 +179,74 @@
         /* ── Persistente Attribution (nicht board-überschreibbar) ────────── */
         .vp-attr { margin: 1rem 0 0; color: var(--vp-text-muted); font-size: .75rem; text-align: center; opacity: .7; }
         .vp-attr a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
+
+        /* ════════════════════════════════════════════════════════════════════
+           Geteilte App-Komponenten (Board/Detail/Formulare/Admin) — Light Modern
+           ════════════════════════════════════════════════════════════════════ */
+
+        /* Weicher Grün-Glow oben (Tiefe durch Licht, nicht durch Kanten) */
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0 0 auto 0;
+            height: 420px;
+            background:
+                radial-gradient(60% 100% at 22% -10%, rgba(14,148,102,.10), transparent 70%),
+                radial-gradient(50% 100% at 90% -20%, rgba(192,130,26,.06), transparent 70%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* Zentrierter App-Shell (breiter als die schmale Auth-Spalte) */
+        .vp-shell { position: relative; z-index: 1; max-width: 820px; margin: 0 auto; padding: 1.25rem 1.5rem 4rem; }
+
+        /* ── Topbar (Logo links, Aktionen rechts) ─────────────────────────── */
+        .vp-topbar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .25rem 0 1.75rem; }
+        .vp-topbar-brand { display: inline-flex; align-items: center; gap: .04em; text-decoration: none; font-family: var(--vp-font-head); font-weight: 700; letter-spacing: -.02em; font-size: 1.3rem; line-height: 1; }
+        .vp-topbar-brand img { height: 1.45em; width: auto; display: block; }
+        .vp-topbar-brand .w { color: var(--vp-text); }
+        .vp-topbar-brand .p { color: var(--vp-vote-down); }
+        .vp-topbar-ctx { display: inline-flex; align-items: center; gap: .55rem; font-family: var(--vp-font-head); font-weight: 700; font-size: 1.05rem; letter-spacing: -.01em; color: var(--vp-text); text-decoration: none; }
+        .vp-topbar-avatar { width: 1.85rem; height: 1.85rem; border-radius: 9px; background: var(--vp-primary); color: var(--vp-primary-contrast); display: inline-flex; align-items: center; justify-content: center; font-family: var(--vp-font-head); font-weight: 700; font-size: .9rem; }
+        .vp-topbar-actions { display: inline-flex; align-items: center; gap: .85rem; }
+
+        /* Pill-Buttons (klein, für Topbar/Inline) */
+        .vp-pill { display: inline-flex; align-items: center; gap: .35rem; padding: .5rem 1rem; border-radius: 999px; font-size: .85rem; font-weight: 600; text-decoration: none; cursor: pointer; border: 1px solid transparent; transition: opacity .15s, border-color .15s, background .15s; }
+        .vp-pill--primary { background: var(--vp-primary); color: var(--vp-primary-contrast); }
+        .vp-pill--primary:hover { opacity: .88; }
+        .vp-pill--ghost { background: transparent; color: var(--vp-text-muted); }
+        .vp-pill--ghost:hover { color: var(--vp-text); }
+        .vp-pill--outline { background: var(--vp-surface); color: var(--vp-text); border-color: var(--vp-border); }
+        .vp-pill--outline:hover { border-color: var(--vp-text); }
+
+        /* ── Hero (Board-Kopf) ────────────────────────────────────────────── */
+        .vp-hero { margin: .25rem 0 1.75rem; }
+        .vp-hero-title { margin: 0; font-family: var(--vp-font-head); font-weight: 700; font-size: 2rem; line-height: 1.12; letter-spacing: -.025em; color: var(--vp-text); }
+        .vp-hero-sub { margin: .6rem 0 0; color: var(--vp-text-muted); font-size: 1rem; max-width: 46ch; }
+
+        /* ── Vote-Control (Optik der Signatur; Interaktion ab Sprint 4) ────── */
+        .vp-votebox { flex-shrink: 0; display: inline-flex; flex-direction: column; align-items: center; gap: .15rem; padding: .4rem .55rem; border-radius: 14px; border: 1px solid var(--vp-border); background: var(--vp-surface-subtle); min-width: 3.1rem; }
+        .vp-votebox-btn { display: flex; align-items: center; justify-content: center; width: 1.5rem; height: 1.1rem; color: var(--vp-text-muted); opacity: .5; }
+        .vp-votebox-btn svg { width: 14px; height: 14px; display: block; }
+        .vp-votebox-score { font-family: var(--vp-font-mono); font-weight: 700; font-size: 1.15rem; line-height: 1.1; color: var(--vp-text); }
+        .vp-votebox-score--neg { color: var(--vp-vote-down); }
+        .vp-votebox--lg { min-width: 4.2rem; padding: .65rem .8rem; gap: .25rem; }
+        .vp-votebox--lg .vp-votebox-btn { width: 2rem; height: 1.4rem; }
+        .vp-votebox--lg .vp-votebox-btn svg { width: 18px; height: 18px; }
+        .vp-votebox--lg .vp-votebox-score { font-size: 1.9rem; }
+
+        /* ── Status-Badge ─────────────────────────────────────────────────── */
+        .vp-status-badge { display: inline-flex; align-items: center; gap: .3rem; padding: .15rem .55rem; border-radius: 999px; font-size: .7rem; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+        .vp-status-badge::before { content: ""; width: .42rem; height: .42rem; border-radius: 50%; background: currentColor; }
+        .vp-status-open        { background: rgba(151,155,163,.14); color: var(--vp-status-open); }
+        .vp-status-planned     { background: rgba(46,115,214,.12);  color: var(--vp-status-planned); }
+        .vp-status-in_progress { background: rgba(192,130,26,.12);  color: var(--vp-status-in-progress); }
+        .vp-status-done        { background: rgba(14,148,102,.12);  color: var(--vp-status-done); }
+        .vp-status-declined    { background: rgba(216,80,60,.12);   color: var(--vp-status-declined); }
+
+        /* ── Mono-Helfer / Divider ────────────────────────────────────────── */
+        .vp-mono { font-family: var(--vp-font-mono); }
+        .vp-divider { border: none; border-top: 1px solid var(--vp-border); margin: 1.25rem 0; }
 
         {% block styles %}{% endblock %}
     </style>
