@@ -12,6 +12,21 @@ interface Props {
 }
 
 const { title, description, lang, canonicalURL, altEn = '/', altDe = '/de/' } = Astro.props;
+
+const matomoSnippet = `var _paq = (window._paq = window._paq || []);
+_paq.push(["disableCookies"]);
+_paq.push(["setDoNotTrack", true]);
+_paq.push(["setAnonymizeIp", true]);
+_paq.push(["trackPageView"]);
+_paq.push(["enableLinkTracking"]);
+(function () {
+  _paq.push(["setTrackerUrl", "https://matomo.silvio-und-maik.de/matomo.php"]);
+  _paq.push(["setSiteId", "6"]);
+  var d = document, g = d.createElement("script");
+  g.src = "https://matomo.silvio-und-maik.de/matomo.js";
+  g.async = true;
+  d.head.appendChild(g);
+})();`;
 ---
 <!DOCTYPE html>
 <html lang={lang}>
@@ -66,6 +81,10 @@ const { title, description, lang, canonicalURL, altEn = '/', altDe = '/de/' } = 
   <link rel="alternate" hreflang="en" href={`https://votepit.com${altEn}`} />
   <link rel="alternate" hreflang="de" href={`https://votepit.com${altDe}`} />
   <link rel="alternate" hreflang="x-default" href={`https://votepit.com${altEn}`} />
+
+  <!-- Matomo Analytics (self-hosted, cookieless, DSGVO-konform) -->
+  <link rel="preconnect" href="https://matomo.silvio-und-maik.de" crossorigin />
+  {import.meta.env.PROD && <script is:inline set:html={matomoSnippet} />}
 </head>
 <body>
   <BrandBackdrop />
