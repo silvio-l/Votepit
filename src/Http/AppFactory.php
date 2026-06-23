@@ -357,6 +357,36 @@ final class AppFactory
                 return $response->withHeader('Content-Type', 'text/html; charset=utf-8');
             })->add(AuthZMiddleware::anon($responseFactory));
 
+            // GET /{board}/ideas/{id} — Idee-Detailansicht (Sprint 3, Issue 04).
+            // AuthZ: anon (Lesen ist öffentlich). Unbekannter Slug oder Idee → 404.
+            // Cross-Board-Leak verhindert durch board-scopedes findInBoard().
+            $app->get('/{board}/ideas/{id:[0-9]+}', function (
+                ServerRequestInterface $request,
+                ResponseInterface $response,
+                array $args,
+            ) use ($twig, $boardRepo, $ideaRepo): MessageInterface {
+                $slug  = is_string($args['board'] ?? null) ? $args['board'] : '';
+                $board = $boardRepo->findBySlug($slug);
+                if (!is_array($board)) {
+                    $response->getBody()->write('Board not found.');
+                    return $response->withStatus(404);
+                }
+
+                $ideaId = (int) ($args['id'] ?? 0);
+                $idea   = $ideaRepo->findInBoard((int) $board['id'], $ideaId);
+                if (!is_array($idea)) {
+                    $response->getBody()->write('Idea not found.');
+                    return $response->withStatus(404);
+                }
+
+                $response = $twig->render($response, 'board/idea-detail.twig', [
+                    'board_slug' => $slug,
+                    'board_name' => is_string($board['name'] ?? null) ? $board['name'] : $slug,
+                    'idea'       => $idea,
+                ]);
+                return $response->withHeader('Content-Type', 'text/html; charset=utf-8');
+            })->add(AuthZMiddleware::anon($responseFactory));
+
             // GET /admin/boards/{slug}/branding — Branding-Einstellseite (AuthZ: admin).
             // Rendert das Base-Layout mit dem (validierten) Branding des Boards selbst:
             // beweist den Konsum-Seam (Override greift / Default greift) observabel.

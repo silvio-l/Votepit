@@ -1,0 +1,148 @@
+{% extends 'base.twig' %}
+
+{% block title %}{{ idea.title }} · {{ board_name }} · Votepit{% endblock %}
+
+{% block styles %}
+/* ── Idea-Detail Layout ─────────────────────────────────────────────── */
+.vp-wrap--detail { max-width: 720px; }
+
+.vp-detail-nav {
+    margin-bottom: 1.5rem;
+}
+
+.vp-detail-back {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    font-size: .875rem;
+    color: var(--vp-text-muted);
+    text-decoration: none;
+    font-weight: 500;
+    transition: color .12s;
+}
+
+.vp-detail-back:hover { color: var(--vp-text); }
+
+.vp-detail-card {
+    background: var(--vp-surface);
+    border: 1px solid var(--vp-surface-border);
+    border-radius: var(--vp-radius);
+    padding: 2rem 2rem 2rem;
+    box-shadow:
+        0 0 0 1px var(--vp-border),
+        0 2px 12px var(--vp-primary-glow),
+        0 1px 2px rgba(21, 22, 26, .04);
+    backdrop-filter: blur(12px) saturate(1.15);
+    -webkit-backdrop-filter: blur(12px) saturate(1.15);
+}
+
+.vp-detail-header {
+    margin-bottom: 1.5rem;
+}
+
+.vp-detail-title {
+    margin: 0 0 .75rem;
+    font-family: var(--vp-font-head);
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--vp-text);
+    line-height: 1.25;
+    letter-spacing: -.02em;
+    word-wrap: break-word;
+}
+
+.vp-detail-meta {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    flex-wrap: wrap;
+    font-size: .825rem;
+    color: var(--vp-text-muted);
+}
+
+.vp-status-badge {
+    padding: .15rem .5rem;
+    border-radius: 999px;
+    font-size: .7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+}
+
+.vp-status-open        { background: rgba(151,155,163,.12); color: var(--vp-status-open); }
+.vp-status-planned     { background: rgba(46,115,214,.1);   color: var(--vp-status-planned); }
+.vp-status-in_progress { background: rgba(192,130,26,.1);   color: var(--vp-status-in-progress); }
+.vp-status-done        { background: rgba(14,148,102,.1);   color: var(--vp-status-done); }
+.vp-status-declined    { background: rgba(216,80,60,.1);    color: var(--vp-status-declined); }
+
+.vp-detail-score {
+    display: inline-flex;
+    align-items: center;
+    gap: .3rem;
+}
+
+.vp-detail-score-num {
+    font-family: var(--vp-font-mono);
+    font-weight: 700;
+    color: var(--vp-text);
+}
+
+.vp-detail-divider {
+    border: none;
+    border-top: 1px solid var(--vp-border);
+    margin: 1.25rem 0;
+}
+
+.vp-detail-body {
+    font-size: .95rem;
+    line-height: 1.7;
+    color: var(--vp-text);
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    margin: 0;
+}
+{% endblock %}
+
+{% block body %}
+<main class="vp-wrap vp-wrap--detail">
+
+    {# Back-Navigation #}
+    <nav class="vp-detail-nav" aria-label="Navigation">
+        <a class="vp-detail-back" href="/{{ board_slug }}">← {{ board_name }}</a>
+    </nav>
+
+    {# Idee-Card #}
+    <article class="vp-detail-card">
+        <header class="vp-detail-header">
+            <h1 class="vp-detail-title">{{ idea.title }}</h1>
+            <div class="vp-detail-meta">
+                <span class="vp-status-badge vp-status-{{ idea.status }}">
+                    {{ {
+                        'open':        'Offen',
+                        'planned':     'Geplant',
+                        'in_progress': 'In Arbeit',
+                        'done':        'Erledigt',
+                        'declined':    'Abgelehnt'
+                    }[idea.status] ?? idea.status }}
+                </span>
+                <span>{{ idea.created_at|date('d.m.Y') }}</span>
+                <span class="vp-detail-score" aria-label="Score {{ idea.score_cache }}">
+                    <span class="vp-detail-score-num">{{ idea.score_cache }}</span>
+                    <span>Punkte</span>
+                </span>
+            </div>
+        </header>
+
+        <hr class="vp-detail-divider">
+
+        <p class="vp-detail-body">{{ idea.body }}</p>
+    </article>
+
+    {% block footer %}
+    <footer class="vp-footer" style="margin-top:2rem;">
+        {{ board_name }} · <a class="vp-link" href="/">Votepit</a>
+    </footer>
+    {% endblock %}
+
+</main>
+{% endblock %}

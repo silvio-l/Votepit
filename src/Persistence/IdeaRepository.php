@@ -71,6 +71,27 @@ final readonly class IdeaRepository
     }
 
     /**
+     * Liefert eine einzelne Idee (board-scoped, Prepared-Statement).
+     *
+     * Gibt null zurück wenn die Idee unbekannt ist ODER nicht zu diesem Board gehört
+     * (Cross-Board-Leak strukturell ausgeschlossen).
+     *
+     * @return array<string, mixed>|null
+     * @throws DbalException
+     */
+    public function findInBoard(int $boardId, int $id): ?array
+    {
+        $row = $this->conn->fetchAssociative(
+            'SELECT id, board_id, author_id, title, body, status, score_cache, created_at, updated_at
+             FROM ideas
+             WHERE board_id = :board_id AND id = :id',
+            ['board_id' => $boardId, 'id' => $id],
+        );
+
+        return $row !== false ? $row : null;
+    }
+
+    /**
      * Paginierte, board-scoped Ideenliste.
      *
      * @param int         $boardId  Board-Scoping — zwingend.
