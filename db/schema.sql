@@ -29,11 +29,27 @@ CREATE TABLE IF NOT EXISTS boards (
     primary_color   VARCHAR(7)      NULL,
     secondary_color VARCHAR(7)      NULL,
     logo_url        VARCHAR(512)    NULL,
-    intro           TEXT            NULL,
-    is_default      TINYINT(1)      NOT NULL DEFAULT 0,
-    created_at      DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    intro               TEXT            NULL,
+    -- Per-Board-Moderation (Issue 10): Toggle für den Wortfilter (fail-safe: 1 = an).
+    -- Additiv wie die Branding-Spalten; bestehende Zeilen erhalten den Default 1.
+    moderation_enabled  TINYINT(1)      NOT NULL DEFAULT 1,
+    is_default          TINYINT(1)      NOT NULL DEFAULT 0,
+    created_at          DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     UNIQUE KEY uq_boards_slug (slug)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- board_blocklist: board-eigene Blocklist-Wörter (Issue 10). Additiv zur LDNOOBW-Basisliste.
+-- UNIQUE(board_id, word) verhindert Duplikate (DB-Backstop); ON DELETE CASCADE räumt bei
+-- Board-Löschung automatisch auf. Prepared-Statements-only.
+CREATE TABLE IF NOT EXISTS board_blocklist (
+    id         BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    board_id   BIGINT UNSIGNED NOT NULL,
+    word       VARCHAR(200)    NOT NULL,
+    created_at DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_board_blocklist_word (board_id, word),
+    CONSTRAINT fk_board_blocklist_board FOREIGN KEY (board_id) REFERENCES boards(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- users: Identität = verifizierte E-Mail (passwortlos). Keine Passwort-Hashes.

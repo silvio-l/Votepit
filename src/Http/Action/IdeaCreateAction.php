@@ -17,6 +17,7 @@ use Votepit\Http\Middleware\CsrfMiddleware;
 use Votepit\Logging\AuditLogger;
 use Votepit\Persistence\BoardRepository;
 use Votepit\Persistence\IdeaRepository;
+use Votepit\Persistence\ModerationConfigRepository;
 use Votepit\Security\TimeTrapService;
 
 /**
@@ -48,6 +49,7 @@ final readonly class IdeaCreateAction
         private AuditLogger $audit,
         private ContentModerationService $moderation,
         private TimeTrapService $timeTrap,
+        private ?ModerationConfigRepository $moderationConfigRepo = null,
     ) {}
 
     /** @param array<string, mixed> $args */
@@ -155,7 +157,21 @@ final readonly class IdeaCreateAction
         }
 
         // Moderation-Hard-Block: nach Struktur-Validierung, vor DB-Eintrag.
-        $modResult = $this->moderation->check($rawTitle, $rawBody);
+        // Per-Board-Toggle: bei „aus" wird nur der Wortfilter übersprungen — Honeypot,
+        // Time-Trap, CSRF und Rate-Limit laufen immer (bereits oben ausgeführt).
+        $boardId = (int) $board['id'];
+        $moderationEnabled = !$this->moderationConfigRepo instanceof \Votepit\Persistence\ModerationConfigRepository
+            || $this->moderationConfigRepo->isModerationEnabled($boardId);
+
+        $effectiveModeration = $this->moderation;
+        if ($moderationEnabled && $this->moderationConfigRepo instanceof \Votepit\Persistence\ModerationConfigRepository) {
+            $customWords = $this->moderationConfigRepo->wordList($boardId);
+            if ($customWords !== []) {
+                $effectiveModeration = $this->moderation->withAdditionalWords($customWords);
+            }
+        }
+
+        $modResult = $moderationEnabled ? $effectiveModeration->check($rawTitle, $rawBody) : ['clean' => true, 'hits' => []];
         if (!$modResult['clean']) {
             // Maskiert loggen — rohe Treffer dürfen nie ins Log.
             $this->audit->log('idea.moderation_blocked', [
@@ -183,7 +199,6 @@ final readonly class IdeaCreateAction
         $titleNormalized = $this->normalizer->normalize($rawTitle);
 
         // Anlegen board-scoped (Prepared-Statement via IdeaRepository).
-        $boardId  = (int) $board['id'];
         $authorId = (int) ($user['id'] ?? 0);
 
         $ideaId = $this->ideaRepo->create($boardId, $authorId, $rawTitle, $titleNormalized, $rawBody);

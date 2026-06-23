@@ -28,6 +28,7 @@ use Votepit\Mail\SymfonyMailerAdapter;
 use Votepit\Persistence\BoardRepository;
 use Votepit\Persistence\IdeaRepository;
 use Votepit\Persistence\LoginTokenRepository;
+use Votepit\Persistence\ModerationConfigRepository;
 use Votepit\Persistence\UserRepository;
 use Votepit\Security\BrandingValidator;
 use Votepit\Security\CsrfService;
@@ -307,9 +308,10 @@ final class AppFactory
                 return $response;
             })->add(AuthZMiddleware::anon($responseFactory));
 
-            $ideaRepo   = new IdeaRepository($conn);
-            $moderation = new ContentModerationService($root . '/resources/moderation');
-            $timeTrap   = new TimeTrapService($config->appKey);
+            $ideaRepo      = new IdeaRepository($conn);
+            $moderation    = new ContentModerationService($root . '/resources/moderation');
+            $modConfigRepo = new ModerationConfigRepository($conn);
+            $timeTrap      = new TimeTrapService($config->appKey);
 
             // GET /{board} — Board-Home = Ideenliste (Newest, Status-Filter, Pagination).
             // AuthZ: anon (Lesen ist öffentlich). Unbekannter Slug → 404.
@@ -436,7 +438,7 @@ final class AppFactory
             $submitRateLimit = $config->rateLimit('idea:submit');
             $normalizer      = new TitleNormalizer();
 
-            $app->post('/{board}/ideas', new IdeaCreateAction($twig, $boardRepo, $ideaRepo, $normalizer, $audit, $moderation, $timeTrap))
+            $app->post('/{board}/ideas', new IdeaCreateAction($twig, $boardRepo, $ideaRepo, $normalizer, $audit, $moderation, $timeTrap, $modConfigRepo))
             ->add(AuthZMiddleware::user($responseFactory))
             ->add(RateLimitMiddleware::perAction(
                 new RateLimiter($conn),
@@ -518,6 +520,98 @@ final class AppFactory
                 // Post/Redirect/Get: zurück auf die Einstellseite.
                 return $response->withStatus(302)
                     ->withHeader('Location', '/admin/boards/' . rawurlencode($slug) . '/branding');
+            })->add(AuthZMiddleware::admin($responseFactory));
+
+            // GET /admin/boards/{slug}/moderation — Moderation-Einstellseite (AuthZ: admin).
+            // Zeigt Toggle (an/aus) + aktuelle Board-Custom-Wörter.
+            $app->get('/admin/boards/{slug}/moderation', function (
+                ServerRequestInterface $request,
+                ResponseInterface $response,
+                array $args,
+            ) use ($twig, $boardRepo, $modConfigRepo): MessageInterface {
+                $slug  = is_string($args['slug'] ?? null) ? $args['slug'] : '';
+                $board = $boardRepo->findBySlug($slug);
+                if (!is_array($board)) {
+                    $response->getBody()->write('Board not found.');
+                    return $response->withStatus(404);
+                }
+
+                $boardId   = (int) $board['id'];
+                $csrfToken = $request->getAttribute(CsrfMiddleware::ATTR_TOKEN);
+
+                $response = $twig->render($response, 'admin/board-moderation.twig', [
+                    'csrf_token'         => is_string($csrfToken) ? $csrfToken : '',
+                    'board_slug'         => $slug,
+                    'board_name'         => is_string($board['name'] ?? null) ? $board['name'] : $slug,
+                    'moderation_enabled' => $modConfigRepo->isModerationEnabled($boardId),
+                    'words'              => $modConfigRepo->listWords($boardId),
+                ]);
+                return $response->withHeader('Content-Type', 'text/html; charset=utf-8');
+            })->add(AuthZMiddleware::admin($responseFactory));
+
+            // POST /admin/boards/{slug}/moderation — speichert Toggle + Wortlisten-Änderungen
+            // (AuthZ: admin, CSRF global erzwungen). PRG: 302 zurück auf die Einstellseite.
+            // Drei Sub-Aktionen via Hidden-Field "action": toggle | add | remove.
+            // Ungültige Eingaben → Re-Render ohne 500 (kein Ausnahmen-Rethrow).
+            $app->post('/admin/boards/{slug}/moderation', function (
+                ServerRequestInterface $request,
+                ResponseInterface $response,
+                array $args,
+            ) use ($twig, $boardRepo, $modConfigRepo, $audit): MessageInterface {
+                $slug  = is_string($args['slug'] ?? null) ? $args['slug'] : '';
+                $board = $boardRepo->findBySlug($slug);
+                if (!is_array($board)) {
+                    $response->getBody()->write('Board not found.');
+                    return $response->withStatus(404);
+                }
+
+                $boardId   = (int) $board['id'];
+                $rawBody   = $request->getParsedBody();
+                $fields    = is_array($rawBody) ? $rawBody : [];
+                $action    = (string) ($fields['action'] ?? '');
+                $csrfToken = $request->getAttribute(CsrfMiddleware::ATTR_TOKEN);
+                $wordError = '';
+
+                if ($action === 'toggle') {
+                    $enabled = isset($fields['moderation_enabled']) && $fields['moderation_enabled'] === '1';
+                    $modConfigRepo->setModerationEnabled($boardId, $enabled);
+                    $audit->log('board.moderation_toggle', ['board_id' => $boardId, 'enabled' => $enabled]);
+                } elseif ($action === 'add') {
+                    $rawWord = mb_substr(trim((string) ($fields['new_word'] ?? '')), 0, 200, 'UTF-8');
+
+                    if ($rawWord === '') {
+                        $wordError = 'Das Wort darf nicht leer sein.';
+                    } elseif (mb_strlen($rawWord, 'UTF-8') > 200) {
+                        $wordError = 'Das Wort darf maximal 200 Zeichen lang sein.';
+                    } else {
+                        $modConfigRepo->addWord($boardId, $rawWord);
+                        $audit->log('board.moderation_word_added', ['board_id' => $boardId]);
+                    }
+
+                    // Bei Fehler: Re-Render ohne 500, Eingabe erhalten.
+                    if ($wordError !== '') {
+                        $response = $twig->render($response->withStatus(422), 'admin/board-moderation.twig', [
+                            'csrf_token'         => is_string($csrfToken) ? $csrfToken : '',
+                            'board_slug'         => $slug,
+                            'board_name'         => is_string($board['name'] ?? null) ? $board['name'] : $slug,
+                            'moderation_enabled' => $modConfigRepo->isModerationEnabled($boardId),
+                            'words'              => $modConfigRepo->listWords($boardId),
+                            'new_word'           => $rawWord,
+                            'word_error'         => $wordError,
+                        ]);
+                        return $response->withHeader('Content-Type', 'text/html; charset=utf-8');
+                    }
+                } elseif ($action === 'remove') {
+                    $wordId = (int) ($fields['word_id'] ?? 0);
+                    if ($wordId > 0) {
+                        $modConfigRepo->removeWord($boardId, $wordId);
+                        $audit->log('board.moderation_word_removed', ['board_id' => $boardId]);
+                    }
+                }
+
+                // Post/Redirect/Get: zurück auf die Einstellseite.
+                return $response->withStatus(302)
+                    ->withHeader('Location', '/admin/boards/' . rawurlencode($slug) . '/moderation');
             })->add(AuthZMiddleware::admin($responseFactory));
         }
 
