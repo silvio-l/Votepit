@@ -1,0 +1,49 @@
+---
+interface Props {
+  t: any;
+}
+const { t } = Astro.props;
+const ins = t.install;
+---
+<section class="vp-install vp-reveal" aria-labelledby="vp-install-h">
+  <h2 class="vp-install-h" id="vp-install-h">{ins.heading}</h2>
+  <p class="vp-install-sub">{ins.sub}</p>
+
+  <div class="vp-cmd">
+    <span class="vp-cmd-label">{ins.cliLabel}</span>
+    <div class="vp-cmd-row">
+      <code class="vp-cmd-code"><span class="vp-cmd-prompt">$</span>{ins.cmd}</code>
+      <button
+        type="button"
+        class="vp-cmd-copy"
+        data-copy
+        data-cmd-value={ins.cmd}
+        data-copy-label={ins.copy}
+        data-copied-label={ins.copied}
+        aria-label={ins.copy}
+      >{ins.copy}</button>
+    </div>
+  </div>
+
+  <p class="vp-install-ftp"><strong>{ins.ftpLabel}</strong> {ins.ftpText}</p>
+</section>
+
+<script is:inline>
+  (function () {
+    const btn = document.querySelector('[data-copy]');
+    if (!btn || !navigator.clipboard) return;
+    btn.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(btn.getAttribute('data-cmd-value'));
+        btn.textContent = btn.getAttribute('data-copied-label');
+        btn.classList.add('is-copied');
+        window.setTimeout(() => {
+          btn.textContent = btn.getAttribute('data-copy-label');
+          btn.classList.remove('is-copied');
+        }, 1600);
+      } catch (e) {
+        /* clipboard unavailable — leave the command visible to copy manually */
+      }
+    });
+  })();
+</script>

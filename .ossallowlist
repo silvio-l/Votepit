@@ -34,3 +34,7 @@ src/
 tests/
 db/
 templates/
+
+# Öffentliche Landing-/Doku-Website (Astro-Quelle; node_modules/dist/.astro
+# und Dev-Screenshots sind über web/.gitignore ausgeschlossen)
+web/

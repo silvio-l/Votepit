@@ -1,0 +1,34 @@
+---
+import GithubIcon from './GithubIcon.astro';
+interface Props {
+  lang: 'en' | 'de';
+  t: any;
+  repo: string;
+  enHref?: string;
+  deHref?: string;
+}
+const { lang, t, repo, enHref = '/', deHref = '/de/' } = Astro.props;
+const home = lang === 'en' ? '/' : '/de/';
+const docsHref = lang === 'en' ? '/docs' : '/de/docs';
+---
+<header>
+  <nav class="vp-header">
+    <a class="vp-brand" href={home} aria-label="Votepit">
+      <img class="vp-brand-icon" src="/assets/brand/votepit-icon.svg" alt="" width="36" height="36" />
+      <span class="vp-brand-word">Vote<span class="vp-brand-pit">pit</span></span>
+    </a>
+
+    <div class="vp-nav-right">
+      <div class="vp-lang" role="group" aria-label={t.lang.label}>
+        <a class="vp-lang-opt" href={enHref} hreflang="en" title={t.lang.toEn}
+           aria-current={lang === 'en' ? 'true' : undefined}>{t.lang.en}</a>
+        <a class="vp-lang-opt" href={deHref} hreflang="de" title={t.lang.toDe}
+           aria-current={lang === 'de' ? 'true' : undefined}>{t.lang.de}</a>
+      </div>
+      <a class="vp-nav-link" href={docsHref}>{t.nav.docs}</a>
+      <a class="vp-nav-link vp-nav-gh" href={repo} rel="noopener noreferrer">
+        <GithubIcon size={16} /><span class="vp-gh-text">{t.nav.github}</span>
+      </a>
+    </div>
+  </nav>
+</header>

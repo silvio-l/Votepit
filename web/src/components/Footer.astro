@@ -1,0 +1,25 @@
+---
+import GithubIcon from './GithubIcon.astro';
+interface Props {
+  t: any;
+  repo: string;
+  lang: 'en' | 'de';
+}
+const { t, repo, lang } = Astro.props;
+const docsHref = lang === 'en' ? '/docs' : '/de/docs';
+---
+<footer class="vp-site-footer">
+  <p class="vp-foot-author">
+    {t.footer.authorPrefix}
+    <a class="vp-foot-link" href="https://silvio-lindstedt.de" rel="noopener noreferrer">{t.footer.authorName}</a>
+  </p>
+  <p class="vp-foot-meta">
+    <a class="vp-foot-link" href={docsHref}>{t.nav.docs}</a>
+    <span class="vp-foot-sep">·</span>
+    <a class="vp-foot-link vp-foot-gh" href={repo} rel="noopener noreferrer">
+      <GithubIcon size={15} /><span>{t.footer.github}</span>
+    </a>
+    <span class="vp-foot-sep">·</span>
+    <span>{t.footer.license}</span>
+  </p>
+</footer>
