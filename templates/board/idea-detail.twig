@@ -136,6 +136,15 @@
         <hr class="vp-detail-divider">
 
         <p class="vp-detail-body">{{ idea.body }}</p>
+
+        {% if current_user_id is not null and current_user_id == idea.author_id %}
+        <hr class="vp-detail-divider">
+        <form method="post" action="/{{ board_slug }}/ideas/{{ idea.id }}/withdraw"
+              onsubmit="return confirm('Idee wirklich zurückziehen? Diese Aktion kann nicht rückgängig gemacht werden.');">
+            <input type="hidden" name="_csrf" value="{{ csrf_token }}">
+            <button type="submit" class="vp-btn vp-btn--danger">Idee zurückziehen</button>
+        </form>
+        {% endif %}
     </article>
 
     {% block footer %}

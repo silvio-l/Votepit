@@ -159,6 +159,29 @@ final readonly class IdeaRepository
     }
 
     /**
+     * Löscht eine eigene Idee (Hard-Delete, board-scoped, author-scoped, Prepared-Statement).
+     *
+     * WHERE bindet id, author_id UND board_id — fremde Ideen werden strukturell
+     * ausgeschlossen (Defense in Depth über den Action-Guard hinaus).
+     * Rückgabe: true wenn genau eine Zeile gelöscht wurde, false sonst.
+     *
+     * @throws DbalException
+     */
+    public function withdraw(int $id, int $authorId, int $boardId): bool
+    {
+        $affected = $this->conn->executeStatement(
+            'DELETE FROM ideas WHERE id = :id AND author_id = :author_id AND board_id = :board_id',
+            [
+                'id'        => $id,
+                'author_id' => $authorId,
+                'board_id'  => $boardId,
+            ],
+        );
+
+        return $affected === 1;
+    }
+
+    /**
      * Paginierte, board-scoped Ideenliste.
      *
      * @param int         $boardId  Board-Scoping — zwingend.

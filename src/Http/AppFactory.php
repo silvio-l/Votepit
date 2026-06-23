@@ -16,6 +16,7 @@ use Votepit\Domain\ContentModerationService;
 use Votepit\Domain\TitleNormalizer;
 use Votepit\Http\Action\IdeaCreateAction;
 use Votepit\Http\Action\IdeaEditAction;
+use Votepit\Http\Action\IdeaWithdrawAction;
 use Votepit\Http\Middleware\AuthNMiddleware;
 use Votepit\Http\Middleware\AuthZMiddleware;
 use Votepit\Http\Middleware\BlockCheckMiddleware;
@@ -369,6 +370,7 @@ final class AppFactory
             // GET /{board}/ideas/{id} — Idee-Detailansicht (Sprint 3, Issue 04).
             // AuthZ: anon (Lesen ist öffentlich). Unbekannter Slug oder Idee → 404.
             // Cross-Board-Leak verhindert durch board-scopedes findInBoard().
+            // csrf_token + current_user_id werden für den Withdraw-Button übergeben (Issue 07).
             $app->get('/{board}/ideas/{id:[0-9]+}', function (
                 ServerRequestInterface $request,
                 ResponseInterface $response,
@@ -388,10 +390,15 @@ final class AppFactory
                     return $response->withStatus(404);
                 }
 
+                $csrfToken = $request->getAttribute(CsrfMiddleware::ATTR_TOKEN);
+                $currentUser = $request->getAttribute(AuthNMiddleware::ATTR_USER);
+
                 $response = $twig->render($response, 'board/idea-detail.twig', [
-                    'board_slug' => $slug,
-                    'board_name' => is_string($board['name'] ?? null) ? $board['name'] : $slug,
-                    'idea'       => $idea,
+                    'board_slug'      => $slug,
+                    'board_name'      => is_string($board['name'] ?? null) ? $board['name'] : $slug,
+                    'idea'            => $idea,
+                    'csrf_token'      => is_string($csrfToken) ? $csrfToken : '',
+                    'current_user_id' => is_array($currentUser) ? (int) ($currentUser['id'] ?? 0) : null,
                 ]);
                 return $response->withHeader('Content-Type', 'text/html; charset=utf-8');
             })->add(AuthZMiddleware::anon($responseFactory));
@@ -475,6 +482,11 @@ final class AppFactory
             // POST /{board}/ideas/{id} — Idee aktualisieren (Sprint 3, Issue 06).
             // AuthZ: user; row-level Ownership-Check in der Action; CSRF global erzwungen.
             $app->post('/{board}/ideas/{id:[0-9]+}', $editAction->postEdit(...))
+                ->add(AuthZMiddleware::user($responseFactory));
+
+            // POST /{board}/ideas/{id}/withdraw — Idee zurückziehen / Hard-Delete (Sprint 3, Issue 07).
+            // AuthZ: user; row-level Ownership-Check in der Action; CSRF global erzwungen.
+            $app->post('/{board}/ideas/{id:[0-9]+}/withdraw', new IdeaWithdrawAction($boardRepo, $ideaRepo, $audit))
                 ->add(AuthZMiddleware::user($responseFactory));
 
             // GET /admin/boards/{slug}/branding — Branding-Einstellseite (AuthZ: admin).
