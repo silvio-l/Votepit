@@ -46,7 +46,11 @@
         <a class="vp-back" href="/{{ board_slug }}">← Zurück zum Board</a>
 
         <article class="vp-detail-card">
-            {{ ui.vote_form(idea.score_cache, board_slug, idea.id, csrf_token, 'lg') }}
+            {% if current_user_id is not null %}
+                {{ ui.vote_form(idea.score_cache, board_slug, idea.id, csrf_token, 'lg', idea.my_vote|default('none')) }}
+            {% else %}
+                {{ ui.vote_anon(idea.score_cache, board_slug, idea.id, 'lg') }}
+            {% endif %}
             <div class="vp-detail-main">
                 <h1 class="vp-detail-title">{{ idea.title }}</h1>
                 <div class="vp-detail-meta">

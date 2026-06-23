@@ -200,20 +200,40 @@ final class VoteActionTest extends IntegrationTestCase
         self::assertStringNotContainsString('vote-audit-secret@example.com', $log);
     }
 
-    // --- Non-JS form on detail page renders interactive forms ----------------
+    // --- Detail-page vote controls (Issue 02: anon → login-links; auth → forms) --
 
-    public function test_idea_detail_renders_vote_forms(): void
+    /** Anon sieht Login-Links statt Forms (Issue 02). */
+    public function test_idea_detail_renders_login_links_for_anon(): void
     {
-        $boardId = $this->insertBoard('vote-detail');
-        $userId  = $this->insertUser('vote-detail@example.com');
+        $boardId = $this->insertBoard('vote-detail-anon');
+        $userId  = $this->insertUser('vote-detail-anon@example.com');
         $ideaId  = $this->seedIdea($boardId, $userId);
 
-        $request  = (new ServerRequestFactory())->createServerRequest('GET', '/vote-detail/ideas/' . $ideaId);
+        $request  = (new ServerRequestFactory())->createServerRequest('GET', '/vote-detail-anon/ideas/' . $ideaId);
         $response = $this->createApp()->handle($request);
         $body     = (string) $response->getBody();
 
         self::assertSame(200, $response->getStatusCode());
-        self::assertStringContainsString('action="/vote-detail/ideas/' . $ideaId . '/vote"', $body);
+        self::assertStringContainsString('/login?r=', $body);
+        // Kein POST-Form mehr für Anon — kein action-Attribut auf die Vote-Route.
+        self::assertStringNotContainsString('action="/vote-detail-anon/ideas/' . $ideaId . '/vote"', $body);
+    }
+
+    /** Eingeloggter User sieht interaktive POST-Forms (wie bisher). */
+    public function test_idea_detail_renders_vote_forms_for_authenticated_user(): void
+    {
+        $boardId = $this->insertBoard('vote-detail-auth');
+        $userId  = $this->insertUser('vote-detail-auth@example.com');
+        $ideaId  = $this->seedIdea($boardId, $userId);
+
+        $request  = (new ServerRequestFactory())
+            ->createServerRequest('GET', '/vote-detail-auth/ideas/' . $ideaId)
+            ->withCookieParams(['votepit_sess' => $this->sessionCookie($userId)]);
+        $response = $this->createApp()->handle($request);
+        $body     = (string) $response->getBody();
+
+        self::assertSame(200, $response->getStatusCode());
+        self::assertStringContainsString('action="/vote-detail-auth/ideas/' . $ideaId . '/vote"', $body);
         self::assertStringContainsString('name="value" value="up"', $body);
         self::assertStringContainsString('name="value" value="down"', $body);
     }

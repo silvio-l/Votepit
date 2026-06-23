@@ -78,8 +78,8 @@
             {% set rows = ideas %}
         {% endif %}
         <div class="vp-cards">
-            {% if show_featured %}{{ ui.featured_card(featured, board_slug, stats) }}{% endif %}
-            {% for idea in rows %}{{ ui.idea_row(idea, board_slug) }}{% endfor %}
+            {% if show_featured %}{{ ui.featured_card(featured, board_slug, stats, csrf_token, is_authenticated) }}{% endif %}
+            {% for idea in rows %}{{ ui.idea_row(idea, board_slug, csrf_token, is_authenticated) }}{% endfor %}
         </div>
         {% endif %}
 

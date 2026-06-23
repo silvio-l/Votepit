@@ -18,12 +18,13 @@
 </div>
 {% endmacro %}
 
-{# Interaktives Vote-Control (Sprint 4, Issue 01) — zwei Mini-Formulare (Hoch/Runter),
-   die OHNE JavaScript funktionieren (Form-POST → PRG). Visuell identisch zum
-   Anzeige-`vote()`-Macro; die Arrows sind hier <button>-Elemente statt <span>.
-   Aktiver/gedrückter `my_vote`-Zustand + Listen-Verdrahtung folgen in Issue 02. #}
-{% macro vote_form(score, board_slug, idea_id, csrf_token, size = '') %}
-<div class="vp-vote{{ size == 'lg' ? ' vp-vote--lg' : '' }}" aria-label="Score {{ score }}">
+{# Interaktives Vote-Control für eingeloggte User (Sprint 4, Issue 01/02).
+   Zwei Mini-Formulare (Hoch/Runter), die OHNE JavaScript funktionieren (Form-POST → PRG).
+   my_vote ∈ {'up','down','none'}: steuert den aktiven/gedrückten Zustand via
+   token-gebundene CSS-Klassen vp-vote--up / vp-vote--down. Keine Hex-/Magic-Werte.
+   size: '' (Liste) | 'lg' (Detail). #}
+{% macro vote_form(score, board_slug, idea_id, csrf_token, size = '', my_vote = 'none') %}
+<div class="vp-vote{{ size == 'lg' ? ' vp-vote--lg' : '' }}{{ my_vote == 'up' ? ' vp-vote--up' : (my_vote == 'down' ? ' vp-vote--down' : '') }}" aria-label="Score {{ score }}">
     <form class="vp-vote-form" method="post" action="/{{ board_slug }}/ideas/{{ idea_id }}/vote">
         <input type="hidden" name="_csrf" value="{{ csrf_token }}">
         <input type="hidden" name="value" value="up">
@@ -35,6 +36,19 @@
         <input type="hidden" name="value" value="down">
         <button type="submit" class="vp-vote-btn vp-vote-down" aria-label="Runterstimmen"><svg viewBox="0 0 12 8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 2 6 6.5 10.5 2"/></svg></button>
     </form>
+</div>
+{% endmacro %}
+
+{# Anon-Vote-Control (Sprint 4, Issue 02): für nicht eingeloggte Besucher.
+   Zeigt Score + Pfeil-Links statt Forms. Klick auf Pfeil → Login mit Return-To
+   auf die Idee (Open-Redirect-sicher via url_encode = rawurlencode in Twig 3).
+   size: '' (Liste) | 'lg' (Detail). #}
+{% macro vote_anon(score, board_slug, idea_id, size = '') %}
+{% set _r = ('/' ~ board_slug ~ '/ideas/' ~ idea_id)|url_encode %}
+<div class="vp-vote{{ size == 'lg' ? ' vp-vote--lg' : '' }}" aria-label="Score {{ score }}">
+    <a class="vp-vote-btn vp-vote-up" href="/login?r={{ _r }}" aria-label="Anmelden zum Hochstimmen"><svg viewBox="0 0 12 8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 6 6 1.5 10.5 6"/></svg></a>
+    <span class="vp-vote-score{{ score < 0 ? ' vp-vote-score--neg' : '' }}">{{ score }}</span>
+    <a class="vp-vote-btn vp-vote-down" href="/login?r={{ _r }}" aria-label="Anmelden zum Runterstimmen"><svg viewBox="0 0 12 8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 2 6 6.5 10.5 2"/></svg></a>
 </div>
 {% endmacro %}
 
@@ -58,47 +72,64 @@
 {%- if days <= 0 -%}heute{%- elseif days == 1 -%}vor 1 Tag{%- else -%}vor {{ days }} Tagen{%- endif -%}
 {% endmacro %}
 
-{# IdeaListRow (Figma 74:87) — neutral Vote + Titel/Excerpt/Meta + rechte ConsensusBar + ›. #}
-{% macro idea_row(idea, board_slug) %}
+{# IdeaListRow (Figma 74:87) — Vote-Control + Titel/Excerpt/Meta + rechte ConsensusBar + ›.
+   Vote-Control ist außerhalb des Anker-Tags (valides HTML: kein form/link in <a>).
+   is_authenticated: true → vote_form mit my_vote-Zustand; false → vote_anon (Login-Link).
+   csrf_token + is_authenticated werden vom Board-Home-Template durchgereicht. #}
+{% macro idea_row(idea, board_slug, csrf_token = '', is_authenticated = false) %}
 {% import _self as ui %}
-<a class="vp-row" href="/{{ board_slug }}/ideas/{{ idea.id }}">
-    {{ ui.vote(idea.score_cache) }}
-    <div class="vp-row-content">
-        <h2 class="vp-row-title">{{ idea.title }}</h2>
-        {% if idea.body %}<p class="vp-row-excerpt">{{ idea.body }}</p>{% endif %}
-        <div class="vp-row-meta">
-            {{ ui.status_badge(idea.status) }}
-            <span class="vp-meta-txt">{{ idea.comment_count|default(0) }} Kommentare</span>
-            <span class="vp-meta-txt">·</span>
-            <span class="vp-meta-txt">{{ ui.ago(idea.created_at) }}</span>
-        </div>
-    </div>
-    {% set _tot = (idea.up_count|default(0)) + (idea.down_count|default(0)) %}
-    {% if _tot > 0 %}
-    <div class="vp-row-stats">{{ ui.consensus_bar(((idea.up_count / _tot) * 100)|round) }}</div>
+<div class="vp-row">
+    {% if is_authenticated %}
+        {{ ui.vote_form(idea.score_cache, board_slug, idea.id, csrf_token, '', idea.my_vote|default('none')) }}
+    {% else %}
+        {{ ui.vote_anon(idea.score_cache, board_slug, idea.id) }}
     {% endif %}
-    <span class="vp-row-chev" aria-hidden="true">›</span>
-</a>
-{% endmacro %}
-
-{# FeaturedIdeaCard (Figma 69:85) — links Top-Idee (leading Vote), rechts Stats-Bento. #}
-{% macro featured_card(idea, board_slug, stats) %}
-{% import _self as ui %}
-<div class="vp-feat">
-    <a class="vp-feat-card" href="/{{ board_slug }}/ideas/{{ idea.id }}">
-        {{ ui.vote(idea.score_cache, 'up') }}
-        <div class="vp-feat-content">
-            <p class="vp-feat-eyebrow">TOP-IDEE</p>
-            <h2 class="vp-feat-title">{{ idea.title }}</h2>
-            {% if idea.body %}<p class="vp-feat-desc">{{ idea.body }}</p>{% endif %}
-            <div class="vp-feat-meta">
+    <a class="vp-row-inner" href="/{{ board_slug }}/ideas/{{ idea.id }}">
+        <div class="vp-row-content">
+            <h2 class="vp-row-title">{{ idea.title }}</h2>
+            {% if idea.body %}<p class="vp-row-excerpt">{{ idea.body }}</p>{% endif %}
+            <div class="vp-row-meta">
                 {{ ui.status_badge(idea.status) }}
                 <span class="vp-meta-txt">{{ idea.comment_count|default(0) }} Kommentare</span>
-                {% set _tot = (idea.up_count|default(0)) + (idea.down_count|default(0)) %}
-                {% if _tot > 0 %}{{ ui.consensus_bar(((idea.up_count / _tot) * 100)|round) }}{% endif %}
+                <span class="vp-meta-txt">·</span>
+                <span class="vp-meta-txt">{{ ui.ago(idea.created_at) }}</span>
             </div>
         </div>
+        {% set _tot = (idea.up_count|default(0)) + (idea.down_count|default(0)) %}
+        {% if _tot > 0 %}
+        <div class="vp-row-stats">{{ ui.consensus_bar(((idea.up_count / _tot) * 100)|round) }}</div>
+        {% endif %}
+        <span class="vp-row-chev" aria-hidden="true">›</span>
     </a>
+</div>
+{% endmacro %}
+
+{# FeaturedIdeaCard (Figma 69:85) — links Top-Idee (leading Vote), rechts Stats-Bento.
+   Vote-Control außerhalb des Anker-Tags (valides HTML). is_authenticated steuert
+   vote_form vs. vote_anon analog zur idea_row. #}
+{% macro featured_card(idea, board_slug, stats, csrf_token = '', is_authenticated = false) %}
+{% import _self as ui %}
+<div class="vp-feat">
+    <div class="vp-feat-card">
+        {% if is_authenticated %}
+            {{ ui.vote_form(idea.score_cache, board_slug, idea.id, csrf_token, '', idea.my_vote|default('none')) }}
+        {% else %}
+            {{ ui.vote_anon(idea.score_cache, board_slug, idea.id) }}
+        {% endif %}
+        <a class="vp-feat-inner" href="/{{ board_slug }}/ideas/{{ idea.id }}">
+            <div class="vp-feat-content">
+                <p class="vp-feat-eyebrow">TOP-IDEE</p>
+                <h2 class="vp-feat-title">{{ idea.title }}</h2>
+                {% if idea.body %}<p class="vp-feat-desc">{{ idea.body }}</p>{% endif %}
+                <div class="vp-feat-meta">
+                    {{ ui.status_badge(idea.status) }}
+                    <span class="vp-meta-txt">{{ idea.comment_count|default(0) }} Kommentare</span>
+                    {% set _tot = (idea.up_count|default(0)) + (idea.down_count|default(0)) %}
+                    {% if _tot > 0 %}{{ ui.consensus_bar(((idea.up_count / _tot) * 100)|round) }}{% endif %}
+                </div>
+            </div>
+        </a>
+    </div>
     {% if stats is defined and stats %}
     <aside class="vp-bento">
         <p class="vp-bento-label">ÜBERSICHT</p>

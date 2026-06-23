@@ -304,9 +304,12 @@
         .vp-cons-fill  { display: block; height: 6px; border-radius: 999px; background: var(--vp-vote-up); }
 
         /* ── IdeaListRow (Figma 74:87) ────────────────────────────────────── */
+        /* .vp-row ist jetzt ein <div>-Container (Vote-Control außerhalb des Ankers
+           für valides HTML). .vp-row-inner ist der <a>-Link für den Zeilen-Inhalt. */
         .vp-cards  { padding: 24px 0 64px; display: flex; flex-direction: column; gap: 12px; list-style: none; margin: 0; }
-        .vp-row    { display: flex; align-items: center; gap: 20px; background: var(--vp-surface-frost); border: 1px solid var(--vp-border); border-radius: 16px; box-shadow: var(--vp-row-shadow); padding: 18px 24px 18px 20px; text-decoration: none; color: inherit; transition: transform .12s ease, box-shadow .12s ease; }
+        .vp-row    { display: flex; align-items: center; gap: 20px; background: var(--vp-surface-frost); border: 1px solid var(--vp-border); border-radius: 16px; box-shadow: var(--vp-row-shadow); padding: 18px 24px 18px 20px; transition: transform .12s ease, box-shadow .12s ease; }
         .vp-row:hover { transform: translateY(-1px); box-shadow: 0 12px 30px -6px rgba(20,23,26,.12); }
+        .vp-row-inner { flex: 1; min-width: 0; display: flex; align-items: center; gap: 20px; text-decoration: none; color: inherit; }
         .vp-row-content { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
         .vp-row-title { margin: 0; font-family: var(--vp-font-head); font-weight: 600; font-size: 17px; line-height: 1.22; color: var(--vp-text); }
         .vp-row-excerpt { margin: 0; font-family: var(--vp-font-sans); font-weight: 400; font-size: 14px; line-height: 1.5; color: var(--vp-text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
@@ -314,11 +317,15 @@
         .vp-meta-txt { font-family: var(--vp-font-sans); font-weight: 400; font-size: 12px; color: var(--vp-text-faint); white-space: nowrap; }
         .vp-row-stats { flex-shrink: 0; width: 160px; display: flex; flex-direction: column; align-items: flex-start; }
         .vp-row-chev { flex-shrink: 0; font-size: 22px; line-height: 1; color: var(--vp-text-faint); }
+        /* Anon-Login-Link-Arrows: kein Text-Underline, Farbe erben. */
+        a.vp-vote-btn { text-decoration: none; color: inherit; }
 
         /* ── FeaturedIdeaCard (Figma 69:85) ───────────────────────────────── */
+        /* .vp-feat-card ist jetzt ein <div>-Container, .vp-feat-inner der <a>-Link. */
         .vp-feat { display: flex; gap: 14px; align-items: stretch; }
-        .vp-feat-card { flex: 1; min-width: 0; display: flex; gap: 22px; align-items: flex-start; background: var(--vp-surface); border: 1px solid var(--vp-border); border-radius: 20px; box-shadow: var(--vp-row-shadow); padding: 24px 26px 24px 24px; text-decoration: none; color: inherit; transition: transform .12s ease, box-shadow .12s ease; }
+        .vp-feat-card { flex: 1; min-width: 0; display: flex; gap: 22px; align-items: flex-start; background: var(--vp-surface); border: 1px solid var(--vp-border); border-radius: 20px; box-shadow: var(--vp-row-shadow); padding: 24px 26px 24px 24px; transition: transform .12s ease, box-shadow .12s ease; }
         .vp-feat-card:hover { transform: translateY(-1px); box-shadow: 0 12px 30px -6px rgba(20,23,26,.12); }
+        .vp-feat-inner { flex: 1; min-width: 0; text-decoration: none; color: inherit; }
         .vp-feat-content { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 11px; }
         .vp-feat-eyebrow { margin: 0; font-family: var(--vp-font-sans); font-weight: 700; font-size: 11px; letter-spacing: 1.32px; color: var(--vp-vote-up); }
         .vp-feat-title { margin: 0; font-family: var(--vp-font-head); font-weight: 600; font-size: 25px; line-height: 1.16; letter-spacing: -.01em; color: var(--vp-text); }

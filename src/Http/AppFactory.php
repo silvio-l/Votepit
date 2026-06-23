@@ -345,7 +345,13 @@ final class AppFactory
                 $limit   = IdeaRepository::DEFAULT_PAGE_SIZE;
                 $offset  = ($page - 1) * $limit;
 
-                $ideas = $ideaRepo->listByBoard((int) $board['id'], $activeStatus, $limit, $offset);
+                // Issue 02: eingeloggter User → my_vote je Idee via set-basierter Subquery.
+                $currentUser   = $request->getAttribute(AuthNMiddleware::ATTR_USER);
+                $isAuth        = $currentUser !== null;
+                $currentUserId = is_array($currentUser) ? (int) ($currentUser['id'] ?? 0) : null;
+                $csrfToken     = $request->getAttribute(CsrfMiddleware::ATTR_TOKEN);
+
+                $ideas = $ideaRepo->listByBoard((int) $board['id'], $activeStatus, $limit, $offset, IdeaRepository::DEFAULT_SORT, $currentUserId);
 
                 // Gesamtzahl für Pagination (nur wenn nötig: Seite > 1 oder volle Seite).
                 $totalPages = 1;
@@ -354,17 +360,17 @@ final class AppFactory
                     $totalPages = max(1, (int) ceil($total / $limit));
                 }
 
-                $isAuth = $request->getAttribute(AuthNMiddleware::ATTR_USER) !== null;
-
                 $response = $twig->render($response, 'board/home.twig', [
-                    'board_slug'     => $slug,
-                    'board_name'     => is_string($board['name'] ?? null) ? $board['name'] : $slug,
-                    'board_intro'    => is_string($board['intro'] ?? null) ? $board['intro'] : '',
-                    'ideas'          => $ideas,
-                    'active_status'  => $activeStatus,
-                    'page'           => $page,
-                    'total_pages'    => $totalPages,
+                    'board_slug'       => $slug,
+                    'board_name'       => is_string($board['name'] ?? null) ? $board['name'] : $slug,
+                    'board_intro'      => is_string($board['intro'] ?? null) ? $board['intro'] : '',
+                    'ideas'            => $ideas,
+                    'active_status'    => $activeStatus,
+                    'page'             => $page,
+                    'total_pages'      => $totalPages,
                     'is_authenticated' => $isAuth,
+                    'csrf_token'       => is_string($csrfToken) ? $csrfToken : '',
+                    'current_user_id'  => $currentUserId,
                 ]);
                 return $response->withHeader('Content-Type', 'text/html; charset=utf-8');
             })->add(AuthZMiddleware::anon($responseFactory));
@@ -385,22 +391,24 @@ final class AppFactory
                     return $response->withStatus(404);
                 }
 
-                $ideaId = (int) ($args['id'] ?? 0);
-                $idea   = $ideaRepo->findInBoard((int) $board['id'], $ideaId);
+                $ideaId      = (int) ($args['id'] ?? 0);
+                $csrfToken   = $request->getAttribute(CsrfMiddleware::ATTR_TOKEN);
+                $currentUser = $request->getAttribute(AuthNMiddleware::ATTR_USER);
+                // Issue 02: my_vote per set-basierter Subquery wenn eingeloggt.
+                $currentUserId = is_array($currentUser) ? (int) ($currentUser['id'] ?? 0) : null;
+
+                $idea = $ideaRepo->findInBoard((int) $board['id'], $ideaId, $currentUserId);
                 if (!is_array($idea)) {
                     $response->getBody()->write('Idea not found.');
                     return $response->withStatus(404);
                 }
-
-                $csrfToken = $request->getAttribute(CsrfMiddleware::ATTR_TOKEN);
-                $currentUser = $request->getAttribute(AuthNMiddleware::ATTR_USER);
 
                 $response = $twig->render($response, 'board/idea-detail.twig', [
                     'board_slug'      => $slug,
                     'board_name'      => is_string($board['name'] ?? null) ? $board['name'] : $slug,
                     'idea'            => $idea,
                     'csrf_token'      => is_string($csrfToken) ? $csrfToken : '',
-                    'current_user_id' => is_array($currentUser) ? (int) ($currentUser['id'] ?? 0) : null,
+                    'current_user_id' => $currentUserId,
                 ]);
                 return $response->withHeader('Content-Type', 'text/html; charset=utf-8');
             })->add(AuthZMiddleware::anon($responseFactory));
