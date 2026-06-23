@@ -15,6 +15,11 @@
 .vp-comments-head { margin: 28px 0 0; font-family: var(--vp-font-head); font-weight: 600; font-size: 18px; color: var(--vp-text); }
 .vp-comments-note { margin: 10px 0 0; font-family: var(--vp-font-sans); font-size: 14px; color: var(--vp-text-faint); }
 .vp-owner { display: flex; gap: 10px; align-items: center; margin-top: 20px; }
+.vp-vote-form { display: contents; }
+.vp-vote button.vp-vote-btn { width: 100%; cursor: pointer; font: inherit; -webkit-appearance: none; appearance: none; transition: background .12s, border-color .12s; }
+.vp-vote button.vp-vote-up:hover { border-color: var(--vp-vote-up); background: var(--vp-vote-up-bg); }
+.vp-vote button.vp-vote-down:hover { border-color: var(--vp-vote-down); background: var(--vp-vote-down-bg); }
+@media (prefers-reduced-motion: reduce) { .vp-vote button.vp-vote-btn { transition: none; } }
 .vp-btn2--danger { background: transparent; color: var(--vp-vote-down); border-color: rgba(216,80,60,.35); }
 .vp-btn2--danger:hover { background: var(--vp-vote-down-bg); border-color: var(--vp-vote-down); }
 .vp-foot { padding: 32px 0 48px; color: var(--vp-text-faint); font-size: 13px; }
@@ -41,7 +46,7 @@
         <a class="vp-back" href="/{{ board_slug }}">← Zurück zum Board</a>
 
         <article class="vp-detail-card">
-            {{ ui.vote(idea.score_cache, '', 'lg') }}
+            {{ ui.vote_form(idea.score_cache, board_slug, idea.id, csrf_token, 'lg') }}
             <div class="vp-detail-main">
                 <h1 class="vp-detail-title">{{ idea.title }}</h1>
                 <div class="vp-detail-meta">

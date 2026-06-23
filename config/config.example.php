@@ -59,9 +59,11 @@ return [
         'global:ip'       => ['limit' => 300, 'window' => 60],       // grob: 300/Minute pro IP (DoS-Bremse)
         'magiclink:email' => ['limit' => 3,  'window' => 3600],      // 3/Stunde pro E-Mail
         'magiclink:ip'    => ['limit' => 5,  'window' => 3600],      // 5/Stunde pro IP
-        'submit:user'     => ['limit' => 5,  'window' => 3600],      // 5 Ideen/Stunde
-        'comment:user'    => ['limit' => 10, 'window' => 3600],      // 10 Kommentare/Stunde
-        'dupsearch:user'  => ['limit' => 30, 'window' => 60],        // 30/Minute Duplikat-Suche
-        'vote:user'       => ['limit' => 60, 'window' => 60],        // 60 Votes/Minute
+        // Per-Action-Bucket-Konvention: der Config-Schlüssel ist identisch mit dem
+        // Action-String, den AppFactory via $config->rateLimit(...) nachschlägt.
+        'idea:submit'     => ['limit' => 5,  'window' => 3600],      // 5 Ideen/Stunde
+        'idea:vote'       => ['limit' => 60, 'window' => 60],        // 60 Votes/Minute
+        'comment:user'    => ['limit' => 10, 'window' => 3600],      // 10 Kommentare/Stunde (Sprint 6)
+        'dupsearch:user'  => ['limit' => 30, 'window' => 60],        // 30/Minute Duplikat-Suche (Sprint 5)
     ],
 ];

@@ -272,6 +272,23 @@ abstract class IntegrationTestCase extends TestCase
     }
 
     /**
+     * Seedet eine Stimme (votes-Zeile). Pflegt score_cache NICHT automatisch
+     * (ADR-3-Amendment: keine DB-Trigger) — Tests setzen score_cache via
+     * seedIdea()-Override, wo nötig. Liefert die Vote-ID.
+     */
+    protected function seedVote(int $ideaId, int $userId, int $value): int
+    {
+        $this->conn->insert('votes', [
+            'idea_id'    => $ideaId,
+            'user_id'    => $userId,
+            'value'      => $value,
+            'created_at' => (new \DateTimeImmutable())->format('Y-m-d H:i:s'),
+        ]);
+
+        return (int) $this->conn->lastInsertId();
+    }
+
+    /**
      * Erzeugt ein gültiges signiertes Session-Cookie für den angegebenen User.
      */
     protected function sessionCookie(int $userId, int $tokenVersion = 0): string

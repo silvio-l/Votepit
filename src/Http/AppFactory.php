@@ -17,6 +17,7 @@ use Votepit\Domain\TitleNormalizer;
 use Votepit\Http\Action\IdeaCreateAction;
 use Votepit\Http\Action\IdeaEditAction;
 use Votepit\Http\Action\IdeaWithdrawAction;
+use Votepit\Http\Action\VoteAction;
 use Votepit\Http\Middleware\AuthNMiddleware;
 use Votepit\Http\Middleware\AuthZMiddleware;
 use Votepit\Http\Middleware\BlockCheckMiddleware;
@@ -32,6 +33,7 @@ use Votepit\Persistence\IdeaRepository;
 use Votepit\Persistence\LoginTokenRepository;
 use Votepit\Persistence\ModerationConfigRepository;
 use Votepit\Persistence\UserRepository;
+use Votepit\Persistence\VoteRepository;
 use Votepit\Security\BrandingValidator;
 use Votepit\Security\CsrfService;
 use Votepit\Security\RateLimiter;
@@ -488,6 +490,26 @@ final class AppFactory
             // AuthZ: user; row-level Ownership-Check in der Action; CSRF global erzwungen.
             $app->post('/{board}/ideas/{id:[0-9]+}/withdraw', new IdeaWithdrawAction($boardRepo, $ideaRepo, $audit))
                 ->add(AuthZMiddleware::user($responseFactory));
+
+            // POST /{board}/ideas/{id}/vote — Stimme abgeben/ändern/zurücknehmen (Sprint 4, Issue 01).
+            // AuthZ: user (anon → 401); CSRF + BlockCheck global; per-Action-RateLimit idea:vote.
+            // Board-Scoping in der Action via findInBoard (fremde Idee → 404, keine Zeile).
+            $voteRepo      = new VoteRepository($conn);
+            $voteRateLimit = $config->rateLimit('idea:vote');
+
+            $app->post('/{board}/ideas/{id:[0-9]+}/vote', new VoteAction($boardRepo, $ideaRepo, $voteRepo, $audit))
+            ->add(AuthZMiddleware::user($responseFactory))
+            ->add(RateLimitMiddleware::perAction(
+                new RateLimiter($conn),
+                $responseFactory,
+                'idea:vote',
+                $voteRateLimit['limit'],
+                $voteRateLimit['window'],
+                static function (ServerRequestInterface $r): ?string {
+                    $user = $r->getAttribute(AuthNMiddleware::ATTR_USER);
+                    return is_array($user) ? (string) ($user['id'] ?? '') : null;
+                },
+            ));
 
             // GET /admin/boards/{slug}/branding — Branding-Einstellseite (AuthZ: admin).
             // Rendert das Base-Layout mit dem (validierten) Branding des Boards selbst:

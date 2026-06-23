@@ -18,6 +18,26 @@
 </div>
 {% endmacro %}
 
+{# Interaktives Vote-Control (Sprint 4, Issue 01) — zwei Mini-Formulare (Hoch/Runter),
+   die OHNE JavaScript funktionieren (Form-POST → PRG). Visuell identisch zum
+   Anzeige-`vote()`-Macro; die Arrows sind hier <button>-Elemente statt <span>.
+   Aktiver/gedrückter `my_vote`-Zustand + Listen-Verdrahtung folgen in Issue 02. #}
+{% macro vote_form(score, board_slug, idea_id, csrf_token, size = '') %}
+<div class="vp-vote{{ size == 'lg' ? ' vp-vote--lg' : '' }}" aria-label="Score {{ score }}">
+    <form class="vp-vote-form" method="post" action="/{{ board_slug }}/ideas/{{ idea_id }}/vote">
+        <input type="hidden" name="_csrf" value="{{ csrf_token }}">
+        <input type="hidden" name="value" value="up">
+        <button type="submit" class="vp-vote-btn vp-vote-up" aria-label="Hochstimmen"><svg viewBox="0 0 12 8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 6 6 1.5 10.5 6"/></svg></button>
+    </form>
+    <span class="vp-vote-score{{ score < 0 ? ' vp-vote-score--neg' : '' }}">{{ score }}</span>
+    <form class="vp-vote-form" method="post" action="/{{ board_slug }}/ideas/{{ idea_id }}/vote">
+        <input type="hidden" name="_csrf" value="{{ csrf_token }}">
+        <input type="hidden" name="value" value="down">
+        <button type="submit" class="vp-vote-btn vp-vote-down" aria-label="Runterstimmen"><svg viewBox="0 0 12 8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 2 6 6.5 10.5 2"/></svg></button>
+    </form>
+</div>
+{% endmacro %}
+
 {# Status-Badge Pill (Figma StatusBadge 61:47) — Frost-Pill, farbiger 6px-Punkt, Label Inter 12px secondary. #}
 {% macro status_badge(s) %}
 {% set labels = {'open':'Offen','planned':'Geplant','in_progress':'In Arbeit','done':'Erledigt','declined':'Abgelehnt'} %}
