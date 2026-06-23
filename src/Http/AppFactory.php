@@ -23,6 +23,7 @@ use Votepit\Logging\AuditLogger;
 use Votepit\Mail\Mailer;
 use Votepit\Mail\SymfonyMailerAdapter;
 use Votepit\Persistence\BoardRepository;
+use Votepit\Persistence\IdeaRepository;
 use Votepit\Persistence\LoginTokenRepository;
 use Votepit\Persistence\UserRepository;
 use Votepit\Security\BrandingValidator;
@@ -300,6 +301,60 @@ final class AppFactory
                 );
 
                 return $response;
+            })->add(AuthZMiddleware::anon($responseFactory));
+
+            $ideaRepo = new IdeaRepository($conn);
+
+            // GET /{board} — Board-Home = Ideenliste (Newest, Status-Filter, Pagination).
+            // AuthZ: anon (Lesen ist öffentlich). Unbekannter Slug → 404.
+            $app->get('/{board}', function (
+                ServerRequestInterface $request,
+                ResponseInterface $response,
+                array $args,
+            ) use ($twig, $boardRepo, $ideaRepo): MessageInterface {
+                $slug  = is_string($args['board'] ?? null) ? $args['board'] : '';
+                $board = $boardRepo->findBySlug($slug);
+                if (!is_array($board)) {
+                    $response->getBody()->write('Board not found.');
+                    return $response->withStatus(404);
+                }
+
+                $params = $request->getQueryParams();
+
+                // Status-Filter: Allow-List-Validierung; ungültig → null (alle anzeigen).
+                $rawStatus    = is_string($params['status'] ?? null) ? $params['status'] : null;
+                $activeStatus = ($rawStatus !== null && in_array($rawStatus, IdeaRepository::ALLOWED_STATUSES, true))
+                    ? $rawStatus
+                    : null;
+
+                // Pagination: ?page= (1-basiert, konservative Seitengröße).
+                $rawPage = isset($params['page']) ? (int) $params['page'] : 1;
+                $page    = max(1, $rawPage);
+                $limit   = IdeaRepository::DEFAULT_PAGE_SIZE;
+                $offset  = ($page - 1) * $limit;
+
+                $ideas = $ideaRepo->listByBoard((int) $board['id'], $activeStatus, $limit, $offset);
+
+                // Gesamtzahl für Pagination (nur wenn nötig: Seite > 1 oder volle Seite).
+                $totalPages = 1;
+                if (count($ideas) === $limit || $page > 1) {
+                    $total      = $ideaRepo->countByBoard((int) $board['id'], $activeStatus);
+                    $totalPages = max(1, (int) ceil($total / $limit));
+                }
+
+                $isAuth = $request->getAttribute(AuthNMiddleware::ATTR_USER) !== null;
+
+                $response = $twig->render($response, 'board/home.twig', [
+                    'board_slug'     => $slug,
+                    'board_name'     => is_string($board['name'] ?? null) ? $board['name'] : $slug,
+                    'board_intro'    => is_string($board['intro'] ?? null) ? $board['intro'] : '',
+                    'ideas'          => $ideas,
+                    'active_status'  => $activeStatus,
+                    'page'           => $page,
+                    'total_pages'    => $totalPages,
+                    'is_authenticated' => $isAuth,
+                ]);
+                return $response->withHeader('Content-Type', 'text/html; charset=utf-8');
             })->add(AuthZMiddleware::anon($responseFactory));
 
             // GET /admin/boards/{slug}/branding — Branding-Einstellseite (AuthZ: admin).

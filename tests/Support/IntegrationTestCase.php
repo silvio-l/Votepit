@@ -144,5 +144,100 @@ abstract class IntegrationTestCase extends TestCase
                 PRIMARY KEY (bucket)
             )',
         );
+
+        // Sprint 3: ideas-Tabelle (portables Subset; ohne FULLTEXT/ENGINE/UNSIGNED).
+        $conn->executeStatement(
+            'CREATE TABLE IF NOT EXISTS ideas (
+                id               INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                board_id         INTEGER NOT NULL,
+                author_id        INTEGER NOT NULL,
+                title            VARCHAR(200) NOT NULL,
+                title_normalized VARCHAR(200) NOT NULL DEFAULT \'\',
+                body             TEXT NOT NULL,
+                status           VARCHAR(16) NOT NULL DEFAULT \'open\',
+                is_pinned        INTEGER NOT NULL DEFAULT 0,
+                merged_into_id   INTEGER NULL,
+                score_cache      INTEGER NOT NULL DEFAULT 0,
+                created_at       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (board_id)  REFERENCES boards(id)  ON DELETE CASCADE,
+                FOREIGN KEY (author_id) REFERENCES users(id)   ON DELETE RESTRICT
+            )',
+        );
+    }
+
+    // -------------------------------------------------------------------------
+    // Sprint-3 Seed-Helfer
+    // -------------------------------------------------------------------------
+
+    /**
+     * Seedet ein Board; liefert dessen ID.
+     * Methode aus dem Sprint-3-Harness — nicht mit privaten seedBoard()-Methoden
+     * in Unterklassen aus Sprint 2 kollidieren.
+     *
+     * @param array<string, mixed> $overrides
+     */
+    protected function insertBoard(string $slug = 'demo', array $overrides = []): int
+    {
+        $this->conn->insert('boards', array_merge([
+            'slug'       => $slug,
+            'name'       => 'Demo Board',
+            'is_default' => 1,
+            'created_at' => (new \DateTimeImmutable())->format('Y-m-d H:i:s'),
+        ], $overrides));
+
+        return (int) $this->conn->lastInsertId();
+    }
+
+    /**
+     * Seedet einen verifizierten User; liefert dessen ID.
+     *
+     * @param array<string, mixed> $overrides
+     */
+    protected function insertUser(string $email = 'user@example.com', array $overrides = []): int
+    {
+        $this->conn->insert('users', array_merge([
+            'email'         => $email,
+            'is_admin'      => 0,
+            'is_blocked'    => 0,
+            'token_version' => 0,
+            'verified_at'   => (new \DateTimeImmutable())->format('Y-m-d H:i:s'),
+            'created_at'    => (new \DateTimeImmutable())->format('Y-m-d H:i:s'),
+        ], $overrides));
+
+        return (int) $this->conn->lastInsertId();
+    }
+
+    /**
+     * Seedet eine Idee; liefert deren ID.
+     *
+     * @param array<string, mixed> $overrides
+     */
+    protected function seedIdea(int $boardId, int $authorId, string $title = 'Test-Idee', array $overrides = []): int
+    {
+        $this->conn->insert('ideas', array_merge([
+            'board_id'        => $boardId,
+            'author_id'       => $authorId,
+            'title'           => $title,
+            'title_normalized' => mb_strtolower($title, 'UTF-8'),
+            'body'            => 'Standardbeschreibung.',
+            'status'          => 'open',
+            'is_pinned'       => 0,
+            'score_cache'     => 0,
+            'created_at'      => (new \DateTimeImmutable())->format('Y-m-d H:i:s'),
+            'updated_at'      => (new \DateTimeImmutable())->format('Y-m-d H:i:s'),
+        ], $overrides));
+
+        return (int) $this->conn->lastInsertId();
+    }
+
+    /**
+     * Erzeugt ein gültiges signiertes Session-Cookie für den angegebenen User.
+     */
+    protected function sessionCookie(int $userId, int $tokenVersion = 0): string
+    {
+        $appKey   = str_repeat('a', 64);
+        $sessions = new \Votepit\Security\SessionService($appKey, 3600, false);
+        return $sessions->sign(['uid' => $userId, 'v' => $tokenVersion]);
     }
 }
