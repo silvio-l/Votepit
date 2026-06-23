@@ -107,6 +107,19 @@
 
         <form method="post" action="/{{ board_slug }}/ideas" novalidate>
             <input type="hidden" name="_csrf" value="{{ csrf_token }}">
+            <input type="hidden" name="_form_at" value="{{ time_trap }}">
+            {# Honeypot — muss leer bleiben; versteckt für Menschen und Screenreader #}
+            <div aria-hidden="true" style="display:none;">
+                <label for="hp-website">Website</label>
+                <input id="hp-website" type="text" name="website" value="" tabindex="-1" autocomplete="off">
+            </div>
+
+            {# Formular-Fehlermeldung (z. B. Inhalt nicht zulässig) #}
+            {% if errors.moderation is defined %}
+            <div role="alert" style="margin-bottom:1.25rem;padding:.7rem 1rem;border-radius:var(--vp-radius-sm);background:color-mix(in srgb,var(--vp-vote-down) 8%,transparent);border:1px solid color-mix(in srgb,var(--vp-vote-down) 30%,transparent);color:var(--vp-vote-down);font-size:.875rem;">
+                {% for msg in errors.moderation %}{{ msg }}{% endfor %}
+            </div>
+            {% endif %}
 
             {# Titel #}
             <div class="vp-field">

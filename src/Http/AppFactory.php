@@ -12,6 +12,7 @@ use Slim\App;
 use Slim\Psr7\Factory\ResponseFactory;
 use Slim\Views\Twig;
 use Votepit\Config;
+use Votepit\Domain\ContentModerationService;
 use Votepit\Domain\TitleNormalizer;
 use Votepit\Http\Action\IdeaCreateAction;
 use Votepit\Http\Middleware\AuthNMiddleware;
@@ -33,6 +34,7 @@ use Votepit\Security\CsrfService;
 use Votepit\Security\RateLimiter;
 use Votepit\Security\ReturnToValidator;
 use Votepit\Security\SessionService;
+use Votepit\Security\TimeTrapService;
 use Votepit\Security\TokenVault;
 
 /**
@@ -305,7 +307,9 @@ final class AppFactory
                 return $response;
             })->add(AuthZMiddleware::anon($responseFactory));
 
-            $ideaRepo = new IdeaRepository($conn);
+            $ideaRepo   = new IdeaRepository($conn);
+            $moderation = new ContentModerationService($root . '/resources/moderation');
+            $timeTrap   = new TimeTrapService($config->appKey);
 
             // GET /{board} — Board-Home = Ideenliste (Newest, Status-Filter, Pagination).
             // AuthZ: anon (Lesen ist öffentlich). Unbekannter Slug → 404.
@@ -393,11 +397,12 @@ final class AppFactory
             // AuthZ: anon; anon-Nutzer werden in der Action per Redirect zum Login geleitet
             // (Return-To auf die aktuelle URL gesetzt). Eingeloggte sehen das Formular.
             // POST-Route ist user-gated; das Formular selbst enthält keine Secrets.
+            // Issue 09: Time-Trap-Stamp wird als Hidden-Field eingebettet.
             $app->get('/{board}/ideas/new', function (
                 ServerRequestInterface $request,
                 ResponseInterface $response,
                 array $args,
-            ) use ($twig, $boardRepo): MessageInterface {
+            ) use ($twig, $boardRepo, $timeTrap): MessageInterface {
                 $slug  = is_string($args['board'] ?? null) ? $args['board'] : '';
                 $board = $boardRepo->findBySlug($slug);
                 if (!is_array($board)) {
@@ -421,6 +426,7 @@ final class AppFactory
                     'csrf_token' => is_string($csrfToken) ? $csrfToken : '',
                     'values'     => ['title' => '', 'body' => ''],
                     'errors'     => [],
+                    'time_trap'  => $timeTrap->stamp(),
                 ]);
                 return $response->withHeader('Content-Type', 'text/html; charset=utf-8');
             })->add(AuthZMiddleware::anon($responseFactory));
@@ -430,7 +436,7 @@ final class AppFactory
             $submitRateLimit = $config->rateLimit('idea:submit');
             $normalizer      = new TitleNormalizer();
 
-            $app->post('/{board}/ideas', new IdeaCreateAction($twig, $boardRepo, $ideaRepo, $normalizer, $audit))
+            $app->post('/{board}/ideas', new IdeaCreateAction($twig, $boardRepo, $ideaRepo, $normalizer, $audit, $moderation, $timeTrap))
             ->add(AuthZMiddleware::user($responseFactory))
             ->add(RateLimitMiddleware::perAction(
                 new RateLimiter($conn),

@@ -9,12 +9,12 @@ use Votepit\Security\CsrfService;
 use Votepit\Tests\Support\IntegrationTestCase;
 
 /**
- * Integrationstests für GET /{board}/ideas/new + POST /{board}/ideas (Sprint 3, Issue 05).
+ * Integrationstests für GET /{board}/ideas/new + POST /{board}/ideas (Sprint 3, Issue 05 + 09).
  *
  * Alle Assertions laufen ausschließlich durch den HTTP-Seam (AppFactory::create +
  * IntegrationTestCase). Kein direkter Zugriff auf Repository-Interna.
  *
- * Abgedeckte ACs:
+ * Abgedeckte ACs (Issue 05):
  *  AC1  — GET /{board}/ideas/new → 200 (eingeloggt) / Login-Redirect mit Return-To (anon)
  *  AC2  — POST /{board}/ideas legt Idee board-scoped an; AuthZ user, CSRF erzwungen,
  *          RateLimit idea:submit aktiv
@@ -27,6 +27,16 @@ use Votepit\Tests\Support\IntegrationTestCase;
  *  AC9  — POST ohne gültiges CSRF-Token → 403
  *  AC10 — Board-Seite zeigt „Neue Idee"-CTA (eingeloggt) / Login-Hinweis (anon)
  *  AC11 — AuthZ-Tests: anon GET → Login-Redirect; anon POST → 401; eingeloggt → OK
+ *
+ * Abgedeckte ACs (Issue 09 — Moderation + Bot-Abwehr):
+ *  AC1  — Profanität in Titel oder Body → 422, neutrale Meldung, kein DB-Eintrag
+ *  AC2  — Sauberer Text → 302 (kein Regress)
+ *  AC3  — Treffer wird maskiert über AuditLogger geloggt
+ *  AC4  — Honeypot befüllt → 422, kein DB-Eintrag; leer → normaler Ablauf
+ *  AC5  — Honeypot-Feld unsichtbar (aria-hidden, display:none), kein JS
+ *  AC6  — Time-Trap: zu schnell → 422; normales Timing → 302
+ *  AC7  — Fehlermeldungen bewerben keine Schutzmaßnahmen
+ *  AC8  — Bestehende Issue-05-Tests bleiben grün
  */
 final class IdeaSubmitActionTest extends IntegrationTestCase
 {
@@ -37,6 +47,32 @@ final class IdeaSubmitActionTest extends IntegrationTestCase
     private function csrf(): CsrfService
     {
         return new CsrfService(str_repeat('a', 64), 3600, false);
+    }
+
+    /**
+     * Erzeugt einen gültigen Time-Trap-Stamp mit rückdatiertem Zeitstempel
+     * (5 s in der Vergangenheit), damit bestehende Tests nicht schlafen müssen.
+     */
+    private function validTimeTrap(): string
+    {
+        // Build a backdated stamp directly using the same MAC logic as TimeTrapService
+        // (5 s in the past → comfortably above MIN_SECONDS=3, no sleep needed).
+        $ts  = (string) (time() - 5);
+        $key = str_repeat('a', 64);
+        $mac = rtrim(strtr(base64_encode(hash_hmac('sha256', $ts, $key, true)), '+/', '-_'), '=');
+        return $ts . '.' . $mac;
+    }
+
+    /**
+     * Erzeugt einen Time-Trap-Stamp mit einem aktuellen Zeitstempel,
+     * sodass die Elapsed-Prüfung fehlschlägt (0 s vergangen < MIN_SECONDS).
+     */
+    private function tooFastTimeTrap(): string
+    {
+        $ts  = (string) time();
+        $key = str_repeat('a', 64);
+        $mac = rtrim(strtr(base64_encode(hash_hmac('sha256', $ts, $key, true)), '+/', '-_'), '=');
+        return $ts . '.' . $mac;
     }
 
     /** GET-Request auf /{board}/ideas/new, optional mit Session-Cookie. */
@@ -56,6 +92,7 @@ final class IdeaSubmitActionTest extends IntegrationTestCase
 
     /**
      * POST-Request auf /{board}/ideas mit gültigem CSRF-Token, optional Session.
+     * Enthält standardmäßig einen gültigen Time-Trap-Stamp (5 s backdated).
      *
      * @param array<string, string> $body
      */
@@ -65,10 +102,11 @@ final class IdeaSubmitActionTest extends IntegrationTestCase
         $token  = $csrf->generate();
         $signed = $csrf->sign($token);
 
-        $request = (new ServerRequestFactory())
+        $defaults = ['_csrf' => $token, '_form_at' => $this->validTimeTrap()];
+        $request  = (new ServerRequestFactory())
             ->createServerRequest('POST', '/' . $boardSlug . '/ideas')
             ->withCookieParams([$csrf->cookieName() => $signed])
-            ->withParsedBody(array_merge($body, ['_csrf' => $token]));
+            ->withParsedBody(array_merge($defaults, $body));
 
         if ($userId !== null) {
             $request = $request->withCookieParams([$csrf->cookieName() => $signed, 'votepit_sess' => $this->sessionCookie($userId)]);
@@ -470,5 +508,219 @@ final class IdeaSubmitActionTest extends IntegrationTestCase
             $userId,
         ));
         self::assertSame(404, $response->getStatusCode());
+    }
+
+    // =========================================================================
+    // Issue 09 — Moderation + Bot-Abwehr
+    // =========================================================================
+
+    // -------------------------------------------------------------------------
+    // AC1 — Profanität in Titel → 422, neutrale Meldung, kein DB-Eintrag
+    // -------------------------------------------------------------------------
+
+    public function test_i09_profanity_in_title_returns_422_no_db_entry(): void
+    {
+        $boardId = $this->insertBoard('mod-title-board');
+        $userId  = $this->insertUser('mod-title@example.com');
+
+        $response = $this->createApp()->handle($this->postIdea(
+            'mod-title-board',
+            ['title' => 'arschloch bitte bauen', 'body' => 'Saubere Beschreibung ohne Probleme hier.'],
+            $userId,
+        ));
+
+        self::assertSame(422, $response->getStatusCode());
+        // Kein DB-Eintrag
+        $count = $this->conn->fetchOne('SELECT COUNT(*) FROM ideas WHERE board_id = ?', [$boardId]);
+        self::assertSame(0, (int) $count);
+        // Neutrale Meldung
+        $body = (string) $response->getBody();
+        self::assertStringContainsString('unzulässige Begriffe', $body);
+    }
+
+    public function test_i09_profanity_in_body_returns_422_no_db_entry(): void
+    {
+        $boardId = $this->insertBoard('mod-body-board');
+        $userId  = $this->insertUser('mod-body@example.com');
+
+        $response = $this->createApp()->handle($this->postIdea(
+            'mod-body-board',
+            ['title' => 'Sauberer Titel hier', 'body' => 'Dieser Text enthält arschloch als Begriff.'],
+            $userId,
+        ));
+
+        self::assertSame(422, $response->getStatusCode());
+        $count = $this->conn->fetchOne('SELECT COUNT(*) FROM ideas WHERE board_id = ?', [$boardId]);
+        self::assertSame(0, (int) $count);
+    }
+
+    // -------------------------------------------------------------------------
+    // AC2 — Sauberer Text → 302 (kein Regress an 05-Tests)
+    // -------------------------------------------------------------------------
+
+    public function test_i09_clean_text_still_succeeds(): void
+    {
+        $this->insertBoard('clean-mod-board');
+        $userId = $this->insertUser('clean-mod@example.com');
+
+        $response = $this->createApp()->handle($this->postIdea(
+            'clean-mod-board',
+            ['title' => 'Meine saubere Idee', 'body' => 'Diese Beschreibung enthält keinerlei unzulässige Inhalte.'],
+            $userId,
+        ));
+
+        self::assertSame(302, $response->getStatusCode());
+    }
+
+    // -------------------------------------------------------------------------
+    // AC3 — Treffer wird maskiert über AuditLogger geloggt
+    // -------------------------------------------------------------------------
+
+    public function test_i09_moderation_hit_is_logged_masked(): void
+    {
+        $this->insertBoard('mod-log-board');
+        $userId = $this->insertUser('mod-log@example.com');
+
+        $this->createApp()->handle($this->postIdea(
+            'mod-log-board',
+            ['title' => 'arschloch ist hier', 'body' => 'Saubere Beschreibung ohne Probleme hier.'],
+            $userId,
+        ));
+
+        $log = $this->readAuditLog();
+        // Log muss den Event enthalten
+        self::assertStringContainsString('idea.moderation_blocked', $log);
+        // Roher gematchter Begriff darf NICHT im Log stehen
+        self::assertStringNotContainsString('arschloch', $log);
+    }
+
+    // -------------------------------------------------------------------------
+    // AC4 — Honeypot befüllt → 422; leer → normaler Ablauf
+    // -------------------------------------------------------------------------
+
+    public function test_i09_honeypot_filled_returns_422_no_db_entry(): void
+    {
+        $boardId = $this->insertBoard('hp-board');
+        $userId  = $this->insertUser('hp@example.com');
+
+        $response = $this->createApp()->handle($this->postIdea(
+            'hp-board',
+            ['title' => 'Saubere Idee', 'body' => 'Saubere Beschreibung ohne Probleme hier.', 'website' => 'http://spam.example.com'],
+            $userId,
+        ));
+
+        self::assertSame(422, $response->getStatusCode());
+        $count = $this->conn->fetchOne('SELECT COUNT(*) FROM ideas WHERE board_id = ?', [$boardId]);
+        self::assertSame(0, (int) $count);
+        // Kein Bot-Hinweis in der Antwort
+        $body = (string) $response->getBody();
+        self::assertStringNotContainsString('spam', $body);
+        self::assertStringNotContainsString('Bot', $body);
+    }
+
+    public function test_i09_honeypot_empty_allows_normal_flow(): void
+    {
+        $this->insertBoard('hp-ok-board');
+        $userId = $this->insertUser('hp-ok@example.com');
+
+        $response = $this->createApp()->handle($this->postIdea(
+            'hp-ok-board',
+            ['title' => 'Saubere Idee', 'body' => 'Saubere Beschreibung ohne Probleme hier.', 'website' => ''],
+            $userId,
+        ));
+
+        self::assertSame(302, $response->getStatusCode());
+    }
+
+    // -------------------------------------------------------------------------
+    // AC5 — Honeypot-Feld unsichtbar (aria-hidden, display:none), kein JS
+    // -------------------------------------------------------------------------
+
+    public function test_i09_honeypot_field_is_hidden_in_form(): void
+    {
+        $this->insertBoard('hp-vis-board');
+        $userId = $this->insertUser('hp-vis@example.com');
+
+        $body = (string) $this->createApp()->handle($this->getNewRequest('hp-vis-board', $userId))->getBody();
+
+        // Honeypot-Feld vorhanden
+        self::assertStringContainsString('name="website"', $body);
+        // aria-hidden gesetzt
+        self::assertStringContainsString('aria-hidden="true"', $body);
+        // display:none gesetzt
+        self::assertStringContainsString('display:none', $body);
+        // tabindex=-1 gesetzt
+        self::assertStringContainsString('tabindex="-1"', $body);
+        // Kein JS-Attribut (onload, onclick, etc.)
+        self::assertStringNotContainsString('onsubmit', $body);
+    }
+
+    // -------------------------------------------------------------------------
+    // AC6 — Time-Trap: zu schnell → 422; normales Timing → 302
+    // -------------------------------------------------------------------------
+
+    public function test_i09_time_trap_too_fast_returns_422(): void
+    {
+        $boardId = $this->insertBoard('tt-fast-board');
+        $userId  = $this->insertUser('tt-fast@example.com');
+        $csrf    = $this->csrf();
+        $token   = $csrf->generate();
+        $signed  = $csrf->sign($token);
+
+        $request = (new ServerRequestFactory())
+            ->createServerRequest('POST', '/tt-fast-board/ideas')
+            ->withCookieParams([$csrf->cookieName() => $signed, 'votepit_sess' => $this->sessionCookie($userId)])
+            ->withParsedBody([
+                '_csrf'    => $token,
+                '_form_at' => $this->tooFastTimeTrap(),
+                'title'    => 'Saubere Idee',
+                'body'     => 'Saubere Beschreibung ohne Probleme hier.',
+            ]);
+
+        $response = $this->createApp()->handle($request);
+
+        self::assertSame(422, $response->getStatusCode());
+        // Kein DB-Eintrag
+        $count = $this->conn->fetchOne('SELECT COUNT(*) FROM ideas WHERE board_id = ?', [$boardId]);
+        self::assertSame(0, (int) $count);
+    }
+
+    public function test_i09_time_trap_normal_timing_succeeds(): void
+    {
+        $this->insertBoard('tt-ok-board');
+        $userId = $this->insertUser('tt-ok@example.com');
+
+        // postIdea() setzt standardmäßig einen gültigen (backdated) Stamp.
+        $response = $this->createApp()->handle($this->postIdea(
+            'tt-ok-board',
+            ['title' => 'Saubere Idee', 'body' => 'Saubere Beschreibung ohne Probleme hier.'],
+            $userId,
+        ));
+
+        self::assertSame(302, $response->getStatusCode());
+    }
+
+    // -------------------------------------------------------------------------
+    // AC7 — Fehlermeldungen bewerben keine Schutzmaßnahmen
+    // -------------------------------------------------------------------------
+
+    public function test_i09_error_messages_contain_no_security_marketing(): void
+    {
+        $this->insertBoard('sec-mkt-board');
+        $userId = $this->insertUser('sec-mkt@example.com');
+
+        $response = $this->createApp()->handle($this->postIdea(
+            'sec-mkt-board',
+            ['title' => 'arschloch ist hier', 'body' => 'Saubere Beschreibung ohne Probleme hier.'],
+            $userId,
+        ));
+
+        $body = (string) $response->getBody();
+        // Keine Security-Bewerbung in sichtbarem Text
+        self::assertStringNotContainsString('Honeypot', $body);
+        self::assertStringNotContainsString('Bot', $body);
+        self::assertStringNotContainsString('Security by Design', $body);
+        self::assertStringNotContainsString('Spam-Schutz', $body);
+        self::assertStringNotContainsString('Time-Trap', $body);
     }
 }
