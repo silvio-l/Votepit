@@ -39,3 +39,6 @@
 # IDE
 /.idea/
 /.vscode/
+
+# Doc-Gate: lokale, projektspezifische Internas-Blockliste (nie committen)
+/.githooks/leak-blocklist.local

@@ -6,11 +6,15 @@
 # Läuft in pre-commit (MODE=staged) und pre-push (MODE=head). Erzwingt die
 # mechanischen Invarianten für ALLES, was ins öffentliche Repo gelangt:
 #
-#   1. Keine Internas / Infra-Recon-Leaks (Hosting-Provider, interne Hosts, private
-#      IPs, lokale Pfade, Deploy-Internals) — NIRGENDS in getrackten Dateien.
+#   1. Keine Infra-/Secret-Leaks — generische Marker (private IPs ausser in Tests,
+#      lokale Pfade, Private-Key-/Access-Key-Muster) PLUS eine projektspezifische,
+#      NICHT eingecheckte Blockliste (.githooks/leak-blocklist.local, gitignored)
+#      mit Hosting-Provider-/Host-/Fremdprojekt-Namen. Bewusst werden hier KEINE
+#      maintainer-spezifischen Namen hart eincodiert — sonst wäre der Gate selbst
+#      ein Informationsleck.
 #   2. Öffentliche GitHub-Markdown (README/SECURITY/…) ist Englisch.
 #   3. Keine Security-Werbung (Guardrail), keine falsche Identität, keine Platzhalter.
-#   4. Pflichtdateien vorhanden + nicht leer.
+#   4. Pflichtdateien vorhanden + nicht leer; die lokale Blockliste bleibt ungetrackt.
 #
 # Semantische Aktualität (Drift Doku<->Code) bleibt dem manuellen votepit-sync-check
 # vorbehalten; dieser Gate ist die mechanische Schutzschicht, nicht der Drift-Check.
@@ -25,15 +29,18 @@ MODE="${1:-staged}"
 fail=0
 err(){ echo "  ✗ $1" >&2; fail=1; }
 
-# --- Internas / Recon-Leaks (NIE im öffentlichen Repo) ---
-# Hosting-Provider, interne Hosts, lokale Pfade, Deploy-Internals, fremde
-# Projektnamen. (matomo.silvio-und-maik.de ist BEWUSST nicht gelistet: legitimer,
-# ohnehin öffentlicher Analytics-Endpoint + gesetzlich im Datenschutz genannt.
-# silvio-l/votepit ist die korrekte öffentliche Identität.)
-# HARD: nie irgendwo (auch nicht in Tests).
-HARD_RE='host|example|localhost|localhost|localhost|example|example|example|webroot|SSH|/Users/[A-Za-z]|/home/[a-z]+/'
+# --- Generische Infra-/Secret-Marker (provider-agnostisch) ---
+HARD_RE='/Users/[A-Za-z]|/home/[a-z][a-z0-9_-]*/|BEGIN [A-Z ]*PRIVATE KEY|AKIA[0-9A-Z]{16}'
 # Private IPs: Leak in Doku/Config, aber legitime Fixtures in Tests → dort exempt.
 IP_RE='192\.168\.[0-9]|10\.[0-9]+\.[0-9]+\.[0-9]+|172\.(1[6-9]|2[0-9]|3[01])\.[0-9]'
+
+# --- Projektspezifische Blockliste (NICHT eingecheckt, gitignored) ---
+# Eine Zeile = ein erweiterter grep-Term (Kommentare/Leerzeilen mit # ignoriert).
+LOCAL_BLOCK="$ROOT/.githooks/leak-blocklist.local"
+LOCAL_RE=""
+if [ -f "$LOCAL_BLOCK" ]; then
+  LOCAL_RE="$(grep -vE '^[[:space:]]*(#|$)' "$LOCAL_BLOCK" | paste -sd '|' - || true)"
+fi
 
 # --- Englisch-Pflicht-Dateien (öffentliche GitHub-Markdown) ---
 ENGLISH_FILES="README.md SECURITY.md CONTRIBUTING.md CODE_OF_CONDUCT.md"
@@ -48,20 +55,13 @@ list_files(){
     git ls-tree -r --name-only HEAD
   fi
 }
-read_file(){ # $1 path
-  if [ "$MODE" = "staged" ]; then git show ":$1" 2>/dev/null; else git show "HEAD:$1" 2>/dev/null; fi
+read_file(){ if [ "$MODE" = "staged" ]; then git show ":$1" 2>/dev/null; else git show "HEAD:$1" 2>/dev/null; fi; }
+exists(){
+  if [ "$MODE" = "staged" ]; then git ls-files --cached --error-unmatch "$1" >/dev/null 2>&1
+  else git cat-file -e "HEAD:$1" 2>/dev/null; fi
 }
-exists(){ # $1 path
-  if [ "$MODE" = "staged" ]; then
-    git ls-files --cached --error-unmatch "$1" >/dev/null 2>&1
-  else
-    git cat-file -e "HEAD:$1" 2>/dev/null
-  fi
-}
-
-# Nicht scannen: die Hook-Skripte selbst (enthalten die Muster als Detektion),
-# Binaries, Lockfiles, Build-Artefakte, Fremd-Code.
-skip_file(){ # $1 path -> 0 = skip
+is_test(){ case "$1" in tests/*|*/tests/*|test/*|*/test/*|*_test.*|*.test.*|*Test.php|spec/*|*/spec/*) return 0 ;; esac; return 1; }
+skip_file(){
   case "$1" in
     .githooks/*) return 0 ;;
     *node_modules/*|*/dist/*|*/.astro/*|vendor/*) return 0 ;;
@@ -71,25 +71,30 @@ skip_file(){ # $1 path -> 0 = skip
   return 1
 }
 
-# 1) Internal-Leak-Scan über alle (scannbaren) Dateien
+# 0) Die lokale Blockliste darf NIE getrackt/committet werden.
+if exists ".githooks/leak-blocklist.local"; then
+  err ".githooks/leak-blocklist.local ist getrackt — muss lokal/gitignored bleiben"
+fi
+
+# 1) Infra-/Secret-Leak-Scan über alle (scannbaren) Dateien
 while IFS= read -r f; do
   [ -z "$f" ] && continue
   if skip_file "$f"; then continue; fi
   content="$(read_file "$f")"
-  if printf '%s' "$content" | LC_ALL=C grep -qiE "$HARD_RE"; then
-    hit="$(printf '%s' "$content" | LC_ALL=C grep -niE "$HARD_RE" | head -1 | sed 's/^[[:space:]]*//; s/  */ /g' | cut -c1-100)"
-    err "$f: Internas/Infra-Leak -> $hit"
+  if printf '%s' "$content" | LC_ALL=C grep -qE "$HARD_RE"; then
+    hit="$(printf '%s' "$content" | LC_ALL=C grep -nE "$HARD_RE" | head -1 | sed 's/^[[:space:]]*//; s/  */ /g' | cut -c1-100)"
+    err "$f: Infra-/Secret-Leak -> $hit"
   fi
-  # Private-IP-Check überall AUSSER in Test-Dateien (Fixtures sind kein Leak).
-  case "$f" in
-    tests/*|*/tests/*|test/*|*/test/*|*_test.*|*.test.*|*Test.php|spec/*|*/spec/*) ;;
-    *)
-      if printf '%s' "$content" | LC_ALL=C grep -qE "$IP_RE"; then
-        hit="$(printf '%s' "$content" | LC_ALL=C grep -nE "$IP_RE" | head -1 | sed 's/^[[:space:]]*//; s/  */ /g' | cut -c1-100)"
-        err "$f: private IP (Infra-Leak) -> $hit"
-      fi
-      ;;
-  esac
+  if [ -n "$LOCAL_RE" ] && printf '%s' "$content" | LC_ALL=C grep -qiE "$LOCAL_RE"; then
+    hit="$(printf '%s' "$content" | LC_ALL=C grep -niE "$LOCAL_RE" | head -1 | sed 's/^[[:space:]]*//; s/  */ /g' | cut -c1-100)"
+    err "$f: Blocklisten-Treffer (Internas) -> $hit"
+  fi
+  if ! is_test "$f"; then
+    if printf '%s' "$content" | LC_ALL=C grep -qE "$IP_RE"; then
+      hit="$(printf '%s' "$content" | LC_ALL=C grep -nE "$IP_RE" | head -1 | sed 's/^[[:space:]]*//; s/  */ /g' | cut -c1-100)"
+      err "$f: private IP (Infra-Leak) -> $hit"
+    fi
+  fi
 done < <(list_files)
 
 # 2) Pflichtdateien vorhanden + nicht leer
