@@ -15,6 +15,7 @@ use Votepit\Config;
 use Votepit\Domain\ContentModerationService;
 use Votepit\Domain\TitleNormalizer;
 use Votepit\Http\Action\IdeaCreateAction;
+use Votepit\Http\Action\IdeaEditAction;
 use Votepit\Http\Middleware\AuthNMiddleware;
 use Votepit\Http\Middleware\AuthZMiddleware;
 use Votepit\Http\Middleware\BlockCheckMiddleware;
@@ -451,6 +452,30 @@ final class AppFactory
                     return is_array($user) ? (string) ($user['id'] ?? '') : null;
                 },
             ));
+
+            // GET /{board}/ideas/{id}/edit — Edit-Formular (Sprint 3, Issue 06).
+            // AuthZ: user; row-level Ownership-Check in der Action.
+            // Issue 06: Time-Trap-Stamp wird als Hidden-Field eingebettet.
+            $editAction = new IdeaEditAction(
+                $twig,
+                $boardRepo,
+                $ideaRepo,
+                $normalizer,
+                $audit,
+                $moderation,
+                $timeTrap,
+                $modConfigRepo,
+            );
+
+            // GET /edit: anon → Login-Redirect (in-action, wie submit GET).
+            // Ownership-Check ebenfalls in der Action (404/403).
+            $app->get('/{board}/ideas/{id:[0-9]+}/edit', $editAction->getEdit(...))
+                ->add(AuthZMiddleware::anon($responseFactory));
+
+            // POST /{board}/ideas/{id} — Idee aktualisieren (Sprint 3, Issue 06).
+            // AuthZ: user; row-level Ownership-Check in der Action; CSRF global erzwungen.
+            $app->post('/{board}/ideas/{id:[0-9]+}', $editAction->postEdit(...))
+                ->add(AuthZMiddleware::user($responseFactory));
 
             // GET /admin/boards/{slug}/branding — Branding-Einstellseite (AuthZ: admin).
             // Rendert das Base-Layout mit dem (validierten) Branding des Boards selbst:

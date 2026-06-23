@@ -124,6 +124,41 @@ final readonly class IdeaRepository
     }
 
     /**
+     * Aktualisiert eine eigene Idee (board-scoped, author-scoped, Prepared-Statement).
+     *
+     * Bindet id, author_id und board_id als Parameter — keine Row wird geändert wenn
+     * die Idee nicht existiert, nicht zu diesem Board gehört oder nicht diesem Autor
+     * gehört. Rückgabe: true wenn genau eine Zeile geändert wurde, false sonst.
+     *
+     * @throws DbalException
+     */
+    public function updateOwn(
+        int $id,
+        int $authorId,
+        int $boardId,
+        string $title,
+        string $titleNormalized,
+        string $body,
+    ): bool {
+        $affected = $this->conn->executeStatement(
+            'UPDATE ideas
+             SET title = :title, title_normalized = :title_normalized, body = :body,
+                 updated_at = CURRENT_TIMESTAMP
+             WHERE id = :id AND author_id = :author_id AND board_id = :board_id',
+            [
+                'id'               => $id,
+                'author_id'        => $authorId,
+                'board_id'         => $boardId,
+                'title'            => $title,
+                'title_normalized' => $titleNormalized,
+                'body'             => $body,
+            ],
+        );
+
+        return $affected === 1;
+    }
+
+    /**
      * Paginierte, board-scoped Ideenliste.
      *
      * @param int         $boardId  Board-Scoping — zwingend.
