@@ -1,0 +1,80 @@
+---
+/**
+ * /de/datenschutz — Datenschutzerklärung für votepit.com (DE).
+ * EN mirror: /privacy
+ */
+import Base from '../../layouts/Base.astro';
+import Header from '../../components/Header.astro';
+import Footer from '../../components/Footer.astro';
+import { de as t } from '../../i18n/de';
+const repo = 'https://github.com/silvio-l/votepit';
+const d = t.privacy;
+---
+<Base
+  title={d.metaTitle}
+  description={d.metaDesc}
+  lang="de"
+  canonicalURL="https://votepit.com/de/datenschutz/"
+  altEn="/privacy/"
+  altDe="/de/datenschutz/"
+>
+  <div class="vp-page">
+    <Header lang="de" t={t} repo={repo} enHref="/privacy" deHref="/de/datenschutz" />
+
+    <main class="vp-docs">
+      <h1 class="vp-docs-h">{d.title}</h1>
+
+      <section class="vp-docs-sec">
+        <h2>{d.sectionVerantwortlicher}</h2>
+        <p>
+          {d.verantwortlicherText}{' '}
+          <a class="vp-legal-link" href="/de/impressum">{d.verantwortlicherLegalLink}</a>.
+        </p>
+      </section>
+
+      <section class="vp-docs-sec">
+        <h2>{d.sectionOverview}</h2>
+        <p>{d.overviewText}</p>
+      </section>
+
+      <section class="vp-docs-sec">
+        <h2>{d.sectionHosting}</h2>
+        <p>
+          {d.hostingText}{' '}
+          <a class="vp-legal-link" href="https://www.cloudflare.com/privacypolicy/" rel="noopener noreferrer">
+            {d.hostingPrivacyLink}
+          </a>
+        </p>
+      </section>
+
+      <section class="vp-docs-sec">
+        <h2>{d.sectionAnalytics}</h2>
+        <p>{d.analyticsText}</p>
+      </section>
+
+      <section class="vp-docs-sec">
+        <h2>{d.sectionExternalLinks}</h2>
+        <p>{d.externalLinksText}</p>
+      </section>
+
+      <section class="vp-docs-sec">
+        <h2>{d.sectionRights}</h2>
+        <p>{d.rightsText}</p>
+      </section>
+    </main>
+
+    <Footer t={t} repo={repo} lang="de" />
+  </div>
+</Base>
+
+<style>
+  .vp-legal-link {
+    color: var(--vp-primary);
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    transition: border-color .15s;
+  }
+  .vp-legal-link:hover { border-color: var(--vp-primary); }
+  .vp-docs-sec p a { color: var(--vp-primary); text-decoration: none; }
+  .vp-docs-sec p a:hover { text-decoration: underline; }
+</style>

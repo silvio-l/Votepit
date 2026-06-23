@@ -1,0 +1,136 @@
+---
+/**
+ * /legal-notice — Legal Notice (Impressum) for votepit.com, EN default.
+ * DE mirror: /de/impressum
+ *
+ * Email obfuscation (HARD RULE): the full address MUST NOT appear in built HTML.
+ * It is assembled at runtime via <script> and injected as a mailto: link.
+ * <noscript> fallback links to the GitHub repo.
+ */
+import Base from '../layouts/Base.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import { en as t } from '../i18n/en';
+const repo = 'https://github.com/silvio-l/votepit';
+const d = t.legal;
+---
+<Base
+  title={d.metaTitle}
+  description={d.metaDesc}
+  lang="en"
+  canonicalURL="https://votepit.com/legal-notice/"
+  altEn="/legal-notice/"
+  altDe="/de/impressum/"
+>
+  <div class="vp-page">
+    <Header lang="en" t={t} repo={repo} enHref="/legal-notice" deHref="/de/impressum" />
+
+    <main class="vp-docs">
+      <h1 class="vp-docs-h">{d.title}</h1>
+
+      <section class="vp-docs-sec">
+        <h2>{d.sectionAngaben}</h2>
+        <dl class="vp-legal-dl">
+          <dt>{d.labelVerantwortlicher}</dt>
+          <dd>Silvio Lindstedt</dd>
+
+          <dt>{d.labelAnschrift}</dt>
+          <dd>
+            Lohekamp 27a<br />
+            24558 Henstedt-Ulzburg<br />
+            Deutschland
+          </dd>
+
+          <dt>{d.labelKontakt}</dt>
+          <dd>
+            <span id="contact-email">
+              <noscript>
+                <a href={repo} rel="noopener noreferrer">{d.mailNoscript}</a>
+              </noscript>
+            </span>
+          </dd>
+        </dl>
+      </section>
+
+      <section class="vp-docs-sec">
+        <h2>{d.sectionMstv}</h2>
+        <p>
+          Silvio Lindstedt<br />
+          Lohekamp 27a<br />
+          24558 Henstedt-Ulzburg
+        </p>
+      </section>
+
+      <section class="vp-docs-sec">
+        <h2>{d.sectionHaftungInhalte}</h2>
+        <p>{d.haftungInhalteText}</p>
+      </section>
+
+      <section class="vp-docs-sec">
+        <h2>{d.sectionHaftungLinks}</h2>
+        <p>{d.haftungLinksText}</p>
+      </section>
+
+      <section class="vp-docs-sec">
+        <h2>{d.sectionStreit}</h2>
+        <p>
+          {d.streitText}{' '}
+          <a class="vp-legal-link" href="https://ec.europa.eu/consumers/odr/" rel="noopener noreferrer">
+            https://ec.europa.eu/consumers/odr/
+          </a>
+          {' '}{d.streitNotWilling}
+        </p>
+      </section>
+    </main>
+
+    <Footer t={t} repo={repo} lang="en" />
+  </div>
+</Base>
+
+<script>
+  (function () {
+    const user = ["silvio", "lindstedt"].join("-");
+    const domain = ["outlook", "com"].join(".");
+    const addr = user + "@" + domain;
+    const el = document.getElementById("contact-email");
+    if (el) {
+      const a = document.createElement("a");
+      a.href = "mailto:" + addr;
+      a.textContent = addr;
+      a.className = "vp-legal-link";
+      el.innerHTML = "";
+      el.appendChild(a);
+    }
+  })();
+</script>
+
+<style>
+  .vp-legal-dl {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: .5rem 1.5rem;
+    color: var(--vp-text-muted);
+    font-size: .95rem;
+    line-height: 1.65;
+  }
+  .vp-legal-dl dt {
+    font-weight: 600;
+    color: var(--vp-text);
+    white-space: nowrap;
+    padding-top: .05em;
+  }
+  .vp-legal-dl dd { margin: 0; }
+  .vp-legal-link {
+    color: var(--vp-primary);
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    transition: border-color .15s;
+  }
+  .vp-legal-link:hover { border-color: var(--vp-primary); }
+  .vp-docs-sec p a { color: var(--vp-primary); text-decoration: none; }
+  .vp-docs-sec p a:hover { text-decoration: underline; }
+  @media (max-width: 480px) {
+    .vp-legal-dl { grid-template-columns: 1fr; gap: .2rem 0; }
+    .vp-legal-dl dt { margin-top: .8rem; }
+  }
+</style>

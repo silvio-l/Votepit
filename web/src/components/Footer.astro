@@ -7,6 +7,8 @@ interface Props {
 }
 const { t, repo, lang } = Astro.props;
 const docsHref = lang === 'en' ? '/docs' : '/de/docs';
+const legalHref = lang === 'en' ? '/legal-notice' : '/de/impressum';
+const privacyHref = lang === 'en' ? '/privacy' : '/de/datenschutz';
 ---
 <footer class="vp-site-footer">
   <p class="vp-foot-author">
@@ -21,5 +23,9 @@ const docsHref = lang === 'en' ? '/docs' : '/de/docs';
     </a>
     <span class="vp-foot-sep">·</span>
     <span>{t.footer.license}</span>
+    <span class="vp-foot-sep">·</span>
+    <a class="vp-foot-link" href={legalHref}>{t.footer.legalNotice}</a>
+    <span class="vp-foot-sep">·</span>
+    <a class="vp-foot-link" href={privacyHref}>{t.footer.privacy}</a>
   </p>
 </footer>
