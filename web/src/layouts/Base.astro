@@ -123,7 +123,7 @@ _paq.push(["enableLinkTracking"]);
     border-radius: var(--vp-radius-sm);
     transition: background .15s;
   }
-  .vp-nav-link:hover { background: rgba(21,22,26,.05); }
+  .vp-nav-link:hover { background: var(--vp-surface-hover); }
 
   .vp-nav-right { display: flex; align-items: center; gap: .6rem; }
 
@@ -132,7 +132,7 @@ _paq.push(["enableLinkTracking"]);
     display: inline-flex;
     padding: 3px;
     gap: 2px;
-    background: rgba(21,22,26,.05);
+    background: var(--vp-surface-hover);
     border: 1px solid var(--vp-border);
     border-radius: var(--vp-radius-sm);
   }
@@ -151,7 +151,7 @@ _paq.push(["enableLinkTracking"]);
   .vp-lang-opt[aria-current="true"] {
     color: var(--vp-text);
     background: #fff;
-    box-shadow: 0 1px 2px rgba(21,22,26,.12);
+    box-shadow: 0 1px 2px var(--vp-primary-glow);
   }
 
   /* Hero */
@@ -230,7 +230,7 @@ _paq.push(["enableLinkTracking"]);
     inline-size: 3.1rem; block-size: 2.05rem;
     border-radius: 12px;
     font-size: .8rem; line-height: 1;
-    background: #f1f1ee;
+    background: var(--vp-surface-subtle);
     border: 1px solid var(--vp-border);
     color: var(--vp-text-muted);
     cursor: pointer;
@@ -359,7 +359,7 @@ _paq.push(["enableLinkTracking"]);
   }
   .vp-cmd-code {
     flex: 1; min-width: 0; align-self: center;
-    font-family: var(--vp-font-mono); font-size: .86rem; color: #e9e9e7;
+    font-family: var(--vp-font-mono); font-size: .86rem; color: var(--vp-code-text);
     overflow-x: auto; white-space: nowrap;
   }
   .vp-cmd-prompt { color: var(--vp-vote-up); user-select: none; margin-right: .5rem; }
@@ -369,7 +369,7 @@ _paq.push(["enableLinkTracking"]);
     color: var(--vp-primary); background: #fff; border-radius: 7px;
     padding: .45rem .85rem; transition: background .15s, color .15s;
   }
-  .vp-cmd-copy:hover { background: #f1f1ee; }
+  .vp-cmd-copy:hover { background: var(--vp-surface-subtle); }
   .vp-cmd-copy.is-copied { background: var(--vp-vote-up); color: #fff; }
   .vp-install-ftp {
     margin: 1.1rem 0 0; font-size: .88rem; color: var(--vp-text-muted);
@@ -410,7 +410,7 @@ _paq.push(["enableLinkTracking"]);
   .vp-feature-x { font-size: .92rem; color: var(--vp-text-muted); line-height: 1.55; margin: 0; text-wrap: pretty; }
 
   /* Docs-Seite */
-  .vp-docs { max-width: 44rem; width: 100%; margin: 0 auto; flex: 1; padding: clamp(1.5rem, 5vw, 3rem) 1.25rem clamp(2.5rem, 6vw, 4rem); }
+  .vp-docs { max-width: 56rem; width: 100%; margin: 0 auto; flex: 1; padding: clamp(1.5rem, 5vw, 3rem) 1.25rem clamp(2.5rem, 6vw, 4rem); }
   .vp-docs-h {
     font-family: var(--vp-font-head); font-weight: 800; font-size: clamp(1.8rem, 5vw, 2.6rem);
     letter-spacing: -.02em; color: var(--vp-text); margin: 0 0 .6rem;

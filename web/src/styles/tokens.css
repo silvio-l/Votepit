@@ -22,6 +22,9 @@
     --vp-radius-sm:        10px;
     --vp-text:             #15161A;
     --vp-text-muted:       #565A62;
+    --vp-surface-subtle:   #f1f1ee;
+    --vp-surface-hover:    rgba(21, 22, 26, .05);
+    --vp-code-text:        #e9e9e7;
 }
 
 /* ── Semantic Tokens (NOT Board-overridable) ────────────────────────────────── */
