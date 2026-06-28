@@ -1,26 +1,106 @@
+/**
+ * Votepit API client
+ *
+ * All requests use `credentials: 'include'` (session cookie auth).
+ * Mutating requests send the cached CSRF token as `X-CSRF-Token`.
+ * Call `bootstrap()` on app mount to seed the CSRF token and user state.
+ */
+
 const API_BASE = '/api'
 
-async function getCsrfToken(): Promise<string> {
-  const resp = await fetch(`${API_BASE}/csrf`, { credentials: 'include' })
-  const data = await resp.json()
-  return data.token
+/** Module-level CSRF token — populated by bootstrap(). */
+let cachedCsrfToken: string | null = null
+
+// ── Types ────────────────────────────────────────────────────────────────────
+
+/** Status values as returned by the PHP backend (underscore variant). */
+export type IdeaStatus = 'open' | 'planned' | 'in_progress' | 'done' | 'declined'
+
+export interface Idea {
+  id: number
+  board_id: number
+  author_id: number
+  title: string
+  body: string
+  status: IdeaStatus
+  score_cache: number
+  created_at: string
+  updated_at: string
+  comment_count: number
+  up_count: number
+  down_count: number
+  my_vote?: 'up' | 'down' | 'none'
 }
+
+export interface BoardData {
+  id: number
+  slug: string
+  name: string
+  intro: string
+}
+
+export interface PaginationMeta {
+  page: number
+  total_pages: number
+}
+
+export interface BoardResponse {
+  board: BoardData
+  ideas: Idea[]
+  active_status: string | null
+  active_sort: string
+  page: number
+  total_pages: number
+  is_authenticated: boolean
+}
+
+export interface User {
+  id: number
+  is_admin: boolean
+}
+
+export interface BootstrapData {
+  csrf_token: string
+  user: User | null
+}
+
+export interface ApiErrorPayload {
+  key: string
+  message: string
+  fields?: Record<string, string>
+}
+
+export class ApiError extends Error {
+  readonly status: number
+  readonly payload: ApiErrorPayload
+
+  constructor(status: number, payload: ApiErrorPayload) {
+    super(payload.message)
+    this.name = 'ApiError'
+    this.status = status
+    this.payload = payload
+  }
+}
+
+// ── Internal request helper ───────────────────────────────────────────────────
 
 async function request<T>(
   method: string,
-  path: string,
+  url: string,
   body?: unknown,
 ): Promise<T> {
   const headers: Record<string, string> = {
-    'Accept': 'application/json',
+    Accept: 'application/json',
   }
 
   if (body !== undefined) {
     headers['Content-Type'] = 'application/json'
-    headers['X-CSRF-Token'] = await getCsrfToken()
+    if (cachedCsrfToken !== null) {
+      headers['X-CSRF-Token'] = cachedCsrfToken
+    }
   }
 
-  const resp = await fetch(`${API_BASE}${path}`, {
+  const resp = await fetch(url, {
     method,
     headers,
     credentials: 'include',
@@ -28,26 +108,65 @@ async function request<T>(
   })
 
   if (!resp.ok) {
-    const error = await resp.json().catch(() => ({ message: resp.statusText }))
-    throw new ApiError(resp.status, error.message ?? 'Unknown error')
+    let errPayload: ApiErrorPayload = {
+      key: 'http_error',
+      message: resp.statusText || `HTTP ${resp.status}`,
+    }
+    try {
+      const json = (await resp.json()) as { error?: ApiErrorPayload }
+      if (json.error && typeof json.error.key === 'string') {
+        errPayload = json.error
+      }
+    } catch {
+      // leave default payload
+    }
+    throw new ApiError(resp.status, errPayload)
   }
 
-  return resp.json()
+  return resp.json() as Promise<T>
 }
 
-export class ApiError extends Error {
-  status: number
+// ── Public API ────────────────────────────────────────────────────────────────
 
-  constructor(status: number, message: string) {
-    super(message)
-    this.name = 'ApiError'
-    this.status = status
-  }
+/**
+ * Fetches CSRF token + current user.
+ * Must be called before any mutating request to seed cachedCsrfToken.
+ */
+export async function bootstrap(): Promise<BootstrapData> {
+  const data = await request<BootstrapData>('GET', `${API_BASE}/bootstrap`)
+  cachedCsrfToken = data.csrf_token
+  return data
 }
 
+export interface GetBoardParams {
+  sort?: string
+  status?: string
+  page?: number
+}
+
+/**
+ * GET /{boardSlug} — board home + paginated idea list.
+ * Query params: sort, status, page.
+ */
+export async function getBoard(
+  boardSlug: string,
+  params?: GetBoardParams,
+): Promise<BoardResponse> {
+  const search = new URLSearchParams()
+  if (params?.sort) search.set('sort', params.sort)
+  if (params?.status) search.set('status', params.status)
+  if (params?.page && params.page > 1) search.set('page', String(params.page))
+  const qs = search.toString()
+  return request<BoardResponse>(
+    'GET',
+    `/${boardSlug}${qs ? `?${qs}` : ''}`,
+  )
+}
+
+/** Low-level helpers re-exported for pages that need raw GET/POST/PUT/DELETE. */
 export const api = {
-  get: <T>(path: string) => request<T>('GET', path),
-  post: <T>(path: string, body?: unknown) => request<T>('POST', path, body),
-  put: <T>(path: string, body?: unknown) => request<T>('PUT', path, body),
-  delete: <T>(path: string) => request<T>('DELETE', path),
+  get: <T>(path: string) => request<T>('GET', `${API_BASE}${path}`),
+  post: <T>(path: string, body?: unknown) => request<T>('POST', `${API_BASE}${path}`, body),
+  put: <T>(path: string, body?: unknown) => request<T>('PUT', `${API_BASE}${path}`, body),
+  delete: <T>(path: string) => request<T>('DELETE', `${API_BASE}${path}`),
 }

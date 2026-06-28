@@ -1,62 +1,271 @@
+import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
+import {
+  Header,
+  PageShell,
+  FeaturedIdeaCard,
+  IdeaListRow,
+  EmptyState,
+  SortTabs,
+  Pagination,
+} from '../components'
+import type { SortValue } from '../components'
+import type { Status } from '../components/StatusBadge'
+import { bootstrap, getBoard } from '../lib/api'
+import type { BoardResponse, Idea, ApiError } from '../lib/api'
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+/**
+ * Maps the backend status (underscore) to the component Status type (hyphen).
+ * Backend: in_progress → Component: in-progress
+ */
+function toComponentStatus(raw: string): Status {
+  if (raw === 'in_progress') return 'in-progress'
+  const valid: Status[] = ['open', 'planned', 'in-progress', 'done', 'declined']
+  return valid.includes(raw as Status) ? (raw as Status) : 'open'
+}
+
+/** Simple relative-time formatter (no i18n lib dependency). */
+function formatTimeAgo(iso: string): string {
+  const created = new Date(iso.replace(' ', 'T'))
+  const diffMs = Date.now() - created.getTime()
+  const mins = Math.floor(diffMs / 60_000)
+  if (mins < 2) return 'gerade eben'
+  if (mins < 60) return `vor ${mins} Min.`
+  const hours = Math.floor(mins / 60)
+  if (hours < 24) return `vor ${hours} Std.`
+  const days = Math.floor(hours / 24)
+  if (days < 30) return `vor ${days} Tag${days === 1 ? '' : 'en'}`
+  const months = Math.floor(days / 30)
+  if (months < 12) return `vor ${months} Monat${months === 1 ? '' : 'en'}`
+  return `vor ${Math.floor(months / 12)} Jahr${Math.floor(months / 12) === 1 ? '' : 'en'}`
+}
+
+/** Consensus percentage from up/down counts. */
+function calcConsensus(upCount: number, downCount: number): number {
+  const total = upCount + downCount
+  if (total === 0) return 0
+  return Math.round((upCount / total) * 100)
+}
+
+/** Clamp body to a short excerpt for list rows. */
+function toExcerpt(body: string, maxChars = 120): string {
+  if (body.length <= maxChars) return body
+  return body.slice(0, maxChars).trimEnd() + '…'
+}
+
+// ── Sort mapping ──────────────────────────────────────────────────────────────
+
+function sortValueToApi(sv: SortValue): string {
+  const map: Record<SortValue, string> = {
+    top: 'top',
+    newest: 'newest',
+    controversial: 'newest', // no backend equivalent yet → fall back to newest
+  }
+  return map[sv]
+}
+
+// ── Component ─────────────────────────────────────────────────────────────────
+
+type LoadState =
+  | { phase: 'loading' }
+  | { phase: 'error'; notFound: boolean; message: string }
+  | { phase: 'done'; data: BoardResponse }
 
 export default function BoardPage() {
-  const { boardSlug } = useParams()
+  const { boardSlug } = useParams<{ boardSlug: string }>()
+
+  const [loadState, setLoadState] = useState<LoadState>({ phase: 'loading' })
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [sort, setSort] = useState<SortValue>('newest')
+  const [page, setPage] = useState(1)
+
+  // Fetch bootstrap once on mount to seed CSRF token + auth state.
+  useEffect(() => {
+    bootstrap()
+      .then((b) => setIsAuthenticated(b.user !== null))
+      .catch(() => {
+        // Bootstrap failure is non-fatal — continue without auth context.
+      })
+  }, [])
+
+  // Fetch board data whenever slug / sort / page changes.
+  useEffect(() => {
+    if (!boardSlug) return
+
+    setLoadState({ phase: 'loading' })
+
+    getBoard(boardSlug, { sort: sortValueToApi(sort), page })
+      .then((data) => {
+        setIsAuthenticated(data.is_authenticated)
+        setLoadState({ phase: 'done', data })
+      })
+      .catch((err: unknown) => {
+        const apiErr = err as ApiError
+        const notFound =
+          apiErr.name === 'ApiError' && apiErr.status === 404
+        setLoadState({
+          phase: 'error',
+          notFound,
+          message: notFound
+            ? 'Dieses Board gibt es nicht.'
+            : 'Daten konnten nicht geladen werden.',
+        })
+      })
+  }, [boardSlug, sort, page])
+
+  const handleSortChange = (newSort: SortValue) => {
+    setSort(newSort)
+    setPage(1)
+  }
+
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  // ── Render ──────────────────────────────────────────────────────────────────
+
+  const loginLabel = isAuthenticated ? 'Konto' : 'Anmelden'
+
+  if (loadState.phase === 'loading') {
+    return (
+      <PageShell
+        header={
+          <Header
+            logoHref="/"
+            loginLabel={loginLabel}
+          />
+        }
+      >
+        <p
+          className="text-vp-text-muted text-sm text-center py-20"
+          aria-live="polite"
+          aria-busy="true"
+        >
+          Wird geladen…
+        </p>
+      </PageShell>
+    )
+  }
+
+  if (loadState.phase === 'error') {
+    return (
+      <PageShell
+        header={
+          <Header
+            logoHref="/"
+            loginLabel={loginLabel}
+          />
+        }
+      >
+        <EmptyState
+          title={loadState.notFound ? 'Board nicht gefunden' : 'Fehler beim Laden'}
+          description={loadState.message}
+        />
+      </PageShell>
+    )
+  }
+
+  const { board, ideas, total_pages } = loadState.data
+
+  // Top idea: first by score (sorted by backend when sort=top, or just first row).
+  const topIdea: Idea | undefined = ideas[0]
 
   return (
-    <div className="min-h-screen font-inter">
-      <header className="sticky top-0 z-50 w-full backdrop-blur-xl bg-white/72 border-b border-vp-border-subtle">
-        <div className="max-w-4xl mx-auto px-4 h-14 flex items-center justify-between">
-          <h1 className="font-archivo font-extrabold text-lg text-vp-ink">
-            Votepit
-          </h1>
-          <nav className="flex items-center gap-2 text-sm text-vp-text-secondary">
-            <button className="px-3 py-1.5 rounded-vp-sm hover:bg-black/5 transition-colors">
-              Login
-            </button>
-          </nav>
-        </div>
-      </header>
+    <PageShell
+      header={
+        <Header
+          logoHref={`/${board.slug}`}
+          loginLabel={loginLabel}
+        />
+      }
+    >
+      {/* Board header */}
+      <div className="mb-6">
+        <h1 className="font-archivo font-extrabold text-[28px] text-vp-ink leading-[1.15]">
+          {board.name}
+        </h1>
+        {board.intro && (
+          <p className="mt-1 text-[15px] text-vp-text-secondary leading-relaxed max-w-xl">
+            {board.intro}
+          </p>
+        )}
+      </div>
 
-      <main className="max-w-2xl mx-auto px-4 py-8">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h2 className="font-archivo font-bold text-2xl text-vp-ink">
-              {boardSlug ?? 'Feature Requests'}
-            </h2>
-            <p className="text-vp-text-secondary text-sm mt-1">
-              Vote on what we should build next.
-            </p>
-          </div>
-          <a
-            href={boardSlug ? `/${boardSlug}/submit` : '/submit'}
-            className="px-4 py-2 bg-vp-ink text-white font-medium text-sm rounded-vp-md hover:opacity-90 transition-opacity"
-          >
-            + New Idea
-          </a>
+      {/* Hero: FeaturedIdeaCard for the top idea (non-empty list only) */}
+      {topIdea && (
+        <div className="mb-8" data-testid="featured-idea">
+          <FeaturedIdeaCard
+            title={topIdea.title}
+            description={toExcerpt(topIdea.body, 200)}
+            status={toComponentStatus(topIdea.status)}
+            score={topIdea.score_cache}
+            commentCount={topIdea.comment_count}
+            consensusPercent={calcConsensus(topIdea.up_count, topIdea.down_count)}
+            weeklyVotes={0}
+            weeklyNewIdeas={0}
+            avgConsensusPercent={0}
+          />
         </div>
+      )}
 
-        <div className="flex gap-2 mb-6">
-          {['Top', 'Newest', 'Controversial'].map((tab) => (
-            <button
-              key={tab}
-              className={`px-3 py-1.5 rounded-vp-sm text-sm font-medium transition-colors ${
-                tab === 'Top'
-                  ? 'bg-vp-ink text-white'
-                  : 'text-vp-text-secondary hover:bg-black/5'
-              }`}
+      {/* Sort + action bar */}
+      <div className="flex items-center justify-between mb-5 gap-3 flex-wrap">
+        <SortTabs value={sort} onChange={handleSortChange} />
+        <a
+          href={`/${board.slug}/submit`}
+          className="px-4 py-2 bg-vp-ink text-white font-semibold text-[13px] rounded-vp-md hover:opacity-90 transition-opacity focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-vp-ink"
+        >
+          + Idee einreichen
+        </a>
+      </div>
+
+      {/* Idea list */}
+      {ideas.length === 0 ? (
+        <EmptyState
+          title="Noch keine Ideen"
+          description="Sei die Erste oder der Erste, der eine Idee einreicht — und bring das Board in Gang."
+          action={
+            <a
+              href={`/${board.slug}/submit`}
+              className="px-5 py-2.5 bg-vp-ink text-white font-semibold text-[14px] rounded-vp-md hover:opacity-90 transition-opacity focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-vp-ink"
             >
-              {tab}
-            </button>
+              Erste Idee einreichen
+            </a>
+          }
+        />
+      ) : (
+        <div className="space-y-3" role="list" aria-label="Ideen">
+          {ideas.map((idea) => (
+            <div key={idea.id} role="listitem">
+              <IdeaListRow
+                id={idea.id}
+                title={idea.title}
+                excerpt={toExcerpt(idea.body)}
+                status={toComponentStatus(idea.status)}
+                score={idea.score_cache}
+                commentCount={idea.comment_count}
+                timeAgo={formatTimeAgo(idea.created_at)}
+                consensusPercent={calcConsensus(idea.up_count, idea.down_count)}
+                href={`/${board.slug}/idea/${idea.id}`}
+              />
+            </div>
           ))}
         </div>
+      )}
 
-        <div className="space-y-3">
-          <p className="text-vp-text-muted text-sm text-center py-12">
-            No ideas yet. Be the first to submit one!
-          </p>
+      {/* Pagination */}
+      {total_pages > 1 && (
+        <div className="mt-8">
+          <Pagination
+            page={page}
+            totalPages={total_pages}
+            onChange={handlePageChange}
+          />
         </div>
-      </main>
-    </div>
+      )}
+    </PageShell>
   )
 }
