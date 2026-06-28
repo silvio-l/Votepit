@@ -18,6 +18,10 @@ const imageAlt =
     ? 'Votepit — Self-Hosted Feature-Voting mit echten Up- und Down-Votes'
     : 'Votepit — self-hosted feature voting with real up- and down-votes';
 
+// Nur dokumentierte Matomo-JS-Methoden: eine ungültige _paq-Methode bricht die
+// Queue (TypeError) → trackPageView liefe nie. IP-Anonymisierung ist serverseitig
+// konfiguriert; setAnonymizeIp wird daher client-seitig nicht gesendet (Entscheidung
+// aus der React-Vorgänger-Version bestätigt, 2026-06-26).
 const matomoSnippet = `var _paq = (window._paq = window._paq || []);
 _paq.push(["disableCookies"]);
 _paq.push(["enableHeartBeatTimer"]);
@@ -40,6 +44,9 @@ _paq.push(["enableLinkTracking"]);
   <title>{title}</title>
   <meta name="description" content={description} />
   <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+  <meta name="theme-color" content="#FBFAF7" />
+  <meta name="application-name" content="Votepit" />
+  <meta name="author" content="Silvio Lindstedt" />
   {canonicalURL && <link rel="canonical" href={canonicalURL} />}
 
   <!-- OpenGraph + Twitter Card -->
@@ -63,7 +70,17 @@ _paq.push(["enableLinkTracking"]);
   <!-- Structured Data -->
   <script type="application/ld+json" set:html={JSON.stringify({
     "@context": "https://schema.org",
+    "@type": "WebSite",
+    "@id": "https://votepit.com/#website",
+    "url": "https://votepit.com/",
+    "name": "Votepit",
+    "description": "Open-source self-hosted feature-voting board for PHP/MySQL with real up- and down-votes.",
+    "inLanguage": ["en", "de"],
+  })} />
+  <script type="application/ld+json" set:html={JSON.stringify({
+    "@context": "https://schema.org",
     "@type": "SoftwareApplication",
+    "@id": "https://votepit.com/#app",
     "name": "Votepit",
     "applicationCategory": "BusinessApplication",
     "operatingSystem": "PHP 8.2+ / MySQL on shared hosting",
@@ -73,7 +90,9 @@ _paq.push(["enableLinkTracking"]);
     "isAccessibleForFree": true,
     "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
     "license": "https://opensource.org/licenses/MIT",
+    "softwareLicense": "MIT",
     "description": description,
+    "author": { "@type": "Person", "name": "Silvio Lindstedt" },
   })} />
   <script type="application/ld+json" set:html={JSON.stringify({
     "@context": "https://schema.org",
@@ -88,6 +107,7 @@ _paq.push(["enableLinkTracking"]);
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
   <link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png" />
   <link rel="icon" href="/favicon-16.png" sizes="16x16" type="image/png" />
+  <link rel="icon" href="/favicon.ico" sizes="any" />
   <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
 
   <!-- Hreflang alternates -->

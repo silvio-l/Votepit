@@ -1,4 +1,10 @@
 ---
+// SHARED DESIGN — the hex animation and SVG paths are shared visual identity with
+// app/src/components/BrandBackdrop.tsx (React SPA). web/ and app/ are separate build
+// projects with no shared package yet. When changing paths, colors, or animation
+// keyframes here, update app/src/components/BrandBackdrop.tsx to match.
+// (A later phase will extract this into a shared package; this comment is an interim safeguard.)
+
 // Markengeometrie aus der Bildmarke (1:1 vermessen): das Votepit-Hexagon „setzt sich
 // fortlaufend zusammen" — Grün gleitet von oben, Koralle von unten, Mittel-Ring + dunkler
 // Kern poppen mittig auf, dann löst es sich sanft wieder auf (Endlos-Loop). Sehr geringe
