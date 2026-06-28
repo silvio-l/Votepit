@@ -22,6 +22,10 @@ phpstan.neon
 .php-cs-fixer.dist.php
 rector.php
 
+# Quality-Tooling: Semgrep-Regelsatz (lokal) + Runner-/Aggregat-Skripte
+.semgrep/
+tools/
+
 # Hook-Schutz (muss committet sein, um für Klonende zu gelten; öffentlich ok)
 .githooks/
 
