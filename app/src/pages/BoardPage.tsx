@@ -1,19 +1,19 @@
 import { useEffect, useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
-import {
-  Header,
-  PageShell,
-  FeaturedIdeaCard,
-  IdeaListRow,
-  EmptyState,
-  SortTabs,
-  Pagination,
-} from '../components'
+import { useNavigate, useParams } from 'react-router-dom'
 import type { SortValue } from '../components'
+import {
+  EmptyState,
+  FeaturedIdeaCard,
+  Header,
+  IdeaListRow,
+  PageShell,
+  Pagination,
+  SortTabs,
+} from '../components'
 import type { Status } from '../components/StatusBadge'
-import { bootstrap, getBoard, logout } from '../lib/api'
-import type { BoardResponse, Idea, ApiError } from '../lib/api'
 import { useVote } from '../hooks/useVote'
+import type { ApiError, BoardResponse, Idea } from '../lib/api'
+import { bootstrap, getBoard, logout } from '../lib/api'
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -143,14 +143,11 @@ export default function BoardPage() {
       })
       .catch((err: unknown) => {
         const apiErr = err as ApiError
-        const notFound =
-          apiErr.name === 'ApiError' && apiErr.status === 404
+        const notFound = apiErr.name === 'ApiError' && apiErr.status === 404
         setLoadState({
           phase: 'error',
           notFound,
-          message: notFound
-            ? 'Dieses Board gibt es nicht.'
-            : 'Daten konnten nicht geladen werden.',
+          message: notFound ? 'Dieses Board gibt es nicht.' : 'Daten konnten nicht geladen werden.',
         })
       })
   }, [boardSlug, sort, page])
@@ -297,11 +294,7 @@ export default function BoardPage() {
         <div className="space-y-3" role="list" aria-label="Ideen">
           {ideas.map((idea) => (
             <div key={idea.id} role="listitem">
-              <VotableRow
-                idea={idea}
-                boardSlug={board.slug}
-                isAuthenticated={isAuthenticated}
-              />
+              <VotableRow idea={idea} boardSlug={board.slug} isAuthenticated={isAuthenticated} />
             </div>
           ))}
         </div>
@@ -310,11 +303,7 @@ export default function BoardPage() {
       {/* Pagination */}
       {total_pages > 1 && (
         <div className="mt-8">
-          <Pagination
-            page={page}
-            totalPages={total_pages}
-            onChange={handlePageChange}
-          />
+          <Pagination page={page} totalPages={total_pages} onChange={handlePageChange} />
         </div>
       )}
     </PageShell>

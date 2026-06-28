@@ -2,6 +2,7 @@
 // source=src/components/TextInput.tsx
 // component=TextInput
 import figma from 'figma'
+
 const instance = figma.selectedInstance
 
 const placeholder = instance.getString('Placeholder')

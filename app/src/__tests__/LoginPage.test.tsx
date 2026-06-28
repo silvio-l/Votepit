@@ -4,10 +4,11 @@
  * fetch is mocked globally so no network calls are made.
  * bootstrap() is mocked to return an anonymous session (seeds CSRF token).
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import LoginPage from '../pages/LoginPage'
 
 // ── Mock helpers ──────────────────────────────────────────────────────────────
@@ -89,9 +90,7 @@ describe('LoginPage', () => {
     await user.type(input, 'test@example.com')
     await user.click(screen.getByRole('button', { name: /magic-link senden/i }))
 
-    await waitFor(() =>
-      expect(screen.getByText('Link gesendet')).toBeInTheDocument(),
-    )
+    await waitFor(() => expect(screen.getByText('Link gesendet')).toBeInTheDocument())
     // Email shown in the confirmation
     expect(screen.getByText(/test@example.com/)).toBeInTheDocument()
     // Retry link appears
@@ -107,28 +106,30 @@ describe('LoginPage', () => {
     await user.type(input, 'test@example.com')
     await user.click(screen.getByRole('button', { name: /magic-link senden/i }))
 
-    await waitFor(() =>
-      expect(screen.getByRole('alert')).toBeInTheDocument(),
-    )
+    await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument())
     expect(screen.getByRole('alert')).toHaveTextContent('Zu viele Anfragen.')
   })
 
   it('disables submit button while submitting', async () => {
     // Delay the magic-link POST so we can observe the submitting state.
     let resolvePost!: () => void
-    const postPromise = new Promise<void>((resolve) => { resolvePost = resolve })
+    const postPromise = new Promise<void>((resolve) => {
+      resolvePost = resolve
+    })
 
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
       const url = typeof input === 'string' ? input : (input as Request).url
       if (url.includes('/api/bootstrap')) {
         return new Response(JSON.stringify(BOOTSTRAP_RESPONSE), {
-          status: 200, headers: { 'Content-Type': 'application/json' },
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
         })
       }
       // Block the login POST until resolved
       await postPromise
       return new Response(JSON.stringify({ ok: true }), {
-        status: 200, headers: { 'Content-Type': 'application/json' },
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
       })
     })
 

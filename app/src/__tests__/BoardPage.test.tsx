@@ -4,28 +4,31 @@
  * fetch is mocked globally so no network calls are made.
  * The bootstrap() call is also mocked to return an anonymous session.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
-import BoardPage from '../pages/BoardPage'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import * as api from '../lib/api'
+import BoardPage from '../pages/BoardPage'
 
 // ── Mock helpers ──────────────────────────────────────────────────────────────
 
 const BOOTSTRAP_RESPONSE = { csrf_token: 'test-csrf', user: null }
 
-function makeIdea(overrides: Partial<{
-  id: number
-  title: string
-  body: string
-  status: string
-  score_cache: number
-  up_count: number
-  down_count: number
-  comment_count: number
-  created_at: string
-}> = {}) {
+function makeIdea(
+  overrides: Partial<{
+    id: number
+    title: string
+    body: string
+    status: string
+    score_cache: number
+    up_count: number
+    down_count: number
+    comment_count: number
+    created_at: string
+  }> = {},
+) {
   return {
     id: overrides.id ?? 1,
     board_id: 1,
@@ -65,10 +68,7 @@ function makeBoardResponse(
  *   2nd call: /{boardSlug} (board data)
  */
 function mockFetch(boardResponse: object) {
-  const responses = [
-    JSON.stringify(BOOTSTRAP_RESPONSE),
-    JSON.stringify(boardResponse),
-  ]
+  const responses = [JSON.stringify(BOOTSTRAP_RESPONSE), JSON.stringify(boardResponse)]
   let callIndex = 0
 
   vi.spyOn(globalThis, 'fetch').mockImplementation(async () => {
@@ -125,9 +125,7 @@ describe('BoardPage', () => {
     renderBoardPage()
 
     // Title visible in the list row (also in hero, so use getAllByText)
-    await waitFor(() =>
-      expect(screen.getAllByText('Dark mode support').length).toBeGreaterThan(0),
-    )
+    await waitFor(() => expect(screen.getAllByText('Dark mode support').length).toBeGreaterThan(0))
     // Score (may appear multiple times — hero + list row both show it)
     expect(screen.getAllByText('42').length).toBeGreaterThan(0)
     // Status badge (may appear in hero + list row)
@@ -138,9 +136,7 @@ describe('BoardPage', () => {
     mockFetch(makeBoardResponse([makeIdea({ title: 'Top Idee' })]))
     renderBoardPage()
 
-    await waitFor(() =>
-      expect(screen.getByTestId('featured-idea')).toBeInTheDocument(),
-    )
+    await waitFor(() => expect(screen.getByTestId('featured-idea')).toBeInTheDocument())
     // "Top-Idee" label inside the card
     expect(screen.getByText('Top-Idee')).toBeInTheDocument()
   })
@@ -150,9 +146,7 @@ describe('BoardPage', () => {
     renderBoardPage()
 
     // Wait for load to complete (empty state appears)
-    await waitFor(() =>
-      expect(screen.getByText('Noch keine Ideen')).toBeInTheDocument(),
-    )
+    await waitFor(() => expect(screen.getByText('Noch keine Ideen')).toBeInTheDocument())
     expect(screen.queryByTestId('featured-idea')).not.toBeInTheDocument()
   })
 
@@ -160,33 +154,23 @@ describe('BoardPage', () => {
     mockFetch(makeBoardResponse([]))
     renderBoardPage()
 
-    await waitFor(() =>
-      expect(screen.getByText('Noch keine Ideen')).toBeInTheDocument(),
-    )
-    expect(
-      screen.getByText(/Sei die Erste oder der Erste/),
-    ).toBeInTheDocument()
+    await waitFor(() => expect(screen.getByText('Noch keine Ideen')).toBeInTheDocument())
+    expect(screen.getByText(/Sei die Erste oder der Erste/)).toBeInTheDocument()
   })
 
   it('maps in_progress backend status to "In Arbeit" badge', async () => {
-    mockFetch(
-      makeBoardResponse([makeIdea({ status: 'in_progress' })]),
-    )
+    mockFetch(makeBoardResponse([makeIdea({ status: 'in_progress' })]))
     renderBoardPage()
 
     // Badge may appear in hero + list row → use getAllByText
-    await waitFor(() =>
-      expect(screen.getAllByText('In Arbeit').length).toBeGreaterThan(0),
-    )
+    await waitFor(() => expect(screen.getAllByText('In Arbeit').length).toBeGreaterThan(0))
   })
 
   it('shows error state when board is not found (404)', async () => {
     mockFetchNotFound()
     renderBoardPage('unknown-board')
 
-    await waitFor(() =>
-      expect(screen.getByText('Board nicht gefunden')).toBeInTheDocument(),
-    )
+    await waitFor(() => expect(screen.getByText('Board nicht gefunden')).toBeInTheDocument())
   })
 
   it('logs out: clicking "Abmelden" calls logout and navigates to /login', async () => {
@@ -208,9 +192,7 @@ describe('BoardPage', () => {
 
     // Observable behaviour: logout request fired AND navigation landed on /login.
     expect(logoutSpy).toHaveBeenCalledTimes(1)
-    await waitFor(() =>
-      expect(screen.getByText('Login-Seite')).toBeInTheDocument(),
-    )
+    await waitFor(() => expect(screen.getByText('Login-Seite')).toBeInTheDocument())
   })
 
   it('shows multiple ideas in the list', async () => {
@@ -223,9 +205,7 @@ describe('BoardPage', () => {
     )
     renderBoardPage()
 
-    await waitFor(() =>
-      expect(screen.getAllByText('Idee Alpha').length).toBeGreaterThan(0),
-    )
+    await waitFor(() => expect(screen.getAllByText('Idee Alpha').length).toBeGreaterThan(0))
     expect(screen.getAllByText('Idee Beta').length).toBeGreaterThan(0)
     expect(screen.getAllByText('Idee Gamma').length).toBeGreaterThan(0)
   })

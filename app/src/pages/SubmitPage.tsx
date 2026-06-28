@@ -1,4 +1,4 @@
-import { useParams, Link } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 
 export default function SubmitPage() {
   const { boardSlug } = useParams()
@@ -24,15 +24,11 @@ export default function SubmitPage() {
           &larr; Back to board
         </Link>
 
-        <h1 className="font-archivo font-bold text-2xl text-vp-ink mt-4 mb-6">
-          Submit an Idea
-        </h1>
+        <h1 className="font-archivo font-bold text-2xl text-vp-ink mt-4 mb-6">Submit an Idea</h1>
 
         <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
           <div>
-            <label className="block text-sm font-medium text-vp-ink mb-1">
-              Title
-            </label>
+            <label className="block text-sm font-medium text-vp-ink mb-1">Title</label>
             <input
               type="text"
               placeholder="Short, descriptive title"
@@ -40,9 +36,7 @@ export default function SubmitPage() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-vp-ink mb-1">
-              Description
-            </label>
+            <label className="block text-sm font-medium text-vp-ink mb-1">Description</label>
             <textarea
               rows={4}
               placeholder="Describe the idea in detail..."

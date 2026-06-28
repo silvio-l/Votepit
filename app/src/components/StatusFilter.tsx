@@ -6,11 +6,11 @@ interface StatusFilterProps {
 }
 
 const statuses: Array<{ value: Status; label: string }> = [
-  { value: 'open',        label: 'Offen' },
-  { value: 'planned',     label: 'Geplant' },
+  { value: 'open', label: 'Offen' },
+  { value: 'planned', label: 'Geplant' },
   { value: 'in-progress', label: 'In Arbeit' },
-  { value: 'done',        label: 'Erledigt' },
-  { value: 'declined',    label: 'Abgelehnt' },
+  { value: 'done', label: 'Erledigt' },
+  { value: 'declined', label: 'Abgelehnt' },
 ]
 
 export function StatusFilter({ value, onChange }: StatusFilterProps) {

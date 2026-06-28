@@ -1,8 +1,8 @@
-import { useState, useCallback, useRef } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
-import { vote as apiVote } from '../lib/api'
-import type { VoteResponse } from '../lib/api'
+import { useCallback, useRef, useState } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import type { UserVote } from '../components/VoteWidget'
+import type { VoteResponse } from '../lib/api'
+import { vote as apiVote } from '../lib/api'
 
 interface VoteState {
   score: number

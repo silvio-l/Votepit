@@ -2,6 +2,7 @@
 // source=src/components/Textarea.tsx
 // component=Textarea
 import figma from 'figma'
+
 const instance = figma.selectedInstance
 
 const placeholder = instance.getString('Placeholder')

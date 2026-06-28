@@ -1,11 +1,11 @@
-import { Routes, Route } from 'react-router-dom'
+import { Route, Routes } from 'react-router-dom'
 import BrandBackdrop from './components/BrandBackdrop'
 import BoardPage from './pages/BoardPage'
 import IdeaDetailPage from './pages/IdeaDetailPage'
-import SubmitPage from './pages/SubmitPage'
 import LoginPage from './pages/LoginPage'
-import VerifyPage from './pages/VerifyPage'
 import NotFoundPage from './pages/NotFoundPage'
+import SubmitPage from './pages/SubmitPage'
+import VerifyPage from './pages/VerifyPage'
 
 export default function App() {
   return (

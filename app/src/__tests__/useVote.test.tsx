@@ -7,14 +7,14 @@
  *   (c) flip/retract produce correct optimistic states
  *   (d) anon path redirects to /login with returnTo
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { renderHook, act } from '@testing-library/react'
-import { render, screen, waitFor } from '@testing-library/react'
+
+import { act, render, renderHook, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
-import * as api from '../lib/api'
-import { useVote } from '../hooks/useVote'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { UseVoteOptions } from '../hooks/useVote'
+import { useVote } from '../hooks/useVote'
+import * as api from '../lib/api'
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -29,11 +29,7 @@ const BASE_OPTS: UseVoteOptions = {
 }
 
 function wrapper({ children }: { children: React.ReactNode }) {
-  return (
-    <MemoryRouter initialEntries={['/demo/idea/42']}>
-      {children}
-    </MemoryRouter>
-  )
+  return <MemoryRouter initialEntries={['/demo/idea/42']}>{children}</MemoryRouter>
 }
 
 beforeEach(() => {
@@ -53,7 +49,9 @@ describe('useVote — optimistic switch (AC7a)', () => {
 
     let resolveVote!: (v: typeof serverResponse) => void
     vi.spyOn(api, 'vote').mockReturnValue(
-      new Promise((r) => { resolveVote = r }),
+      new Promise((r) => {
+        resolveVote = r
+      }),
     )
 
     const { result } = renderHook(() => useVote(BASE_OPTS), { wrapper })
@@ -61,7 +59,9 @@ describe('useVote — optimistic switch (AC7a)', () => {
     expect(result.current.score).toBe(3)
 
     // Trigger click — vote promise stays pending
-    act(() => { result.current.onVoteUp() })
+    act(() => {
+      result.current.onVoteUp()
+    })
 
     // Optimistic state applied synchronously
     expect(result.current.score).toBe(4) // 3 + 1
@@ -91,7 +91,9 @@ describe('useVote — optimistic switch (AC7a)', () => {
 
     const { result } = renderHook(() => useVote(BASE_OPTS), { wrapper })
 
-    await act(async () => { result.current.onVoteDown() })
+    await act(async () => {
+      result.current.onVoteDown()
+    })
 
     expect(result.current.score).toBe(2)
     expect(result.current.myVote).toBe('down')
@@ -109,7 +111,9 @@ describe('useVote — rollback on server error (AC7b)', () => {
     const scoreBefore = result.current.score
     const myVoteBefore = result.current.myVote
 
-    await act(async () => { result.current.onVoteUp() })
+    await act(async () => {
+      result.current.onVoteUp()
+    })
 
     expect(result.current.score).toBe(scoreBefore)
     expect(result.current.myVote).toBe(myVoteBefore)
@@ -132,7 +136,9 @@ describe('useVote — rollback on server error (AC7b)', () => {
     expect(result.current.myVote).toBe('up')
 
     // Click down (flip) → then error → should roll back
-    await act(async () => { result.current.onVoteDown() })
+    await act(async () => {
+      result.current.onVoteDown()
+    })
 
     expect(result.current.myVote).toBe('up')
     expect(result.current.score).toBe(3)
@@ -145,7 +151,9 @@ describe('useVote — flip and retract optimistic states (AC7c)', () => {
   it('retract: up then up sets myVote to null and decrements score', async () => {
     let resolveVote!: (v: api.VoteResponse) => void
     vi.spyOn(api, 'vote').mockReturnValue(
-      new Promise((r) => { resolveVote = r }),
+      new Promise((r) => {
+        resolveVote = r
+      }),
     )
 
     const opts: UseVoteOptions = {
@@ -156,7 +164,9 @@ describe('useVote — flip and retract optimistic states (AC7c)', () => {
     }
     const { result } = renderHook(() => useVote(opts), { wrapper })
 
-    act(() => { result.current.onVoteUp() })
+    act(() => {
+      result.current.onVoteUp()
+    })
 
     // Optimistic retract
     expect(result.current.myVote).toBeNull()
@@ -174,7 +184,9 @@ describe('useVote — flip and retract optimistic states (AC7c)', () => {
   it('flip down→up: increments score by 2, switches myVote', async () => {
     let resolveVote!: (v: api.VoteResponse) => void
     vi.spyOn(api, 'vote').mockReturnValue(
-      new Promise((r) => { resolveVote = r }),
+      new Promise((r) => {
+        resolveVote = r
+      }),
     )
 
     const opts: UseVoteOptions = {
@@ -186,7 +198,9 @@ describe('useVote — flip and retract optimistic states (AC7c)', () => {
     }
     const { result } = renderHook(() => useVote(opts), { wrapper })
 
-    act(() => { result.current.onVoteUp() })
+    act(() => {
+      result.current.onVoteUp()
+    })
 
     // Optimistic flip
     expect(result.current.myVote).toBe('up')
@@ -203,7 +217,9 @@ describe('useVote — flip and retract optimistic states (AC7c)', () => {
   it('flip up→down: decrements score by 2, switches myVote', async () => {
     let resolveVote!: (v: api.VoteResponse) => void
     vi.spyOn(api, 'vote').mockReturnValue(
-      new Promise((r) => { resolveVote = r }),
+      new Promise((r) => {
+        resolveVote = r
+      }),
     )
 
     const opts: UseVoteOptions = {
@@ -216,7 +232,9 @@ describe('useVote — flip and retract optimistic states (AC7c)', () => {
 
     const { result } = renderHook(() => useVote(opts), { wrapper })
 
-    act(() => { result.current.onVoteDown() })
+    act(() => {
+      result.current.onVoteDown()
+    })
 
     expect(result.current.myVote).toBe('down')
     expect(result.current.score).toBe(1) // 3 - 2

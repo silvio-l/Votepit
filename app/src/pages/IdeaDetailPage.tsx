@@ -1,17 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import {
-  Header,
-  PageShell,
-  ConsensusBar,
-  StatusBadge,
-  VoteWidget,
-  EmptyState,
-} from '../components'
 import type { Status } from '../components'
-import { bootstrap, getIdea, logout } from '../lib/api'
-import type { IdeaDetailResponse, ApiError } from '../lib/api'
+import { ConsensusBar, EmptyState, Header, PageShell, StatusBadge, VoteWidget } from '../components'
 import { useVote } from '../hooks/useVote'
+import type { ApiError, IdeaDetailResponse } from '../lib/api'
+import { bootstrap, getIdea, logout } from '../lib/api'
 
 function toComponentStatus(raw: string): Status {
   if (raw === 'in_progress') return 'in-progress'
@@ -114,8 +107,7 @@ function IdeaDetailContent({ data, boardSlug: _boardSlug, onLogout }: IdeaDetail
 
               {idea.comment_count > 0 && (
                 <span className="text-[13px] text-vp-text-muted">
-                  {idea.comment_count}{' '}
-                  {idea.comment_count === 1 ? 'Kommentar' : 'Kommentare'}
+                  {idea.comment_count} {idea.comment_count === 1 ? 'Kommentar' : 'Kommentare'}
                 </span>
               )}
             </div>
@@ -168,10 +160,12 @@ export default function IdeaDetailPage() {
   }, [boardSlug, ideaId])
 
   const handleLogout = () => {
-    logout().catch(() => {}).finally(() => {
-      setIsAuthenticated(false)
-      window.location.href = '/login'
-    })
+    logout()
+      .catch(() => {})
+      .finally(() => {
+        setIsAuthenticated(false)
+        window.location.href = '/login'
+      })
   }
 
   const loginLabel = isAuthenticated ? 'Konto' : 'Anmelden'
@@ -225,20 +219,13 @@ export default function IdeaDetailPage() {
             }
           />
         ) : (
-          <EmptyState
-            title="Fehler beim Laden"
-            description={loadState.message}
-          />
+          <EmptyState title="Fehler beim Laden" description={loadState.message} />
         )}
       </PageShell>
     )
   }
 
   return (
-    <IdeaDetailContent
-      data={loadState.data}
-      boardSlug={boardSlug ?? ''}
-      onLogout={handleLogout}
-    />
+    <IdeaDetailContent data={loadState.data} boardSlug={boardSlug ?? ''} onLogout={handleLogout} />
   )
 }

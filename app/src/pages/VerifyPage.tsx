@@ -1,11 +1,9 @@
 import { useEffect, useState } from 'react'
-import { useSearchParams, useNavigate, Link } from 'react-router-dom'
-import { verifyToken } from '../lib/api'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import type { ApiError } from '../lib/api'
+import { verifyToken } from '../lib/api'
 
-type PageState =
-  | { phase: 'verifying' }
-  | { phase: 'error'; message: string }
+type PageState = { phase: 'verifying' } | { phase: 'error'; message: string }
 
 export default function VerifyPage() {
   const [searchParams] = useSearchParams()
@@ -31,8 +29,7 @@ export default function VerifyPage() {
       })
       .catch((err: unknown) => {
         const apiErr = err as ApiError
-        const isInvalidToken =
-          apiErr?.payload?.key === 'invalid_token' || apiErr?.status === 400
+        const isInvalidToken = apiErr?.payload?.key === 'invalid_token' || apiErr?.status === 400
 
         setState({
           phase: 'error',
@@ -41,7 +38,7 @@ export default function VerifyPage() {
             : (apiErr?.payload?.message ?? 'Anmeldung fehlgeschlagen. Bitte versuche es erneut.'),
         })
       })
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []) // run once on mount; token / returnTo are stable from URL
 
   return (
@@ -76,9 +73,7 @@ function VerifyingState() {
         className="mx-auto w-10 h-10 rounded-full border-2 border-vp-accent border-t-transparent animate-spin"
         style={{ willChange: 'transform' }}
       />
-      <p className="text-vp-text-secondary text-sm">
-        Link wird überprüft…
-      </p>
+      <p className="text-vp-text-secondary text-sm">Link wird überprüft…</p>
     </div>
   )
 }

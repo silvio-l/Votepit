@@ -2,6 +2,7 @@
 // source=src/components/ConsensusBar.tsx
 // component=ConsensusBar
 import figma from 'figma'
+
 const instance = figma.selectedInstance
 
 const pct = instance.getString('Percentage')

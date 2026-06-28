@@ -2,12 +2,13 @@
 // source=src/components/SortTabs.tsx
 // component=SortTabs
 import figma from 'figma'
+
 const instance = figma.selectedInstance
 
 const active = instance.getEnum('Active Tab', {
-  'Top': 'top',
-  'Newest': 'newest',
-  'Controversial': 'controversial',
+  Top: 'top',
+  Newest: 'newest',
+  Controversial: 'controversial',
 })
 
 export default {

@@ -2,12 +2,13 @@
 // source=src/components/VoteWidget.tsx
 // component=VoteWidget
 import figma from 'figma'
+
 const instance = figma.selectedInstance
 
 const state = instance.getEnum('State', {
-  'Neutral': 'neutral',
-  'Upvoted': 'up',
-  'Downvoted': 'down',
+  Neutral: 'neutral',
+  Upvoted: 'up',
+  Downvoted: 'down',
 })
 const score = instance.getString('Score')
 

@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
-import { useSearchParams, Link } from 'react-router-dom'
-import { TextInput } from '../components/TextInput'
+import { Link, useSearchParams } from 'react-router-dom'
 import { Button } from '../components/Button'
-import { bootstrap, requestMagicLink } from '../lib/api'
+import { TextInput } from '../components/TextInput'
 import type { ApiError } from '../lib/api'
+import { bootstrap, requestMagicLink } from '../lib/api'
 
 type PageState =
   | { phase: 'idle' }
@@ -37,9 +37,7 @@ export default function LoginPage() {
       const apiErr = err as ApiError
       setState({
         phase: 'error',
-        message:
-          apiErr?.payload?.message ??
-          'Etwas ist schiefgelaufen. Bitte versuche es erneut.',
+        message: apiErr?.payload?.message ?? 'Etwas ist schiefgelaufen. Bitte versuche es erneut.',
       })
     }
   }
@@ -88,10 +86,7 @@ export default function LoginPage() {
               />
 
               {state.phase === 'error' && (
-                <p
-                  role="alert"
-                  className="text-[13px] text-vp-vote-down font-inter"
-                >
+                <p role="alert" className="text-[13px] text-vp-vote-down font-inter">
                   {state.message}
                 </p>
               )}
@@ -102,9 +97,7 @@ export default function LoginPage() {
                 disabled={state.phase === 'submitting' || email.trim() === ''}
                 className="w-full"
               >
-                {state.phase === 'submitting'
-                  ? 'Wird gesendet…'
-                  : 'Magic-Link senden'}
+                {state.phase === 'submitting' ? 'Wird gesendet…' : 'Magic-Link senden'}
               </Button>
             </form>
           </>
@@ -123,20 +116,14 @@ function SentState({ email }: { email: string }) {
       >
         ✉
       </div>
-      <h2 className="font-archivo font-bold text-lg text-vp-ink">
-        Link gesendet
-      </h2>
+      <h2 className="font-archivo font-bold text-lg text-vp-ink">Link gesendet</h2>
       <p className="text-vp-text-secondary text-sm">
-        Wir haben einen Magic-Link an{' '}
-        <span className="font-medium text-vp-ink">{email}</span> gesendet.
-        Schau in dein Postfach.
+        Wir haben einen Magic-Link an <span className="font-medium text-vp-ink">{email}</span>{' '}
+        gesendet. Schau in dein Postfach.
       </p>
       <p className="text-vp-text-muted text-xs">
         Kein Link angekommen?{' '}
-        <Link
-          to="/login"
-          className="text-vp-accent underline hover:opacity-80 transition-opacity"
-        >
+        <Link to="/login" className="text-vp-accent underline hover:opacity-80 transition-opacity">
           Erneut versuchen
         </Link>
       </p>

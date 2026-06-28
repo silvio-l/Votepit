@@ -94,11 +94,7 @@ export class ApiError extends Error {
 
 // ── Internal request helper ───────────────────────────────────────────────────
 
-async function request<T>(
-  method: string,
-  url: string,
-  body?: unknown,
-): Promise<T> {
+async function request<T>(method: string, url: string, body?: unknown): Promise<T> {
   const headers: Record<string, string> = {
     Accept: 'application/json',
   }
@@ -158,19 +154,13 @@ export interface GetBoardParams {
  * GET /{boardSlug} — board home + paginated idea list.
  * Query params: sort, status, page.
  */
-export async function getBoard(
-  boardSlug: string,
-  params?: GetBoardParams,
-): Promise<BoardResponse> {
+export async function getBoard(boardSlug: string, params?: GetBoardParams): Promise<BoardResponse> {
   const search = new URLSearchParams()
   if (params?.sort) search.set('sort', params.sort)
   if (params?.status) search.set('status', params.status)
   if (params?.page && params.page > 1) search.set('page', String(params.page))
   const qs = search.toString()
-  return request<BoardResponse>(
-    'GET',
-    `/${boardSlug}${qs ? `?${qs}` : ''}`,
-  )
+  return request<BoardResponse>('GET', `/${boardSlug}${qs ? `?${qs}` : ''}`)
 }
 
 /**
@@ -203,10 +193,7 @@ export const api = {
  * (anti-enumeration; AC3/4 in LoginActionTest).
  * Requires CSRF token — call bootstrap() before this.
  */
-export async function requestMagicLink(
-  email: string,
-  returnTo?: string,
-): Promise<{ ok: boolean }> {
+export async function requestMagicLink(email: string, returnTo?: string): Promise<{ ok: boolean }> {
   const body: Record<string, string> = { email }
   if (returnTo) body.r = returnTo
   return request<{ ok: boolean }>('POST', '/login', body)

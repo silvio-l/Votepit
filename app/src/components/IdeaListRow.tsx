@@ -1,8 +1,8 @@
-import { VoteWidget } from './VoteWidget'
 import { ConsensusBar } from './ConsensusBar'
-import { StatusBadge } from './StatusBadge'
 import type { Status } from './StatusBadge'
+import { StatusBadge } from './StatusBadge'
 import type { UserVote } from './VoteWidget'
+import { VoteWidget } from './VoteWidget'
 
 interface IdeaListRowProps {
   id: string | number
@@ -45,10 +45,7 @@ export function IdeaListRow({
         .join(' ')}
     >
       {/* Left: VoteWidget — stop click propagation so the row link doesn't fire */}
-      <div
-        onClick={(e) => e.preventDefault()}
-        className="shrink-0 self-start pt-1"
-      >
+      <div onClick={(e) => e.preventDefault()} className="shrink-0 self-start pt-1">
         <VoteWidget
           tone="neutral"
           score={score}
@@ -64,16 +61,12 @@ export function IdeaListRow({
           {title}
         </p>
         {excerpt && (
-          <p className="text-[14px] text-vp-text-secondary truncate leading-[1.5]">
-            {excerpt}
-          </p>
+          <p className="text-[14px] text-vp-text-secondary truncate leading-[1.5]">{excerpt}</p>
         )}
         {/* Meta row */}
         <div className="flex items-center gap-2 mt-0.5">
           <StatusBadge status={status} />
-          <span className="text-[12px] text-vp-text-muted font-mono-num">
-            {commentCount}
-          </span>
+          <span className="text-[12px] text-vp-text-muted font-mono-num">{commentCount}</span>
           <span className="text-[12px] text-vp-text-muted">·</span>
           <span className="text-[12px] text-vp-text-muted">{timeAgo}</span>
         </div>
@@ -85,9 +78,7 @@ export function IdeaListRow({
       </div>
 
       {/* Arrow */}
-      <span className="text-[22px] text-vp-text-muted font-medium shrink-0 leading-none">
-        ›
-      </span>
+      <span className="text-[22px] text-vp-text-muted font-medium shrink-0 leading-none">›</span>
     </div>
   )
 

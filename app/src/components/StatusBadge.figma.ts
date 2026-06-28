@@ -2,14 +2,15 @@
 // source=src/components/StatusBadge.tsx
 // component=StatusBadge
 import figma from 'figma'
+
 const instance = figma.selectedInstance
 
 const status = instance.getEnum('Status', {
-  'Open': 'open',
-  'Planned': 'planned',
+  Open: 'open',
+  Planned: 'planned',
   'In Progress': 'in_progress',
-  'Done': 'done',
-  'Declined': 'declined',
+  Done: 'done',
+  Declined: 'declined',
 })
 
 export default {

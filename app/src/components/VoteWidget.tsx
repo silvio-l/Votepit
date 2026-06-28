@@ -1,4 +1,4 @@
-import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 
 export type VoteTone = 'leading' | 'neutral'
 export type UserVote = 'up' | 'down' | null
@@ -62,8 +62,7 @@ export function VoteWidget({
       ? 'bg-vp-vote-up text-vp-on-ink shadow-[0px_3px_13px_0px_rgba(14,148,102,0.35)]'
       : 'bg-vp-surface border border-vp-border-subtle text-vp-text-muted'
 
-  const downBtnClass =
-    'bg-vp-surface border border-vp-border-subtle text-vp-text-muted'
+  const downBtnClass = 'bg-vp-surface border border-vp-border-subtle text-vp-text-muted'
 
   return (
     <div className="flex flex-col items-center gap-1 w-[54px]">

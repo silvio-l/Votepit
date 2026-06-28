@@ -1,6 +1,6 @@
-import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { describe, expect, it, vi } from 'vitest'
 import { SortTabs } from '../components/SortTabs'
 
 describe('SortTabs', () => {
@@ -25,9 +25,9 @@ describe('SortTabs', () => {
     expect(onChange).toHaveBeenCalledWith('controversial')
   })
 
-  it('active tab has aria-pressed="true"', () => {
+  it('active tab has aria-selected="true"', () => {
     render(<SortTabs value="newest" onChange={() => {}} />)
     const neuTab = screen.getByRole('tab', { name: 'Neu' })
-    expect(neuTab).toHaveAttribute('aria-pressed', 'true')
+    expect(neuTab).toHaveAttribute('aria-selected', 'true')
   })
 })

@@ -2,6 +2,7 @@
 // source=src/components/IdeaListRow.tsx
 // component=IdeaListRow
 import figma from 'figma'
+
 const instance = figma.selectedInstance
 
 const title = instance.getString('Title')

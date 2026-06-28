@@ -7,57 +7,57 @@
    ============================================================ */
 
 @font-face {
-  font-family: 'Archivo';
-  src: url('/assets/fonts/archivo-latin-600-normal.woff2') format('woff2');
+  font-family: "Archivo";
+  src: url("/assets/fonts/archivo-latin-600-normal.woff2") format("woff2");
   font-weight: 600;
   font-style: normal;
   font-display: swap;
 }
 @font-face {
-  font-family: 'Archivo';
-  src: url('/assets/fonts/archivo-latin-700-normal.woff2') format('woff2');
+  font-family: "Archivo";
+  src: url("/assets/fonts/archivo-latin-700-normal.woff2") format("woff2");
   font-weight: 700;
   font-style: normal;
   font-display: swap;
 }
 @font-face {
-  font-family: 'Archivo';
-  src: url('/assets/fonts/archivo-latin-800-normal.woff2') format('woff2');
+  font-family: "Archivo";
+  src: url("/assets/fonts/archivo-latin-800-normal.woff2") format("woff2");
   font-weight: 800;
   font-style: normal;
   font-display: swap;
 }
 @font-face {
-  font-family: 'Inter';
-  src: url('/assets/fonts/inter-latin-400-normal.woff2') format('woff2');
+  font-family: "Inter";
+  src: url("/assets/fonts/inter-latin-400-normal.woff2") format("woff2");
   font-weight: 400;
   font-style: normal;
   font-display: swap;
 }
 @font-face {
-  font-family: 'Inter';
-  src: url('/assets/fonts/inter-latin-500-normal.woff2') format('woff2');
+  font-family: "Inter";
+  src: url("/assets/fonts/inter-latin-500-normal.woff2") format("woff2");
   font-weight: 500;
   font-style: normal;
   font-display: swap;
 }
 @font-face {
-  font-family: 'Inter';
-  src: url('/assets/fonts/inter-latin-600-normal.woff2') format('woff2');
+  font-family: "Inter";
+  src: url("/assets/fonts/inter-latin-600-normal.woff2") format("woff2");
   font-weight: 600;
   font-style: normal;
   font-display: swap;
 }
 @font-face {
-  font-family: 'JetBrains Mono';
-  src: url('/assets/fonts/jetbrains-mono-latin-600-normal.woff2') format('woff2');
+  font-family: "JetBrains Mono";
+  src: url("/assets/fonts/jetbrains-mono-latin-600-normal.woff2") format("woff2");
   font-weight: 600;
   font-style: normal;
   font-display: swap;
 }
 @font-face {
-  font-family: 'JetBrains Mono';
-  src: url('/assets/fonts/jetbrains-mono-latin-700-normal.woff2') format('woff2');
+  font-family: "JetBrains Mono";
+  src: url("/assets/fonts/jetbrains-mono-latin-700-normal.woff2") format("woff2");
   font-weight: 700;
   font-style: normal;
   font-display: swap;
@@ -71,11 +71,11 @@
    they must stay stable so Up/Down meaning is always readable.
    ============================================================ */
 :root {
-  --vp-primary: #1fa890;  /* board accent — default teal */
-  --vp-ink:     #15161a;  /* brand ink (logo, primary CTAs) */
-  --vp-on-ink:  #ffffff;  /* text on ink/primary buttons */
-  --vp-bg:      #f6f6f3;  /* page background */
-  --vp-radius:  20px;     /* base card radius (--radius-vp-xl) */
+  --vp-primary: #1fa890; /* board accent — default teal */
+  --vp-ink: #15161a; /* brand ink (logo, primary CTAs) */
+  --vp-on-ink: #ffffff; /* text on ink/primary buttons */
+  --vp-bg: #f6f6f3; /* page background */
+  --vp-radius: 20px; /* base card radius (--radius-vp-xl) */
 }
 
 /* ============================================================

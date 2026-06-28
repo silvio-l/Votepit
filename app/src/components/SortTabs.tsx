@@ -1,4 +1,4 @@
-import { motion, useReducedMotion, LayoutGroup } from 'framer-motion'
+import { LayoutGroup, motion, useReducedMotion } from 'framer-motion'
 
 export type SortValue = 'top' | 'newest' | 'controversial'
 
@@ -8,8 +8,8 @@ interface SortTabsProps {
 }
 
 const tabs: Array<{ value: SortValue; label: string }> = [
-  { value: 'top',           label: 'Top' },
-  { value: 'newest',        label: 'Neu' },
+  { value: 'top', label: 'Top' },
+  { value: 'newest', label: 'Neu' },
   { value: 'controversial', label: 'Umstritten' },
 ]
 
@@ -52,9 +52,7 @@ export function SortTabs({ value, onChange }: SortTabsProps) {
                   className="absolute inset-0 bg-vp-surface border border-vp-border-subtle rounded-vp-sm"
                   style={{ zIndex: -1 }}
                   transition={
-                    reduceMotion
-                      ? { duration: 0 }
-                      : { type: 'spring', stiffness: 400, damping: 30 }
+                    reduceMotion ? { duration: 0 } : { type: 'spring', stiffness: 400, damping: 30 }
                   }
                 />
               )}

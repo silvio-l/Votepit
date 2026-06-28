@@ -1,8 +1,8 @@
-import { VoteWidget } from './VoteWidget'
 import { ConsensusBar } from './ConsensusBar'
-import { StatusBadge } from './StatusBadge'
 import type { Status } from './StatusBadge'
+import { StatusBadge } from './StatusBadge'
 import type { UserVote } from './VoteWidget'
+import { VoteWidget } from './VoteWidget'
 
 interface FeaturedIdeaCardProps {
   title: string
@@ -62,9 +62,7 @@ export function FeaturedIdeaCard({
             </h2>
 
             {/* Description */}
-            <p className="text-[15px] text-vp-text-secondary leading-[1.48]">
-              {description}
-            </p>
+            <p className="text-[15px] text-vp-text-secondary leading-[1.48]">{description}</p>
 
             {/* Meta */}
             <div className="flex items-center gap-3 flex-wrap">
@@ -94,9 +92,7 @@ export function FeaturedIdeaCard({
             <span className="text-[24px] font-mono-num font-bold text-vp-ink leading-none">
               {weeklyVotes}
             </span>
-            <span className="text-[13px] text-vp-text-secondary">
-              neue Stimmen
-            </span>
+            <span className="text-[13px] text-vp-text-secondary">neue Stimmen</span>
           </div>
 
           {/* Weekly new ideas */}
@@ -104,9 +100,7 @@ export function FeaturedIdeaCard({
             <span className="text-[24px] font-mono-num font-bold text-vp-ink leading-none">
               {weeklyNewIdeas}
             </span>
-            <span className="text-[13px] text-vp-text-secondary">
-              neue Ideen
-            </span>
+            <span className="text-[13px] text-vp-text-secondary">neue Ideen</span>
           </div>
 
           {/* Average consensus */}
@@ -114,9 +108,7 @@ export function FeaturedIdeaCard({
             <span className="text-[24px] font-mono-num font-bold text-vp-vote-up leading-none">
               {avgConsensusPercent}%
             </span>
-            <span className="text-[13px] text-vp-text-secondary">
-              ⌀ Konsens
-            </span>
+            <span className="text-[13px] text-vp-text-secondary">⌀ Konsens</span>
           </div>
         </div>
       </div>

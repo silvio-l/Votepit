@@ -4,9 +4,10 @@
  * fetch is mocked globally so no network calls are made.
  * useNavigate is mocked to capture redirect calls.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+
 import { render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import VerifyPage from '../pages/VerifyPage'
 
 // ── Mocks ─────────────────────────────────────────────────────────────────────
@@ -33,7 +34,9 @@ function mockFetchVerifySuccess(redirect = '/') {
 function mockFetchVerifyFailure() {
   vi.spyOn(globalThis, 'fetch').mockResolvedValue(
     new Response(
-      JSON.stringify({ error: { key: 'invalid_token', message: 'Der Link ist ungültig oder abgelaufen.' } }),
+      JSON.stringify({
+        error: { key: 'invalid_token', message: 'Der Link ist ungültig oder abgelaufen.' },
+      }),
       { status: 400, headers: { 'Content-Type': 'application/json' } },
     ),
   )
@@ -75,27 +78,21 @@ describe('VerifyPage', () => {
     mockFetchVerifySuccess('/')
     renderVerifyPage('valid-token-abc')
 
-    await waitFor(() =>
-      expect(mockNavigate).toHaveBeenCalledWith('/', { replace: true }),
-    )
+    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/', { replace: true }))
   })
 
   it('redirects to custom return_to on successful verification', async () => {
     mockFetchVerifySuccess('/some/board')
     renderVerifyPage('valid-token-abc', '/some/board')
 
-    await waitFor(() =>
-      expect(mockNavigate).toHaveBeenCalledWith('/some/board', { replace: true }),
-    )
+    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/some/board', { replace: true }))
   })
 
   it('shows error message for invalid/expired token (400)', async () => {
     mockFetchVerifyFailure()
     renderVerifyPage('expired-token-xyz')
 
-    await waitFor(() =>
-      expect(screen.getByRole('alert')).toBeInTheDocument(),
-    )
+    await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument())
     expect(screen.getByRole('alert')).toHaveTextContent(/ungültig|abgelaufen/i)
     // Should not navigate away
     expect(mockNavigate).not.toHaveBeenCalled()
@@ -104,14 +101,13 @@ describe('VerifyPage', () => {
   it('shows error message when token is missing from URL', async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(
       new Response(JSON.stringify({ ok: true, redirect: '/' }), {
-        status: 200, headers: { 'Content-Type': 'application/json' },
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
       }),
     )
     renderVerifyPage() // no token param
 
-    await waitFor(() =>
-      expect(screen.getByRole('alert')).toBeInTheDocument(),
-    )
+    await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument())
     expect(screen.getByRole('alert')).toHaveTextContent(/ungültig|abgelaufen/i)
     expect(mockNavigate).not.toHaveBeenCalled()
   })
@@ -121,7 +117,9 @@ describe('VerifyPage', () => {
     renderVerifyPage('bad-token')
 
     await waitFor(() =>
-      expect(screen.getByRole('heading', { name: /Anmeldung fehlgeschlagen/i })).toBeInTheDocument(),
+      expect(
+        screen.getByRole('heading', { name: /Anmeldung fehlgeschlagen/i }),
+      ).toBeInTheDocument(),
     )
   })
 

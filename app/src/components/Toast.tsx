@@ -1,5 +1,5 @@
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { useEffect } from 'react'
-import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 
 export type ToastType = 'success' | 'error' | 'info'
 
@@ -11,8 +11,8 @@ interface ToastProps {
 
 const typeClasses: Record<ToastType, string> = {
   success: 'bg-vp-vote-up text-white',
-  error:   'bg-vp-vote-down text-white',
-  info:    'bg-vp-ink text-vp-on-ink',
+  error: 'bg-vp-vote-down text-white',
+  info: 'bg-vp-ink text-vp-on-ink',
 }
 
 export function Toast({ message, type = 'info', onClose }: ToastProps) {

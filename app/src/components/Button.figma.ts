@@ -2,14 +2,15 @@
 // source=src/components/Button.tsx
 // component=Button
 import figma from 'figma'
+
 const instance = figma.selectedInstance
 
 const label = instance.getString('Label')
 const variant = instance.getEnum('Variant', {
-  'Primary': 'primary',
-  'Secondary': 'secondary',
-  'Ghost': 'ghost',
-  'Danger': 'danger',
+  Primary: 'primary',
+  Secondary: 'secondary',
+  Ghost: 'ghost',
+  Danger: 'danger',
 })
 
 export default {

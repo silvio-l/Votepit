@@ -4,25 +4,28 @@
  * fetch is mocked globally; no real network calls are made.
  * bootstrap() is also mocked to seed the CSRF token and anon session.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+
 import { render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import IdeaDetailPage from './IdeaDetailPage'
 
 // ── Mock helpers ──────────────────────────────────────────────────────────────
 
 const BOOTSTRAP_RESPONSE = { csrf_token: 'test-csrf', user: null }
 
-function makeIdeaDetailResponse(overrides: {
-  title?: string
-  body?: string
-  status?: string
-  score_cache?: number
-  up_count?: number
-  down_count?: number
-  comment_count?: number
-  is_authenticated?: boolean
-} = {}) {
+function makeIdeaDetailResponse(
+  overrides: {
+    title?: string
+    body?: string
+    status?: string
+    score_cache?: number
+    up_count?: number
+    down_count?: number
+    comment_count?: number
+    is_authenticated?: boolean
+  } = {},
+) {
   return {
     board: { id: 1, slug: 'demo', name: 'Demo Board' },
     idea: {
@@ -103,9 +106,7 @@ describe('IdeaDetailPage', () => {
     )
 
     // Full body text
-    expect(
-      screen.getByText('Als Nutzer möchte ich einen Dark Mode haben.'),
-    ).toBeInTheDocument()
+    expect(screen.getByText('Als Nutzer möchte ich einen Dark Mode haben.')).toBeInTheDocument()
 
     // Score in VoteWidget (font-mono-num span)
     expect(screen.getByText('15')).toBeInTheDocument()
@@ -126,16 +127,11 @@ describe('IdeaDetailPage', () => {
   })
 
   it('renders not-found state when API returns 404', async () => {
-    mockFetch(
-      { error: { key: 'not_found', message: 'Idee nicht gefunden.' } },
-      404,
-    )
+    mockFetch({ error: { key: 'not_found', message: 'Idee nicht gefunden.' } }, 404)
 
     renderIdeaDetailPage('demo', '99999')
 
-    await waitFor(() =>
-      expect(screen.getByText('Idee nicht gefunden')).toBeInTheDocument(),
-    )
+    await waitFor(() => expect(screen.getByText('Idee nicht gefunden')).toBeInTheDocument())
 
     // A helpful description should be present
     expect(

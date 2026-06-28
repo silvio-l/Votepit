@@ -16,9 +16,7 @@ export function ConsensusBar({ percent }: ConsensusBarProps) {
     <div className="flex flex-col gap-1 w-full">
       {/* Header row */}
       <div className="flex items-baseline gap-1">
-        <span className="text-[13px] font-mono-num font-bold text-vp-ink">
-          {clamped}%
-        </span>
+        <span className="text-[13px] font-mono-num font-bold text-vp-ink">{clamped}%</span>
         <span className="text-[12px] text-vp-text-secondary">{label}</span>
       </div>
 
@@ -29,9 +27,7 @@ export function ConsensusBar({ percent }: ConsensusBarProps) {
           initial={{ width: 0 }}
           animate={{ width: `${clamped}%` }}
           transition={
-            reduceMotion
-              ? { duration: 0 }
-              : { type: 'spring', stiffness: 80, damping: 18 }
+            reduceMotion ? { duration: 0 } : { type: 'spring', stiffness: 80, damping: 18 }
           }
         />
       </div>

@@ -2,6 +2,7 @@
 // source=src/components/FeaturedIdeaCard.tsx
 // component=FeaturedIdeaCard
 import figma from 'figma'
+
 const instance = figma.selectedInstance
 
 const title = instance.getString('Title')

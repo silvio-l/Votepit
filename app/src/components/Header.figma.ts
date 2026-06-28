@@ -2,6 +2,7 @@
 // source=src/components/Header.tsx
 // component=Header
 import figma from 'figma'
+
 const instance = figma.selectedInstance
 
 const boardName = instance.getString('Board Name')
