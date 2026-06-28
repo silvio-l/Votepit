@@ -1,0 +1,13 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "entry": ["src/components/index.ts", "src/lib/api.ts"],
+  "project": ["src/**/*.{ts,tsx}"],
+  "ignore": ["src/**/*.figma.ts"],
+  "ignoreDependencies": [
+    "@figma/code-connect",
+    "@fontsource/archivo",
+    "@fontsource/inter",
+    "@fontsource/jetbrains-mono",
+    "tailwindcss"
+  ]
+}
