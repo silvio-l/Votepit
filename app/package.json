@@ -5,7 +5,10 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "lint": "oxlint",
+    "lint": "biome check",
+    "lint:fix": "biome check --write",
+    "format": "biome format --write",
+    "knip": "knip",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest"
@@ -17,6 +20,7 @@
     "react-router-dom": "^7.18.0"
   },
   "devDependencies": {
+    "@biomejs/biome": "2.5.1",
     "@figma/code-connect": "^1.4.8",
     "@fontsource/archivo": "^5.2.8",
     "@fontsource/inter": "^5.2.8",
@@ -30,7 +34,7 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.2",
     "jsdom": "^29.1.1",
-    "oxlint": "^1.69.0",
+    "knip": "6.23.0",
     "tailwindcss": "^4.3.1",
     "typescript": "~6.0.2",
     "vite": "^8.1.0",
