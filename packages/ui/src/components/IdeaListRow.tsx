@@ -48,7 +48,7 @@ export function IdeaListRow({
           Not an interactive control itself; the VoteWidget buttons handle keyboard. */}
       {/* biome-ignore lint/a11y/useKeyWithClickEvents: click-guard wrapper, not a control */}
       {/* biome-ignore lint/a11y/noStaticElementInteractions: click-guard wrapper, not a control */}
-      <div onClick={(e) => e.preventDefault()} className="shrink-0 self-start pt-1">
+      <div onClick={(e) => e.preventDefault()} className="shrink-0 h-[80px] flex items-center">
         <VoteWidget
           tone="neutral"
           score={score}
@@ -59,7 +59,7 @@ export function IdeaListRow({
       </div>
 
       {/* Middle: text content */}
-      <div className="flex-1 min-w-0 flex flex-col gap-1">
+      <div className="flex-1 min-w-0 flex flex-col gap-1.5">
         <p className="text-[17px] font-semibold font-archivo text-vp-ink leading-[1.22] line-clamp-2">
           {title}
         </p>
@@ -67,9 +67,11 @@ export function IdeaListRow({
           <p className="text-[14px] text-vp-text-secondary truncate leading-[1.5]">{excerpt}</p>
         )}
         {/* Meta row */}
-        <div className="flex items-center gap-2 mt-0.5">
+        <div className="flex items-center gap-2.5 mt-0.5">
           <StatusBadge status={status} />
-          <span className="text-[12px] text-vp-text-muted font-mono-num">{commentCount}</span>
+          <span className="text-[12px] text-vp-text-muted">
+            {commentCount} {commentCount === 1 ? 'Kommentar' : 'Kommentare'}
+          </span>
           <span className="text-[12px] text-vp-text-muted">·</span>
           <span className="text-[12px] text-vp-text-muted">{timeAgo}</span>
         </div>

@@ -90,7 +90,7 @@ export function FeaturedIdeaCard({
           {/* Weekly votes */}
           <div className="flex flex-col gap-0.5">
             <span className="text-[24px] font-mono-num font-bold text-vp-ink leading-none">
-              {weeklyVotes}
+              +{weeklyVotes}
             </span>
             <span className="text-[13px] text-vp-text-secondary">neue Stimmen</span>
           </div>

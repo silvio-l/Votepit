@@ -125,7 +125,7 @@ export default function BoardPage() {
 
   const [loadState, setLoadState] = useState<LoadState>({ phase: 'loading' })
   const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [sort, setSort] = useState<SortValue>('newest')
+  const [sort, setSort] = useState<SortValue>('top')
   const [page, setPage] = useState(1)
   const [status, setStatus] = useState<Status | null>(null)
 
@@ -236,8 +236,13 @@ export default function BoardPage() {
 
   const { board, ideas, total_pages, stats } = loadState.data
 
-  // Top idea: first by score (sorted by backend when sort=top, or just first row).
-  const topIdea: Idea | undefined = ideas[0]
+  // Featured top idea: only in the canonical board-home state (page 1, default
+  // sort, no status filter). Once the user sorts/filters/paginates, drop the hero
+  // and show a plain list. The featured idea is excluded from the list below so it
+  // is never shown twice.
+  const showFeatured = page === 1 && status === null && sort === 'top' && ideas.length > 0
+  const topIdea: Idea | undefined = showFeatured ? ideas[0] : undefined
+  const listIdeas: Idea[] = showFeatured ? ideas.slice(1) : ideas
 
   return (
     <PageShell
@@ -311,7 +316,7 @@ export default function BoardPage() {
         />
       ) : (
         <div className="space-y-3" role="list" aria-label="Ideen">
-          {ideas.map((idea) => (
+          {listIdeas.map((idea) => (
             <div key={idea.id} role="listitem">
               <VotableRow idea={idea} boardSlug={board.slug} isAuthenticated={isAuthenticated} />
             </div>
