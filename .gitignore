@@ -11,6 +11,8 @@ dist/
 # Lokale Konfiguration mit Secrets — NIE einchecken
 /config/config.php
 .env
+/config/*.env
+!/config/*.env.example
 
 # Composer-Abhängigkeiten (lokal gebaut, per FTPES als Build-Artefakt deployt)
 /vendor/

@@ -4,6 +4,16 @@ import { Link, useSearchParams } from 'react-router-dom'
 import type { ApiError } from '../lib/api'
 import { bootstrap, requestMagicLink } from '../lib/api'
 
+// Votepit hex brand mark — identical paths to the Header logo (viewBox -185 -205 370 410).
+const LOGO_TOP =
+  'M 165.0 0.0 L 165.0 -44.0 Q 165.0 -72.0 141.6 -87.3 L 23.4 -164.7 Q 0.0 -180.0 -23.4 -164.7 L -141.6 -87.3 Q -165.0 -72.0 -165.0 -44.0 L -165.0 0.0 Z'
+const LOGO_BOT =
+  'M -165.0 0.0 L -165.0 44.0 Q -165.0 72.0 -141.6 87.3 L -23.4 164.7 Q 0.0 180.0 23.4 164.7 L 141.6 87.3 Q 165.0 72.0 165.0 44.0 L 165.0 0.0 Z'
+const LOGO_MID =
+  'M -15.9 -112.0 Q 0.0 -122.4 15.9 -112.0 L 96.3 -59.4 Q 112.2 -49.0 112.2 -29.9 L 112.2 29.9 Q 112.2 49.0 96.3 59.4 L 15.9 112.0 Q 0.0 122.4 -15.9 112.0 L -96.3 59.4 Q -112.2 49.0 -112.2 29.9 L -112.2 -29.9 Q -112.2 -49.0 -96.3 -59.4 Z'
+const LOGO_DARK =
+  'M -11.7 -82.3 Q 0.0 -90.0 11.7 -82.3 L 70.8 -43.7 Q 82.5 -36.0 82.5 -22.0 L 82.5 22.0 Q 82.5 36.0 70.8 43.7 L 11.7 82.3 Q 0.0 90.0 -11.7 82.3 L -70.8 43.7 Q -82.5 36.0 -82.5 22.0 L -82.5 -22.0 Q -82.5 -36.0 -70.8 -43.7 Z'
+
 type PageState =
   | { phase: 'idle' }
   | { phase: 'submitting' }
@@ -47,12 +57,24 @@ export default function LoginPage() {
         className="w-full max-w-sm p-8 bg-vp-surface backdrop-blur-xl rounded-vp-xl border border-vp-border-subtle"
         style={{ boxShadow: '0 8px 32px rgba(0,0,0,0.08)' }}
       >
-        {/* Logo / wordmark */}
-        <div className="mb-6 text-center">
-          <span
-            className="font-archivo font-extrabold text-[28px] leading-none tracking-[-0.025em]"
+        {/* Logo: hex icon + wordmark (matches Header brand mark) */}
+        <div className="mb-6 flex flex-col items-center gap-3">
+          <svg
+            viewBox="-185 -205 370 410"
+            width="44"
+            height="49"
+            fill="none"
             role="img"
             aria-label="Votepit"
+          >
+            <path d={LOGO_TOP} fill="var(--color-vp-vote-up)" />
+            <path d={LOGO_BOT} fill="var(--color-vp-vote-down)" />
+            <path d={LOGO_MID} fill="#084C37" />
+            <path d={LOGO_DARK} fill="#05241A" />
+          </svg>
+          <span
+            className="font-archivo font-extrabold text-[28px] leading-none tracking-[-0.025em]"
+            aria-hidden="true"
           >
             <span className="text-vp-ink">Vote</span>
             <span className="text-vp-vote-down">pit</span>

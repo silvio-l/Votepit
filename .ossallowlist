@@ -38,6 +38,10 @@ tools/
 
 # Konfigurations-VORLAGE (keine Secrets)
 config/config.example.php
+config/smtp-test.env.example
+
+# Dev-/Ops-CLI-Skripte (z. B. SMTP-Smoke-Test) — keine Secrets
+bin/
 
 # Öffentliche Code-/Schema-Verzeichnisse
 public/
