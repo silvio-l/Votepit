@@ -5,29 +5,26 @@
 @source "../../packages/ui/src";
 
 /* ============================================================
-   Base styles (app-specific)
+   Base styles (app-specific) — MUST live in @layer base so that
+   Tailwind's @layer utilities (mb-*, px-*, py-*, …) win the cascade.
+   A previous unlayered `* { margin:0; padding:0 }` reset silently
+   overrode every margin/padding utility (unlayered > @layer in v4).
+   Preflight already handles box-sizing + element margin resets, so
+   no manual reset is needed here.
    ============================================================ */
-
-*,
-*::before,
-*::after {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-body {
-  font-family: var(--font-inter);
-  color: var(--color-vp-ink);
-  /* Background: two radial glows (green top-right, amber bottom-left) +
-     flat warm-neutral canvas. Identical to web/ Landing for visual continuity. */
-  background:
-    radial-gradient(1250px 660px at 64% -14%, rgba(14, 148, 102, 0.18), rgba(14, 148, 102, 0) 62%),
-    radial-gradient(1050px 780px at 1% 80%, rgba(196, 150, 82, 0.08), rgba(196, 150, 82, 0) 60%),
-    var(--color-vp-bg);
-  background-attachment: fixed;
-  line-height: 1.5;
-  overflow-x: hidden;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+@layer base {
+  body {
+    font-family: var(--font-inter);
+    color: var(--color-vp-ink);
+    /* Background: two radial glows (green top-right, amber bottom-left) +
+       flat warm-neutral canvas. Identical to web/ Landing for visual continuity. */
+    background:
+      radial-gradient(1250px 660px at 64% -14%, rgba(14, 148, 102, 0.18), rgba(14, 148, 102, 0) 62%),
+      radial-gradient(1050px 780px at 1% 80%, rgba(196, 150, 82, 0.08), rgba(196, 150, 82, 0) 60%),
+      var(--color-vp-bg);
+    background-attachment: fixed;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+  }
 }
