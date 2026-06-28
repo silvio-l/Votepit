@@ -13,6 +13,7 @@ export default function VerifyPage() {
 
   const [state, setState] = useState<PageState>({ phase: 'verifying' })
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: run once on mount; token / returnTo are stable from the URL.
   useEffect(() => {
     if (!token) {
       setState({
@@ -38,7 +39,6 @@ export default function VerifyPage() {
             : (apiErr?.payload?.message ?? 'Anmeldung fehlgeschlagen. Bitte versuche es erneut.'),
         })
       })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []) // run once on mount; token / returnTo are stable from URL
 
   return (
@@ -51,6 +51,7 @@ export default function VerifyPage() {
         <div className="mb-6">
           <span
             className="font-archivo font-extrabold text-[28px] leading-none tracking-[-0.025em]"
+            role="img"
             aria-label="Votepit"
           >
             <span className="text-vp-ink">Vote</span>

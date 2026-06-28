@@ -53,7 +53,7 @@ function calcConsensus(upCount: number, downCount: number): number {
 /** Clamp body to a short excerpt for list rows. */
 function toExcerpt(body: string, maxChars = 120): string {
   if (body.length <= maxChars) return body
-  return body.slice(0, maxChars).trimEnd() + '…'
+  return `${body.slice(0, maxChars).trimEnd()}…`
 }
 
 // ── Sort mapping ──────────────────────────────────────────────────────────────

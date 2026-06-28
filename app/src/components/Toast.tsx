@@ -48,6 +48,7 @@ export function Toast({ message, type = 'info', onClose }: ToastProps) {
           <span>{message}</span>
           {onClose && (
             <button
+              type="button"
               onClick={onClose}
               className="ml-2 opacity-70 hover:opacity-100 transition-opacity cursor-pointer"
               aria-label="Benachrichtigung schließen"

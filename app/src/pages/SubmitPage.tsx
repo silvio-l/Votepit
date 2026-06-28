@@ -28,16 +28,25 @@ export default function SubmitPage() {
 
         <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
           <div>
-            <label className="block text-sm font-medium text-vp-ink mb-1">Title</label>
+            <label htmlFor="submit-title" className="block text-sm font-medium text-vp-ink mb-1">
+              Title
+            </label>
             <input
+              id="submit-title"
               type="text"
               placeholder="Short, descriptive title"
               className="w-full px-3 py-2 bg-white/72 backdrop-blur border border-vp-border-subtle rounded-vp-md text-vp-ink placeholder:text-vp-text-muted focus:outline-none focus:ring-2 focus:ring-vp-accent/30"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-vp-ink mb-1">Description</label>
+            <label
+              htmlFor="submit-description"
+              className="block text-sm font-medium text-vp-ink mb-1"
+            >
+              Description
+            </label>
             <textarea
+              id="submit-description"
               rows={4}
               placeholder="Describe the idea in detail..."
               className="w-full px-3 py-2 bg-white/72 backdrop-blur border border-vp-border-subtle rounded-vp-md text-vp-ink placeholder:text-vp-text-muted resize-none focus:outline-none focus:ring-2 focus:ring-vp-accent/30"

@@ -267,7 +267,11 @@ describe('useVote — anon redirect (AC7d)', () => {
       initialDownCount: 1,
       returnTo,
     })
-    return <button onClick={voteResult.onVoteUp}>vote up</button>
+    return (
+      <button type="button" onClick={voteResult.onVoteUp}>
+        vote up
+      </button>
+    )
   }
 
   it('anon upvote redirects to /login with r=<returnTo> query param', async () => {
@@ -310,7 +314,11 @@ describe('useVote — anon redirect (AC7d)', () => {
         initialDownCount: 1,
         returnTo: '/demo/idea/42',
       })
-      return <button onClick={voteResult.onVoteDown}>vote down</button>
+      return (
+        <button type="button" onClick={voteResult.onVoteDown}>
+          vote down
+        </button>
+      )
     }
 
     render(

@@ -32,9 +32,9 @@ export function SortTabs({ value, onChange }: SortTabsProps) {
           return (
             <button
               key={tab.value}
+              type="button"
               role="tab"
               aria-selected={isActive}
-              aria-pressed={isActive}
               onClick={() => onChange(tab.value)}
               className={[
                 'relative px-[15px] py-2',

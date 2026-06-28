@@ -52,6 +52,7 @@ export default function LoginPage() {
         <div className="mb-6 text-center">
           <span
             className="font-archivo font-extrabold text-[28px] leading-none tracking-[-0.025em]"
+            role="img"
             aria-label="Votepit"
           >
             <span className="text-vp-ink">Vote</span>

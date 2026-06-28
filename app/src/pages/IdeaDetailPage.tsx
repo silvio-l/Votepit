@@ -96,11 +96,15 @@ function IdeaDetailContent({ data, boardSlug: _boardSlug, onLogout }: IdeaDetail
             <div className="mt-5 flex flex-wrap items-center gap-4">
               <div className="flex items-center gap-3 text-[13px]">
                 <span className="inline-flex items-center gap-1 text-vp-vote-up font-mono-num font-semibold">
-                  <span aria-label="Upvotes">▲</span>
+                  <span role="img" aria-label="Upvotes">
+                    ▲
+                  </span>
                   <span>{upCount}</span>
                 </span>
                 <span className="inline-flex items-center gap-1 text-vp-vote-down font-mono-num font-semibold">
-                  <span aria-label="Downvotes">▼</span>
+                  <span role="img" aria-label="Downvotes">
+                    ▼
+                  </span>
                   <span>{downCount}</span>
                 </span>
               </div>

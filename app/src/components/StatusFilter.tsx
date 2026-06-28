@@ -18,6 +18,7 @@ export function StatusFilter({ value, onChange }: StatusFilterProps) {
     <div className="flex flex-wrap gap-2" role="group" aria-label="Status-Filter">
       {/* "Alle" pill */}
       <button
+        type="button"
         onClick={() => onChange(null)}
         aria-pressed={value === null}
         className={[
@@ -39,6 +40,7 @@ export function StatusFilter({ value, onChange }: StatusFilterProps) {
         return (
           <button
             key={s.value}
+            type="button"
             onClick={() => onChange(s.value)}
             aria-pressed={isActive}
             className={[

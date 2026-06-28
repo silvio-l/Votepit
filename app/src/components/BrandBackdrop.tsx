@@ -20,6 +20,7 @@ export default function BrandBackdrop() {
         width="540"
         height="599"
         fill="none"
+        aria-hidden="true"
       >
         <g className="vp-hex-g">
           <path className="vp-h vp-h--top" d={TOP} fill="#0E9466" />
@@ -34,6 +35,7 @@ export default function BrandBackdrop() {
         width="380"
         height="421"
         fill="none"
+        aria-hidden="true"
       >
         <g className="vp-hex-g">
           <path className="vp-h vp-h--top" d={TOP} fill="#0E9466" />

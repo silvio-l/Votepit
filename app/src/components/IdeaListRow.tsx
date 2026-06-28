@@ -44,7 +44,10 @@ export function IdeaListRow({
         .filter(Boolean)
         .join(' ')}
     >
-      {/* Left: VoteWidget — stop click propagation so the row link doesn't fire */}
+      {/* Left: VoteWidget — stop click propagation so the row link doesn't fire.
+          Not an interactive control itself; the VoteWidget buttons handle keyboard. */}
+      {/* biome-ignore lint/a11y/useKeyWithClickEvents: click-guard wrapper, not a control */}
+      {/* biome-ignore lint/a11y/noStaticElementInteractions: click-guard wrapper, not a control */}
       <div onClick={(e) => e.preventDefault()} className="shrink-0 self-start pt-1">
         <VoteWidget
           tone="neutral"
