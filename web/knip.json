@@ -7,6 +7,6 @@
     "@fontsource/archivo",
     "@fontsource/inter",
     "@fontsource/jetbrains-mono",
-    "@votepit/ui"
+    "tailwindcss"
   ]
 }

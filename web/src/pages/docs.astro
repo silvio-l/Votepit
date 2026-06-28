@@ -2,6 +2,7 @@
 import Base from '../layouts/Base.astro';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
+import DocsReadBeacon from '../components/DocsReadBeacon';
 import { en as t } from '../i18n/en';
 const repo = 'https://github.com/silvio-l/votepit';
 const d = t.docs;
@@ -22,6 +23,7 @@ const d = t.docs;
       ))}
 
       <a class="vp-cta vp-docs-cta" href={repo} rel="noopener noreferrer">{d.ghCta}</a>
+      <DocsReadBeacon client:idle />
     </main>
 
     <Footer t={t} repo={repo} lang="en" />

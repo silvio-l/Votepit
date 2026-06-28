@@ -1,9 +1,9 @@
 ---
 import Base from '../layouts/Base.astro';
 import Header from '../components/Header.astro';
-import SignatureCard from '../components/SignatureCard.astro';
+import SignatureCard from '../components/SignatureCard';
 import Features from '../components/Features.astro';
-import InstallBlock from '../components/InstallBlock.astro';
+import InstallBlock from '../components/InstallBlock';
 import Footer from '../components/Footer.astro';
 import { en as t } from '../i18n/en';
 const repo = 'https://github.com/silvio-l/votepit';
@@ -18,12 +18,12 @@ const repo = 'https://github.com/silvio-l/votepit';
         <p class="vp-sub vp-reveal vp-reveal-3">{t.hero.sub}</p>
         <a class="vp-cta vp-reveal vp-reveal-3" href={repo} rel="noopener noreferrer">{t.hero.cta}</a>
 
-        <SignatureCard t={t} />
+        <SignatureCard client:load t={t} />
       </div>
     </main>
 
     <Features t={t} />
-    <InstallBlock t={t} />
+    <InstallBlock client:load t={t} />
     <Footer t={t} repo={repo} lang="en" />
   </div>
 </Base>
