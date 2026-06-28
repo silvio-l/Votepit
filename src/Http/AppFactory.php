@@ -392,6 +392,9 @@ final class AppFactory
                     $totalPages = max(1, (int) ceil($total / $limit));
                 }
 
+                // "Diese Woche"-Aggregate für die FeaturedIdeaCard (board-scoped).
+                $stats = $ideaRepo->boardStats((int) $board['id']);
+
                 $response->getBody()->write((string) json_encode([
                     'board'            => [
                         'id'    => (int) $board['id'],
@@ -400,6 +403,7 @@ final class AppFactory
                         'intro' => is_string($board['intro'] ?? null) ? $board['intro'] : '',
                     ],
                     'ideas'            => $ideas,
+                    'stats'            => $stats,
                     'active_status'    => $activeStatus,
                     'active_sort'      => $activeSort,
                     'page'             => $page,

@@ -234,7 +234,7 @@ export default function BoardPage() {
     )
   }
 
-  const { board, ideas, total_pages } = loadState.data
+  const { board, ideas, total_pages, stats } = loadState.data
 
   // Top idea: first by score (sorted by backend when sort=top, or just first row).
   const topIdea: Idea | undefined = ideas[0]
@@ -272,9 +272,9 @@ export default function BoardPage() {
             score={topIdea.score_cache}
             commentCount={topIdea.comment_count}
             consensusPercent={calcConsensus(topIdea.up_count, topIdea.down_count)}
-            weeklyVotes={0}
-            weeklyNewIdeas={0}
-            avgConsensusPercent={0}
+            weeklyVotes={stats.weekly_votes}
+            weeklyNewIdeas={stats.weekly_new_ideas}
+            avgConsensusPercent={stats.avg_consensus}
           />
         </div>
       )}

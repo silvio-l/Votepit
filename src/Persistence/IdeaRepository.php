@@ -270,4 +270,54 @@ final readonly class IdeaRepository
         /** @var list<array<string, mixed>> $rows */
         return $rows;
     }
+
+    /**
+     * Board-weite Kennzahlen für das "Diese Woche"-Panel (board-scoped, Prepared-Statements).
+     *
+     * - weekly_votes:     Stimmen auf Ideen dieses Boards in den letzten 7 Tagen.
+     * - weekly_new_ideas: in den letzten 7 Tagen angelegte Ideen dieses Boards.
+     * - avg_consensus:    ⌀ Zustimmungsquote (up/(up+down)) über alle Ideen mit ≥1 Stimme,
+     *                     in Prozent (0–100, kaufmännisch gerundet); 0 ohne Stimmen.
+     *
+     * Der 7-Tage-Stichtag wird in PHP berechnet und als Parameter gebunden — kein
+     * MySQL-spezifisches INTERVAL, damit die portable SQLite-Test-Naht identisch greift.
+     *
+     * @return array{weekly_votes: int, weekly_new_ideas: int, avg_consensus: int}
+     * @throws DbalException
+     */
+    public function boardStats(int $boardId): array
+    {
+        $since = (new \DateTimeImmutable('-7 days'))->format('Y-m-d H:i:s');
+
+        $weeklyVotes = $this->conn->fetchOne(
+            'SELECT COUNT(*) FROM votes v
+             JOIN ideas i ON i.id = v.idea_id
+             WHERE i.board_id = :board_id AND v.created_at >= :since',
+            ['board_id' => $boardId, 'since' => $since],
+        );
+
+        $weeklyNewIdeas = $this->conn->fetchOne(
+            'SELECT COUNT(*) FROM ideas WHERE board_id = :board_id AND created_at >= :since',
+            ['board_id' => $boardId, 'since' => $since],
+        );
+
+        // Pro Idee: up/(up+down)*100; COUNT(*) = Gesamtstimmen (jede Stimme ±1).
+        // Ideen ohne Stimmen erscheinen nicht in votes → fließen nicht in den ⌀ ein.
+        $avgConsensus = $this->conn->fetchOne(
+            'SELECT AVG(consensus) FROM (
+                SELECT (SUM(CASE WHEN v.value > 0 THEN 1 ELSE 0 END) * 100.0) / COUNT(*) AS consensus
+                FROM votes v
+                JOIN ideas i ON i.id = v.idea_id
+                WHERE i.board_id = :board_id
+                GROUP BY v.idea_id
+             ) consensus_per_idea',
+            ['board_id' => $boardId],
+        );
+
+        return [
+            'weekly_votes'     => is_numeric($weeklyVotes) ? (int) $weeklyVotes : 0,
+            'weekly_new_ideas' => is_numeric($weeklyNewIdeas) ? (int) $weeklyNewIdeas : 0,
+            'avg_consensus'    => is_numeric($avgConsensus) ? (int) round((float) $avgConsensus) : 0,
+        ];
+    }
 }

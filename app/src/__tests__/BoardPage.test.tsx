@@ -52,6 +52,7 @@ function makeBoardResponse(
   return {
     board: { id: 1, slug: 'demo', name: 'Demo Board', intro: 'Willkommen!' },
     ideas,
+    stats: { weekly_votes: 0, weekly_new_ideas: 0, avg_consensus: 0 },
     active_status: null,
     active_sort: 'newest',
     page: 1,
@@ -139,6 +140,20 @@ describe('BoardPage', () => {
     await waitFor(() => expect(screen.getByTestId('featured-idea')).toBeInTheDocument())
     // "Top-Idee" label inside the card
     expect(screen.getByText('Top-Idee')).toBeInTheDocument()
+  })
+
+  it('passes weekly stats from the API into the FeaturedIdeaCard', async () => {
+    mockFetch({
+      ...makeBoardResponse([makeIdea({ title: 'Top Idee' })]),
+      stats: { weekly_votes: 312, weekly_new_ideas: 18, avg_consensus: 92 },
+    })
+    renderBoardPage()
+
+    await waitFor(() => expect(screen.getByTestId('featured-idea')).toBeInTheDocument())
+    expect(screen.getByText('312')).toBeInTheDocument()
+    expect(screen.getByText('neue Stimmen')).toBeInTheDocument()
+    expect(screen.getByText('18')).toBeInTheDocument()
+    expect(screen.getByText('neue Ideen')).toBeInTheDocument()
   })
 
   it('does NOT render FeaturedIdeaCard when list is empty', async () => {

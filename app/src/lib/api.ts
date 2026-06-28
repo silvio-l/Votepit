@@ -44,9 +44,17 @@ export interface PaginationMeta {
   total_pages: number
 }
 
+/** Board-weite "Diese Woche"-Aggregate für die FeaturedIdeaCard. */
+export interface BoardStats {
+  weekly_votes: number
+  weekly_new_ideas: number
+  avg_consensus: number
+}
+
 export interface BoardResponse {
   board: BoardData
   ideas: Idea[]
+  stats: BoardStats
   active_status: string | null
   active_sort: string
   page: number
