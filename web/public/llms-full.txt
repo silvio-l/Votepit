@@ -25,12 +25,12 @@ Or upload files and point your browser to the domain.
 
 ### Documentation
 
-Full developer and user documentation at /docs and /de/docs.
+Full developer and user documentation lives in the GitHub repository README.
 
 ### Privacy
 
 Votepit uses cookieless analytics (self-hosted Matomo, IP-anonymized) with
-no consent banner required under GDPR/TDDDG. See /privacy for details.
+no consent banner required under GDPR/TDDDG.
 
 ### Tech Stack
 

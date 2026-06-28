@@ -12,12 +12,11 @@ Deploy on any shared hosting — zero dependencies beyond PHP + MySQL + mod_rewr
 
 ## Key pages
 
-- /: Landing page with interactive vote demo
-- /docs: Technical documentation and usage guide
-- /privacy: Privacy policy (cookieless by default)
-- /de/: German landing page
-- /de/docs: German documentation
-- /de/datenschutz: German privacy policy (DSGVO)
+- /: Landing page with an interactive up/down vote demo
+
+## Documentation
+
+Setup, configuration and usage guides live in the GitHub repository README.
 
 ## Repository
 
