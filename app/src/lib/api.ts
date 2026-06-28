@@ -64,6 +64,16 @@ export interface BootstrapData {
   user: User | null
 }
 
+export interface IdeaDetailResponse {
+  board: {
+    id: number
+    slug: string
+    name: string
+  }
+  idea: Idea
+  is_authenticated: boolean
+}
+
 export interface ApiErrorPayload {
   key: string
   message: string
@@ -161,6 +171,19 @@ export async function getBoard(
     'GET',
     `/${boardSlug}${qs ? `?${qs}` : ''}`,
   )
+}
+
+/**
+ * GET /{boardSlug}/ideas/{ideaId} — single idea detail.
+ * Returns board context, full idea object, and auth state.
+ * Throws ApiError(404) if the board slug is unknown or the idea does not
+ * belong to that board (cross-board leak prevention).
+ */
+export async function getIdea(
+  boardSlug: string,
+  ideaId: string | number,
+): Promise<IdeaDetailResponse> {
+  return request<IdeaDetailResponse>('GET', `/${boardSlug}/ideas/${ideaId}`)
 }
 
 /** Low-level helpers re-exported for pages that need raw GET/POST/PUT/DELETE. */
