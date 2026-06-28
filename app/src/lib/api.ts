@@ -319,6 +319,78 @@ export async function withdrawIdea(
   return request<{ ok: boolean }>('POST', `/${boardSlug}/ideas/${ideaId}/withdraw`, {})
 }
 
+// ── Admin: Branding ───────────────────────────────────────────────────────────
+
+export interface BrandingData {
+  board_slug: string
+  board_name: string
+  primary_color: string | null
+  secondary_color: string | null
+  logo_url: string | null
+}
+
+/**
+ * GET /admin/boards/{slug}/branding — fetch current branding settings.
+ * AuthZ: admin — throws ApiError(401) for anon, ApiError(403) for non-admin.
+ */
+export async function getAdminBranding(slug: string): Promise<BrandingData> {
+  return request<BrandingData>('GET', `/admin/boards/${slug}/branding`)
+}
+
+/**
+ * POST /admin/boards/{slug}/branding — persist branding.
+ * Pass empty string to clear a field (server treats '' as "reset to default").
+ * Requires admin AuthZ + CSRF — call bootstrap() first.
+ */
+export async function saveAdminBranding(
+  slug: string,
+  data: { primary_color: string; secondary_color: string; logo_url: string },
+): Promise<{ ok: boolean }> {
+  return request<{ ok: boolean }>('POST', `/admin/boards/${slug}/branding`, data)
+}
+
+// ── Admin: Moderation ─────────────────────────────────────────────────────────
+
+export interface ModerationWord {
+  id: number
+  word: string
+}
+
+export interface ModerationData {
+  board_slug: string
+  board_name: string
+  moderation_enabled: boolean
+  words: ModerationWord[]
+}
+
+export type ModerationAction =
+  | { action: 'toggle'; moderation_enabled: '1' | '0' }
+  | { action: 'add'; new_word: string }
+  | { action: 'remove'; word_id: number }
+
+/**
+ * GET /admin/boards/{slug}/moderation — fetch moderation settings.
+ * AuthZ: admin — throws ApiError(401) for anon, ApiError(403) for non-admin.
+ */
+export async function getAdminModeration(slug: string): Promise<ModerationData> {
+  return request<ModerationData>('GET', `/admin/boards/${slug}/moderation`)
+}
+
+/**
+ * POST /admin/boards/{slug}/moderation — apply a moderation action.
+ *   action='toggle': saves moderation_enabled flag.
+ *   action='add':    adds a word to the board blocklist.
+ *   action='remove': removes a word by id.
+ * Throws ApiError(422) with fields map on validation failure (empty word etc.).
+ * Requires admin AuthZ + CSRF — call bootstrap() first.
+ */
+export async function saveAdminModeration(
+  slug: string,
+  data: ModerationAction,
+): Promise<{ ok: boolean }> {
+  return request<{ ok: boolean }>('POST', `/admin/boards/${slug}/moderation`, data)
+}
+
 // ── Voting ────────────────────────────────────────────────────────────────────
 
 export interface VoteResponse {

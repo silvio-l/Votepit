@@ -1,5 +1,6 @@
 import { Route, Routes } from 'react-router-dom'
 import BrandBackdrop from './components/BrandBackdrop'
+import AdminPage from './pages/AdminPage'
 import BoardPage from './pages/BoardPage'
 import EditPage from './pages/EditPage'
 import IdeaDetailPage from './pages/IdeaDetailPage'
@@ -21,6 +22,10 @@ export default function App() {
               $config->appUrl . '/login/verify?token=' . $pair['token'] */}
           <Route path="/login" element={<LoginPage />} />
           <Route path="/login/verify" element={<VerifyPage />} />
+
+          {/* Admin routes — AuthZ enforced both client-side (bootstrap) and
+              server-side (AuthZMiddleware::admin). Non-admin → access denied. */}
+          <Route path="/admin/boards/:boardSlug" element={<AdminPage />} />
 
           <Route path="/:boardSlug" element={<BoardPage />} />
           <Route path="/:boardSlug/idea/:ideaId" element={<IdeaDetailPage />} />
