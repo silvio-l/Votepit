@@ -1,32 +1,29 @@
-# React + TypeScript + Vite
+# Votepit App (React SPA)
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+React 19 + Vite + TypeScript + Tailwind frontend for Votepit.
 
-Currently, two official plugins are available:
+## Commands
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```bash
+pnpm dev          # Vite dev server (port 5173, proxies /api → PHP :8080)
+pnpm build        # tsc -b && vite build → dist/
+pnpm lint         # oxlint
+pnpm test         # vitest run (all tests, one-shot)
+pnpm test:watch   # vitest (interactive watch)
+pnpm preview      # preview the production build
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+## Testing conventions
+
+Stack: **Vitest + React Testing Library** (`vitest.config.ts`, jsdom environment).
+
+What gets unit-tested:
+- **Stateful interactive widgets** whose logic can go wrong without rendering the full app — e.g. VoteWidget (optimistic state), SortTabs (selection), Submit form (validation feedback). Test user-visible behaviour: what appears on screen, what happens on click — never React internals.
+
+What does NOT get unit-tested:
+- Pure display/layout components — covered by the screenshot Design Gate instead.
+- Page-level routing and data-fetching — integration concern, out of scope for unit tests.
+
+Test file location: co-located (`*.test.tsx`) or under `src/__tests__/`. Setup file: `src/test-setup.ts` (registers `@testing-library/jest-dom` matchers via `expect.extend`).
+
+Guiding rule: keep the test count low and intentional. Every test must justify its existence by checking behaviour a user actually cares about.
