@@ -1,6 +1,6 @@
 import { Button, TextInput } from '@votepit/ui'
 import { useEffect, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import type { ApiError } from '../lib/api'
 import { bootstrap, requestMagicLink } from '../lib/api'
 
@@ -22,6 +22,7 @@ type PageState =
 
 export default function LoginPage() {
   const [searchParams] = useSearchParams()
+  const navigate = useNavigate()
   const returnTo = searchParams.get('r') ?? undefined
 
   const [email, setEmail] = useState('')
@@ -57,6 +58,15 @@ export default function LoginPage() {
         className="w-full max-w-sm p-8 bg-vp-surface backdrop-blur-xl rounded-vp-xl border border-vp-border-subtle"
         style={{ boxShadow: '0 8px 32px rgba(0,0,0,0.08)' }}
       >
+        {/* Back to wherever the user came from (board / main interface) */}
+        <button
+          type="button"
+          onClick={() => (returnTo ? navigate(returnTo) : navigate(-1))}
+          className="inline-flex items-center gap-1 text-[13px] text-vp-text-muted hover:text-vp-ink transition-colors mb-4 cursor-pointer"
+        >
+          <span aria-hidden="true">‹</span> Zurück
+        </button>
+
         {/* Logo: hex icon + wordmark (matches Header brand mark) */}
         <div className="mb-6 flex flex-col items-center gap-3">
           <svg
