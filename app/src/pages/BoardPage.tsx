@@ -13,6 +13,7 @@ import type { SortValue } from '../components'
 import type { Status } from '../components/StatusBadge'
 import { bootstrap, getBoard, logout } from '../lib/api'
 import type { BoardResponse, Idea, ApiError } from '../lib/api'
+import { useVote } from '../hooks/useVote'
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -64,6 +65,44 @@ function sortValueToApi(sv: SortValue): string {
     controversial: 'newest', // no backend equivalent yet → fall back to newest
   }
   return map[sv]
+}
+
+// ── VotableRow ────────────────────────────────────────────────────────────────
+
+interface VotableRowProps {
+  idea: Idea
+  boardSlug: string
+  isAuthenticated: boolean
+}
+
+function VotableRow({ idea, boardSlug, isAuthenticated }: VotableRowProps) {
+  const voteResult = useVote({
+    boardSlug,
+    ideaId: idea.id,
+    isAuthenticated,
+    initialScore: idea.score_cache,
+    initialMyVote: idea.my_vote,
+    initialUpCount: idea.up_count,
+    initialDownCount: idea.down_count,
+    returnTo: `/${boardSlug}/idea/${idea.id}`,
+  })
+
+  return (
+    <IdeaListRow
+      id={idea.id}
+      title={idea.title}
+      excerpt={toExcerpt(idea.body)}
+      status={toComponentStatus(idea.status)}
+      score={voteResult.score}
+      commentCount={idea.comment_count}
+      timeAgo={formatTimeAgo(idea.created_at)}
+      consensusPercent={calcConsensus(voteResult.upCount, voteResult.downCount)}
+      userVote={voteResult.myVote}
+      onVoteUp={voteResult.onVoteUp}
+      onVoteDown={voteResult.onVoteDown}
+      href={`/${boardSlug}/idea/${idea.id}`}
+    />
+  )
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -258,16 +297,10 @@ export default function BoardPage() {
         <div className="space-y-3" role="list" aria-label="Ideen">
           {ideas.map((idea) => (
             <div key={idea.id} role="listitem">
-              <IdeaListRow
-                id={idea.id}
-                title={idea.title}
-                excerpt={toExcerpt(idea.body)}
-                status={toComponentStatus(idea.status)}
-                score={idea.score_cache}
-                commentCount={idea.comment_count}
-                timeAgo={formatTimeAgo(idea.created_at)}
-                consensusPercent={calcConsensus(idea.up_count, idea.down_count)}
-                href={`/${board.slug}/idea/${idea.id}`}
+              <VotableRow
+                idea={idea}
+                boardSlug={board.slug}
+                isAuthenticated={isAuthenticated}
               />
             </div>
           ))}

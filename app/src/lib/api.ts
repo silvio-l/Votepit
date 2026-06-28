@@ -235,3 +235,27 @@ export async function verifyToken(
 export async function logout(): Promise<{ ok: boolean }> {
   return request<{ ok: boolean }>('POST', '/logout', {})
 }
+
+// ── Voting ────────────────────────────────────────────────────────────────────
+
+export interface VoteResponse {
+  score: number
+  my_vote: 'up' | 'down' | 'none'
+  up_count: number
+  down_count: number
+}
+
+/**
+ * POST /{boardSlug}/ideas/{ideaId}/vote — cast / flip / retract a vote.
+ * direction is sent as `value` field (server accepts 'up' / 'down').
+ * Retract = send same direction twice; server handles the toggle.
+ * Throws ApiError(401) for anon, ApiError(403) for blocked/CSRF, etc.
+ * Requires CSRF token — call bootstrap() before this.
+ */
+export async function vote(
+  boardSlug: string,
+  ideaId: string | number,
+  direction: 'up' | 'down',
+): Promise<VoteResponse> {
+  return request<VoteResponse>('POST', `/${boardSlug}/ideas/${ideaId}/vote`, { value: direction })
+}
