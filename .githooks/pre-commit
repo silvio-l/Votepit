@@ -66,4 +66,28 @@ fi
 # Identität, Platzhalter in den öffentlichen Inhalten dieses Commits.
 bash "$ROOT/.githooks/check-docs.sh" staged || exit 1
 
+# Biome lint on staged frontend files (fast gate; Knip + Semgrep run on pre-push).
+# Checks .ts/.tsx/.js/.mjs/.json under app/, web/, packages/ — skips cleanly if none staged.
+# Bash-3.2-kompatibel — kein mapfile/readarray.
+_biome_bin="$ROOT/app/node_modules/.bin/biome"
+if [ ! -x "$_biome_bin" ]; then
+  _biome_bin="$(command -v biome 2>/dev/null || true)"
+fi
+
+if [ -x "$_biome_bin" ]; then
+  for _ws_dir in app web packages/ui; do
+    _ws_files=()
+    while IFS= read -r _p; do
+      [ -n "$_p" ] && _ws_files+=("${_p#${_ws_dir}/}")
+    done < <(git diff --cached --name-only --diff-filter=ACM \
+               | grep -E "^${_ws_dir}/.*\.(ts|tsx|js|mjs|json)$" \
+               || true)
+    if [ ${#_ws_files[@]} -gt 0 ]; then
+      echo "pre-commit: Biome (${_ws_dir}/): ${#_ws_files[@]} file(s)"
+      ( cd "$ROOT/$_ws_dir" && "$_biome_bin" check --no-errors-on-unmatched "${_ws_files[@]}" ) \
+        || exit 1
+    fi
+  done
+fi
+
 exit 0

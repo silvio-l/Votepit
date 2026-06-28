@@ -91,4 +91,9 @@ fi
 # Identität, Platzhalter im gesamten zu pushenden HEAD-Baum.
 bash "$ROOT/.githooks/check-docs.sh" head || exit 1
 
+# Frontend quality gate (Biome + Knip app/web/ui + Semgrep).
+# Runs here (not on pre-commit) to keep commits fast; push is the hard gate.
+echo "pre-push: Running frontend quality gate ..."
+bash "$ROOT/tools/quality.sh" || exit 1
+
 exit 0

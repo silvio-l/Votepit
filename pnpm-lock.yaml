@@ -29,9 +29,6 @@ importers:
       '@biomejs/biome':
         specifier: 2.5.1
         version: 2.5.1
-      '@figma/code-connect':
-        specifier: ^1.4.8
-        version: 1.4.8
       '@fontsource/archivo':
         specifier: ^5.2.8
         version: 5.2.8
@@ -96,6 +93,9 @@ importers:
         specifier: '>=19'
         version: 19.2.7(react@19.2.7)
     devDependencies:
+      '@figma/code-connect':
+        specifier: ^1.4.8
+        version: 1.4.8
       '@types/react':
         specifier: ^19
         version: 19.2.17
@@ -123,6 +123,13 @@ importers:
       astro:
         specifier: ^6.4.8
         version: 6.4.8(@types/node@24.13.2)(jiti@2.7.0)(lightningcss@1.32.0)(rollup@4.62.2)(yaml@2.9.0)
+    devDependencies:
+      '@biomejs/biome':
+        specifier: 2.5.1
+        version: 2.5.1
+      knip:
+        specifier: 6.23.0
+        version: 6.23.0
 
 packages:
 

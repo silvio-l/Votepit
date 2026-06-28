@@ -22,7 +22,6 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.1",
-    "@figma/code-connect": "^1.4.8",
     "@fontsource/archivo": "^5.2.8",
     "@fontsource/inter": "^5.2.8",
     "@fontsource/jetbrains-mono": "^5.2.8",

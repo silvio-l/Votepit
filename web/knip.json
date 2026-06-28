@@ -1,11 +1,12 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
-  "entry": ["src/lib/api.ts"],
-  "project": ["src/**/*.{ts,tsx}"],
+  "entry": ["src/pages/**/*.astro"],
+  "project": ["src/**/*.{ts,tsx,astro}"],
   "ignoreDependencies": [
+    "@astrojs/check",
     "@fontsource/archivo",
     "@fontsource/inter",
     "@fontsource/jetbrains-mono",
-    "tailwindcss"
+    "@votepit/ui"
   ]
 }
