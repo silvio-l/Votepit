@@ -1,6 +1,7 @@
 import { Route, Routes } from 'react-router-dom'
 import BrandBackdrop from './components/BrandBackdrop'
 import BoardPage from './pages/BoardPage'
+import EditPage from './pages/EditPage'
 import IdeaDetailPage from './pages/IdeaDetailPage'
 import LoginPage from './pages/LoginPage'
 import NotFoundPage from './pages/NotFoundPage'
@@ -23,6 +24,7 @@ export default function App() {
 
           <Route path="/:boardSlug" element={<BoardPage />} />
           <Route path="/:boardSlug/idea/:ideaId" element={<IdeaDetailPage />} />
+          <Route path="/:boardSlug/idea/:ideaId/edit" element={<EditPage />} />
           <Route path="/:boardSlug/submit" element={<SubmitPage />} />
           <Route path="/" element={<BoardPage />} />
           <Route path="*" element={<NotFoundPage />} />

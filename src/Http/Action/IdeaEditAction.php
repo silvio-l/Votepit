@@ -102,6 +102,7 @@ final readonly class IdeaEditAction
             ],
             'idea'             => $idea,
             'is_authenticated' => true,
+            'form_at'          => $this->timeTrap->stamp(),
         ]));
         return $response->withStatus(200)->withHeader('Content-Type', 'application/json');
     }

@@ -6,6 +6,7 @@
  */
 
 import { render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import IdeaDetailPage from './IdeaDetailPage'
@@ -13,6 +14,7 @@ import IdeaDetailPage from './IdeaDetailPage'
 // ── Mock helpers ──────────────────────────────────────────────────────────────
 
 const BOOTSTRAP_RESPONSE = { csrf_token: 'test-csrf', user: null }
+const BOOTSTRAP_AUTHED = { csrf_token: 'test-csrf', user: { id: 1, is_admin: false } }
 
 function makeIdeaDetailResponse(
   overrides: {
@@ -51,11 +53,35 @@ function makeIdeaDetailResponse(
  *   1. /api/bootstrap
  *   2. /{boardSlug}/ideas/{ideaId}
  */
-function mockFetch(detailResponse: object, detailStatus = 200) {
+function mockFetch(detailResponse: object, detailStatus = 200, bootstrapOverride?: object) {
   let callIndex = 0
   const responses = [
-    { body: JSON.stringify(BOOTSTRAP_RESPONSE), status: 200 },
+    { body: JSON.stringify(bootstrapOverride ?? BOOTSTRAP_RESPONSE), status: 200 },
     { body: JSON.stringify(detailResponse), status: detailStatus },
+  ]
+
+  vi.spyOn(globalThis, 'fetch').mockImplementation(async () => {
+    const r = responses[callIndex] ?? responses[responses.length - 1]
+    callIndex++
+    return new Response(r.body, {
+      status: r.status,
+      headers: { 'Content-Type': 'application/json' },
+    })
+  })
+}
+
+/**
+ * Mock fetch with three sequential responses (for withdraw flow):
+ *  1. /api/bootstrap  (authenticated as user id=1)
+ *  2. /{boardSlug}/ideas/{ideaId}  (GET detail)
+ *  3. /{boardSlug}/ideas/{ideaId}/withdraw  (POST)
+ */
+function mockFetchWithWithdraw(detailResponse: object, withdrawStatus = 200) {
+  let callIndex = 0
+  const responses = [
+    { body: JSON.stringify(BOOTSTRAP_AUTHED), status: 200 },
+    { body: JSON.stringify(detailResponse), status: 200 },
+    { body: JSON.stringify({ ok: true }), status: withdrawStatus },
   ]
 
   vi.spyOn(globalThis, 'fetch').mockImplementation(async () => {
@@ -73,6 +99,7 @@ function renderIdeaDetailPage(boardSlug = 'demo', ideaId = '42') {
     <MemoryRouter initialEntries={[`/${boardSlug}/idea/${ideaId}`]}>
       <Routes>
         <Route path="/:boardSlug/idea/:ideaId" element={<IdeaDetailPage />} />
+        <Route path="/:boardSlug" element={<div data-testid="board-page" />} />
       </Routes>
     </MemoryRouter>,
   )
@@ -140,5 +167,49 @@ describe('IdeaDetailPage', () => {
 
     // Back-link to board
     expect(screen.getByRole('link', { name: /Zurück zum Board/i })).toBeInTheDocument()
+  })
+
+  it('shows edit and withdraw entry points only for the author (AC3)', async () => {
+    // author_id=1, bootstrap user=id:1 → is owner → buttons visible
+    mockFetch(makeIdeaDetailResponse(), 200, BOOTSTRAP_AUTHED)
+
+    renderIdeaDetailPage()
+
+    await waitFor(() =>
+      expect(screen.getByRole('heading', { name: /Eine tolle Feature-Idee/i })).toBeInTheDocument(),
+    )
+
+    expect(screen.getByRole('link', { name: 'Bearbeiten' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Idee zurückziehen/i })).toBeInTheDocument()
+  })
+
+  it('does NOT show edit/withdraw buttons for a non-owner (AC3)', async () => {
+    // author_id=1, bootstrap user=null → not owner → buttons hidden
+    mockFetch(makeIdeaDetailResponse())
+
+    renderIdeaDetailPage()
+
+    await waitFor(() =>
+      expect(screen.getByRole('heading', { name: /Eine tolle Feature-Idee/i })).toBeInTheDocument(),
+    )
+
+    expect(screen.queryByRole('link', { name: 'Bearbeiten' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Idee zurückziehen/i })).not.toBeInTheDocument()
+  })
+
+  it('withdraw calls server and navigates to board (AC2)', async () => {
+    // author_id=1, bootstrap user=id:1 → is owner
+    mockFetchWithWithdraw(makeIdeaDetailResponse())
+
+    renderIdeaDetailPage()
+
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: /Idee zurückziehen/i })).toBeInTheDocument(),
+    )
+
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: /Idee zurückziehen/i }))
+
+    await waitFor(() => expect(screen.getByTestId('board-page')).toBeInTheDocument())
   })
 })

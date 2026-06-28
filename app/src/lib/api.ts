@@ -264,6 +264,61 @@ export async function createIdea(
   return request<CreateIdeaResponse>('POST', `/${boardSlug}/ideas`, payload)
 }
 
+// ── Idea editing & withdrawal ─────────────────────────────────────────────────
+
+export interface GetIdeaForEditResponse {
+  board: { id: number; slug: string; name: string }
+  idea: Idea
+  is_authenticated: boolean
+  form_at: string
+}
+
+export interface UpdateIdeaPayload {
+  title: string
+  body: string
+  website: string // honeypot — always ''
+  _form_at: string // time-trap stamp from GET /edit
+}
+
+/**
+ * GET /{boardSlug}/ideas/{ideaId}/edit — fetch pre-filled idea for editing.
+ * Returns idea data + form_at stamp for the edit POST.
+ * Throws ApiError(401) for anon, ApiError(403) for non-owner, ApiError(404) if not found.
+ */
+export async function getIdeaForEdit(
+  boardSlug: string,
+  ideaId: string | number,
+): Promise<GetIdeaForEditResponse> {
+  return request<GetIdeaForEditResponse>('GET', `/${boardSlug}/ideas/${ideaId}/edit`)
+}
+
+/**
+ * POST /{boardSlug}/ideas/{ideaId} — update an existing idea (author only).
+ * website must always be '' (honeypot — server rejects non-empty).
+ * _form_at must be the stamp returned by getIdeaForEdit() (Time-Trap).
+ * Requires auth + ownership (403 for non-owner) and a valid CSRF token.
+ * Throws ApiError(422) with fields map on validation / moderation / anti-spam failure.
+ */
+export async function updateIdea(
+  boardSlug: string,
+  ideaId: string | number,
+  payload: UpdateIdeaPayload,
+): Promise<{ ok: boolean }> {
+  return request<{ ok: boolean }>('POST', `/${boardSlug}/ideas/${ideaId}`, payload)
+}
+
+/**
+ * POST /{boardSlug}/ideas/{ideaId}/withdraw — hard-delete own idea.
+ * Requires auth + ownership (403 for non-owner) and a valid CSRF token.
+ * Throws ApiError(403) for non-owner, ApiError(404) if not found.
+ */
+export async function withdrawIdea(
+  boardSlug: string,
+  ideaId: string | number,
+): Promise<{ ok: boolean }> {
+  return request<{ ok: boolean }>('POST', `/${boardSlug}/ideas/${ideaId}/withdraw`, {})
+}
+
 // ── Voting ────────────────────────────────────────────────────────────────────
 
 export interface VoteResponse {

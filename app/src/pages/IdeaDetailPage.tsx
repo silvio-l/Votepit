@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import type { Status } from '../components'
 import { ConsensusBar, EmptyState, Header, PageShell, StatusBadge, VoteWidget } from '../components'
 import { useVote } from '../hooks/useVote'
 import type { ApiError, IdeaDetailResponse } from '../lib/api'
-import { bootstrap, getIdea, logout } from '../lib/api'
+import { bootstrap, getIdea, logout, withdrawIdea } from '../lib/api'
 
 function toComponentStatus(raw: string): Status {
   if (raw === 'in_progress') return 'in-progress'
@@ -29,11 +29,38 @@ type LoadState =
 interface IdeaDetailContentProps {
   data: IdeaDetailResponse
   boardSlug: string
+  currentUserId: number | null
   onLogout: () => void
 }
 
-function IdeaDetailContent({ data, boardSlug: _boardSlug, onLogout }: IdeaDetailContentProps) {
+function IdeaDetailContent({
+  data,
+  boardSlug: _boardSlug,
+  currentUserId,
+  onLogout,
+}: IdeaDetailContentProps) {
   const { board, idea, is_authenticated } = data
+  const navigate = useNavigate()
+  const [withdrawing, setWithdrawing] = useState(false)
+  const [withdrawError, setWithdrawError] = useState<string | null>(null)
+
+  const isOwner = currentUserId !== null && currentUserId === idea.author_id
+
+  const handleWithdraw = async () => {
+    if (withdrawing) return
+    setWithdrawing(true)
+    setWithdrawError(null)
+    try {
+      await withdrawIdea(board.slug, idea.id)
+      navigate(`/${board.slug}`)
+    } catch (err) {
+      const apiErr = err as ApiError
+      setWithdrawError(
+        apiErr?.payload?.message ?? 'Zurückziehen fehlgeschlagen. Bitte versuche es erneut.',
+      )
+      setWithdrawing(false)
+    }
+  }
 
   const voteResult = useVote({
     boardSlug: board.slug,
@@ -119,6 +146,31 @@ function IdeaDetailContent({ data, boardSlug: _boardSlug, onLogout }: IdeaDetail
             <div className="mt-4 max-w-xs">
               <ConsensusBar percent={consensusPercent} />
             </div>
+
+            {isOwner && (
+              <div className="mt-5 flex flex-wrap items-center gap-3">
+                <a
+                  href={`/${board.slug}/idea/${idea.id}/edit`}
+                  className="inline-flex items-center px-3 py-1.5 text-[13px] font-inter font-medium text-vp-ink border border-vp-border-subtle rounded-vp-md hover:bg-vp-surface transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-vp-ink"
+                >
+                  Bearbeiten
+                </a>
+                <button
+                  type="button"
+                  onClick={handleWithdraw}
+                  disabled={withdrawing}
+                  aria-busy={withdrawing}
+                  className="inline-flex items-center px-3 py-1.5 text-[13px] font-inter font-medium text-vp-vote-down border border-vp-vote-down/30 rounded-vp-md hover:bg-vp-vote-down/5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-vp-vote-down"
+                >
+                  {withdrawing ? 'Wird zurückgezogen…' : 'Idee zurückziehen'}
+                </button>
+                {withdrawError !== null && (
+                  <p role="alert" className="w-full text-[12px] font-inter text-vp-vote-down">
+                    {withdrawError}
+                  </p>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </article>
@@ -133,10 +185,14 @@ export default function IdeaDetailPage() {
 
   const [loadState, setLoadState] = useState<LoadState>({ phase: 'loading' })
   const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [currentUserId, setCurrentUserId] = useState<number | null>(null)
 
   useEffect(() => {
     bootstrap()
-      .then((b) => setIsAuthenticated(b.user !== null))
+      .then((b) => {
+        setIsAuthenticated(b.user !== null)
+        setCurrentUserId(b.user?.id ?? null)
+      })
       .catch(() => {})
   }, [])
 
@@ -230,6 +286,11 @@ export default function IdeaDetailPage() {
   }
 
   return (
-    <IdeaDetailContent data={loadState.data} boardSlug={boardSlug ?? ''} onLogout={handleLogout} />
+    <IdeaDetailContent
+      data={loadState.data}
+      boardSlug={boardSlug ?? ''}
+      currentUserId={currentUserId}
+      onLogout={handleLogout}
+    />
   )
 }
