@@ -14,6 +14,7 @@
     "@fontsource/archivo": "^5.2.5",
     "@fontsource/inter": "^5.2.5",
     "@fontsource/jetbrains-mono": "^5.2.5",
+    "@votepit/ui": "workspace:*",
     "astro": "^6.4.8"
   }
 }

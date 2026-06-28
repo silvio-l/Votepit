@@ -17,6 +17,13 @@ composer.lock
 .ossallowlist
 phpunit.xml
 
+# Monorepo-Workspace (pnpm): Root-Manifest, Workspace-Definition, Lockfile,
+# geteilte Pakete (z. B. @votepit/ui — React-Komponenten-Bibliothek)
+package.json
+pnpm-workspace.yaml
+pnpm-lock.yaml
+packages/
+
 # Quality-Tooling-Konfiguration (PHPStan/PHP-CS-Fixer/Rector)
 phpstan.neon
 .php-cs-fixer.dist.php

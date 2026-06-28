@@ -1,0 +1,12 @@
+packages:
+  - app
+  - web
+  - packages/*
+
+allowBuilds:
+  esbuild: true
+  sharp: true
+
+# Preserved from the prior app/pnpm-workspace.yaml (Knip release-age allowlist).
+minimumReleaseAgeExclude:
+  - knip@6.23.0
