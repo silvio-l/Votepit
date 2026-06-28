@@ -5,10 +5,20 @@ import { defineConfig } from 'vite'
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
+    // Die PHP-API und die SPA teilen sich Pfade (z. B. /{board} liefert JSON,
+    // dieselbe URL rendert im Browser den Board-Screen). Aufteilung per Accept:
+    // JSON-Anfragen → PHP-API, HTML-Navigation → Vite-SPA. Ohne das kann der
+    // Dev-Server keine Board-Daten laden (fetch('/demo') träfe sonst Vite).
     proxy: {
-      '/api': 'http://localhost:8080',
-      '/login': 'http://localhost:8080',
-      '/logout': 'http://localhost:8080',
+      '^/': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+        bypass(req) {
+          const accept = req.headers.accept || ''
+          if (accept.includes('application/json')) return undefined
+          return req.url
+        },
+      },
     },
   },
 })
