@@ -36,10 +36,13 @@ export function IdeaListRow({
     <div
       className={[
         'flex items-center gap-5',
-        'bg-vp-surface-frost border border-vp-border-subtle rounded-vp-lg',
+        'bg-vp-surface-frost border border-vp-border-frost rounded-vp-lg',
+        'backdrop-blur-[14px] backdrop-saturate-[1.2]',
         'pl-5 pr-6 py-[18px]',
         'shadow-vp-soft',
-        href ? 'hover:border-vp-text-muted transition-colors duration-150' : '',
+        href
+          ? 'transition-[transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:shadow-vp-lift'
+          : '',
       ]
         .filter(Boolean)
         .join(' ')}

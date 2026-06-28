@@ -106,6 +106,9 @@
   --color-vp-text-secondary: #565a62;
   --color-vp-text-muted:     #979ba3;
   --color-vp-border-subtle:  #e6e6e0;
+  /* Luminous frosted edge for cards over the gradient backdrop (matches the
+     Landing's .vp-sigcard) — bright top edge that reads as frosted glass. */
+  --color-vp-border-frost:   rgba(255, 255, 255, 0.55);
 
   /* ── Semantic: voting & consensus — board branding MUST NOT touch ──
      These encode meaning (green = Up, vermillion = Down).
@@ -130,10 +133,11 @@
   --radius-vp-xl:   20px;
   --radius-vp-full: 9999px;
 
-  /* ── Elevation — single soft glow (Figma: weiche Glows, keine harten
-     Schatten). Every card/surface uses this; never Tailwind's default
-     hard `shadow`. ─────────────────────────────────────────────────── */
-  --shadow-vp-soft: 0px 8px 24px -6px rgba(20, 23, 26, 0.07);
+  /* ── Elevation — layered ring + soft tinted glow (matches the Landing's
+     .vp-sigcard). A 1px hairline ring defines the edge, a large diffuse glow
+     gives depth. Never Tailwind's default hard `shadow`. ──────────────── */
+  --shadow-vp-soft: 0 0 0 1px rgba(21, 22, 26, 0.05), 0 10px 30px -12px rgba(21, 22, 26, 0.12);
+  --shadow-vp-lift: 0 0 0 1px rgba(21, 22, 26, 0.06), 0 18px 40px -16px rgba(21, 22, 26, 0.16);
 }
 
 /* a11y: visible focus indicator — consistent across all interactive elements */

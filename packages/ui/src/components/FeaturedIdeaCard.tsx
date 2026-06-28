@@ -36,7 +36,7 @@ export function FeaturedIdeaCard({
   return (
     <div className="flex flex-col md:flex-row gap-[14px]">
       {/* Left panel */}
-      <div className="flex-1 bg-vp-surface border border-vp-border-subtle rounded-vp-xl shadow-vp-soft pl-6 pr-[26px] py-6">
+      <div className="flex-1 bg-vp-surface border border-vp-border-frost rounded-vp-xl shadow-vp-soft backdrop-blur-[14px] backdrop-saturate-[1.2] pl-6 pr-[26px] py-6">
         <div className="flex gap-[22px]">
           {/* VoteWidget leading */}
           <div className="shrink-0 h-[80px] flex items-center">
@@ -79,7 +79,7 @@ export function FeaturedIdeaCard({
       </div>
 
       {/* Right panel */}
-      <div className="w-full md:w-[300px] shrink-0 bg-vp-surface border border-vp-border-subtle rounded-vp-xl shadow-vp-soft p-[22px] flex flex-col gap-4">
+      <div className="w-full md:w-[300px] shrink-0 bg-vp-surface border border-vp-border-frost rounded-vp-xl shadow-vp-soft backdrop-blur-[14px] backdrop-saturate-[1.2] p-[22px] flex flex-col gap-4">
         {/* DIESE WOCHE label */}
         <span className="text-[11px] font-bold text-vp-text-muted tracking-[1.1px] uppercase">
           Diese Woche
