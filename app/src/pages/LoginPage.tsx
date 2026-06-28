@@ -1,7 +1,6 @@
+import { Button, TextInput } from '@votepit/ui'
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { Button } from '../components/Button'
-import { TextInput } from '../components/TextInput'
 import type { ApiError } from '../lib/api'
 import { bootstrap, requestMagicLink } from '../lib/api'
 

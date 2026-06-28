@@ -1,4 +1,22 @@
 // @votepit/ui — shared React component library.
-// Components are moved here in Phase 3 (from app/src/components) and re-exported
-// below so both app/ (React SPA) and web/ (Astro islands) consume one source.
-export {}
+export { default as BrandBackdrop } from './components/BrandBackdrop'
+export type { ButtonVariant } from './components/Button'
+export { Button } from './components/Button'
+export { ConsensusBar } from './components/ConsensusBar'
+export { EmptyState } from './components/EmptyState'
+export { FeaturedIdeaCard } from './components/FeaturedIdeaCard'
+export { Header } from './components/Header'
+export { IdeaListRow } from './components/IdeaListRow'
+export { PageShell } from './components/PageShell'
+export { Pagination } from './components/Pagination'
+export type { SortValue } from './components/SortTabs'
+export { SortTabs } from './components/SortTabs'
+export type { Status } from './components/StatusBadge'
+export { StatusBadge } from './components/StatusBadge'
+export { StatusFilter } from './components/StatusFilter'
+export { Textarea } from './components/Textarea'
+export { TextInput } from './components/TextInput'
+export type { ToastType } from './components/Toast'
+export { Toast } from './components/Toast'
+export type { UserVote, VoteTone } from './components/VoteWidget'
+export { VoteWidget } from './components/VoteWidget'

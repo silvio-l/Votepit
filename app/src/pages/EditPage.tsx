@@ -15,10 +15,10 @@
  * Design: Light Modern per Figma 96:282.
  */
 
+import { Button, Header, Textarea, TextInput } from '@votepit/ui'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { Button, Header, Textarea, TextInput } from '../components'
 import type { ApiError } from '../lib/api'
 import { bootstrap, getIdeaForEdit, logout, updateIdea } from '../lib/api'
 

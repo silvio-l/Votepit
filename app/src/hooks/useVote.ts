@@ -1,6 +1,6 @@
+import type { UserVote } from '@votepit/ui'
 import { useCallback, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import type { UserVote } from '../components/VoteWidget'
 import type { VoteResponse } from '../lib/api'
 import { vote as apiVote } from '../lib/api'
 

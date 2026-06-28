@@ -14,10 +14,10 @@
  * Design: Light Modern per Figma 94:242 (form) / 95:262 (error state).
  */
 
+import { Button, Header, Textarea, TextInput } from '@votepit/ui'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { Button, Header, Textarea, TextInput } from '../components'
 import type { ApiError, User } from '../lib/api'
 import { bootstrap, createIdea, getSubmitForm, logout } from '../lib/api'
 

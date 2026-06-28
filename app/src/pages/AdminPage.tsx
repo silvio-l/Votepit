@@ -19,10 +19,10 @@
  *   warm-neutral, no hard borders.
  */
 
+import { Button, Header, PageShell, TextInput } from '@votepit/ui'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { Button, Header, PageShell, TextInput } from '../components'
 import type { ApiError, ModerationWord } from '../lib/api'
 import {
   bootstrap,

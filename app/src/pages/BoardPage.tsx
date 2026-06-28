@@ -1,6 +1,4 @@
-import { useEffect, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
-import type { SortValue } from '../components'
+import type { SortValue, Status } from '@votepit/ui'
 import {
   EmptyState,
   FeaturedIdeaCard,
@@ -10,8 +8,9 @@ import {
   Pagination,
   SortTabs,
   StatusFilter,
-} from '../components'
-import type { Status } from '../components/StatusBadge'
+} from '@votepit/ui'
+import { useEffect, useState } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
 import { useVote } from '../hooks/useVote'
 import type { ApiError, BoardResponse, Idea } from '../lib/api'
 import { bootstrap, getBoard, logout } from '../lib/api'

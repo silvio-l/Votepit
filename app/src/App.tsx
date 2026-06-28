@@ -1,5 +1,5 @@
+import { BrandBackdrop } from '@votepit/ui'
 import { Route, Routes } from 'react-router-dom'
-import BrandBackdrop from './components/BrandBackdrop'
 import AdminPage from './pages/AdminPage'
 import BoardPage from './pages/BoardPage'
 import EditPage from './pages/EditPage'

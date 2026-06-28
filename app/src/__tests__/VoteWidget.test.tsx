@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { VoteWidget } from '@votepit/ui'
 import { describe, expect, it, vi } from 'vitest'
-import { VoteWidget } from '../components/VoteWidget'
 
 describe('VoteWidget', () => {
   it('renders the score', () => {

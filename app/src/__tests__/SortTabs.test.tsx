@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { SortTabs } from '@votepit/ui'
 import { describe, expect, it, vi } from 'vitest'
-import { SortTabs } from '../components/SortTabs'
 
 describe('SortTabs', () => {
   it('renders all 3 tabs', () => {
