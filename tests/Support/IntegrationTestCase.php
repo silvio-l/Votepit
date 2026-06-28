@@ -213,6 +213,24 @@ abstract class IntegrationTestCase extends TestCase
                 PRIMARY KEY ("key")
             )',
         );
+
+        $conn->executeStatement(
+            'CREATE TABLE IF NOT EXISTS board_smtp_settings (
+                id          INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                board_id    INTEGER NOT NULL,
+                host        VARCHAR(255) NOT NULL DEFAULT \'\',
+                port        INTEGER NOT NULL DEFAULT 587,
+                user        VARCHAR(254) NOT NULL DEFAULT \'\',
+                pass        TEXT NULL,
+                encryption  VARCHAR(8) NOT NULL DEFAULT \'tls\',
+                from_email  VARCHAR(254) NOT NULL DEFAULT \'\',
+                from_name   VARCHAR(128) NOT NULL DEFAULT \'Votepit\',
+                created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE (board_id),
+                FOREIGN KEY (board_id) REFERENCES boards(id) ON DELETE CASCADE
+            )',
+        );
     }
 
     // -------------------------------------------------------------------------

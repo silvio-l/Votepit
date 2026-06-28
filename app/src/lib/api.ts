@@ -474,3 +474,61 @@ export async function testAdminSmtp(
 ): Promise<{ ok: boolean; recipient: string }> {
   return request<{ ok: boolean; recipient: string }>('POST', '/admin/smtp/test', data ?? {})
 }
+
+// ── Admin: Board-SMTP ─────────────────────────────────────────────────────────
+
+export interface BoardSmtpSettingsData {
+  board_slug: string
+  host: string
+  port: number
+  user: string
+  encryption: 'tls' | 'ssl' | ''
+  from_email: string
+  from_name: string
+  password_set: boolean
+  uses_global_default: boolean
+}
+
+/**
+ * GET /admin/boards/{slug}/smtp — liest Board-SMTP-Settings (kein Passwort).
+ */
+export async function getAdminBoardSmtp(boardSlug: string): Promise<BoardSmtpSettingsData> {
+  return request<BoardSmtpSettingsData>('GET', `/admin/boards/${boardSlug}/smtp`)
+}
+
+/**
+ * PUT /admin/boards/{slug}/smtp — speichert Board-SMTP-Settings.
+ */
+export async function saveAdminBoardSmtp(
+  boardSlug: string,
+  data: Omit<BoardSmtpSettingsData, 'board_slug' | 'password_set' | 'uses_global_default'> & {
+    password: string
+  },
+): Promise<{ ok: boolean }> {
+  return request<{ ok: boolean }>('PUT', `/admin/boards/${boardSlug}/smtp`, data)
+}
+
+/**
+ * PUT /admin/boards/{slug}/smtp — setzt Board auf globalen Default zurück.
+ */
+export async function resetAdminBoardSmtp(
+  boardSlug: string,
+): Promise<{ ok: boolean; reset: boolean }> {
+  return request<{ ok: boolean; reset: boolean }>('PUT', `/admin/boards/${boardSlug}/smtp`, {
+    reset_to_global: true,
+  })
+}
+
+/**
+ * POST /admin/boards/{slug}/smtp/test — sendet Test-Mail via aufgelöste Board-Settings.
+ */
+export async function testAdminBoardSmtp(
+  boardSlug: string,
+  data?: SmtpTestBody,
+): Promise<{ ok: boolean; recipient: string }> {
+  return request<{ ok: boolean; recipient: string }>(
+    'POST',
+    `/admin/boards/${boardSlug}/smtp/test`,
+    data ?? {},
+  )
+}

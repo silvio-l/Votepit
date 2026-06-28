@@ -25,8 +25,10 @@ use Votepit\Http\Middleware\SecurityHeaderMiddleware;
 use Votepit\Http\Middleware\SessionMiddleware;
 use Votepit\Logging\AuditLogger;
 use Votepit\Mail\Mailer;
+use Votepit\Mail\SmtpConfigResolver;
 use Votepit\Mail\SymfonyMailerAdapter;
 use Votepit\Persistence\BoardRepository;
+use Votepit\Persistence\BoardSmtpSettingsRepository;
 use Votepit\Persistence\IdeaRepository;
 use Votepit\Persistence\LoginTokenRepository;
 use Votepit\Persistence\ModerationConfigRepository;
@@ -142,8 +144,8 @@ final class AppFactory
             $vault     = new TokenVault();
             $smtpSettingsRepo = new SmtpSettingsRepository($conn);
             $encryptionSvc    = new EncryptionService($config->appKey);
-            $smtpFromDb       = $smtpSettingsRepo->findAsSmtpConfig($encryptionSvc);
-            $resolvedMailer   = $mailer ?? new SymfonyMailerAdapter($smtpFromDb ?? $config->smtp);
+            $boardSmtpRepo    = new BoardSmtpSettingsRepository($conn);
+            $smtpResolver     = new SmtpConfigResolver($smtpSettingsRepo, $boardSmtpRepo, $encryptionSvc, $config->smtp);
 
             // Per-Action-Rate-Limits für Magic-Link-Anfragen (Issue 06).
             $emailRateLimit = $config->rateLimit('magiclink:email');
@@ -192,7 +194,7 @@ final class AppFactory
             $app->post('/login', function (
                 ServerRequestInterface $request,
                 ResponseInterface $response,
-            ) use ($userRepo, $tokenRepo, $vault, $resolvedMailer, $audit, $config): ResponseInterface {
+            ) use ($userRepo, $tokenRepo, $vault, $mailer, $smtpResolver, $boardRepo, $audit, $config): ResponseInterface {
                 $parsed    = $request->getParsedBody();
                 $rawEmail  = is_array($parsed) ? (string) ($parsed['email'] ?? '') : '';
                 $email     = strtolower(trim($rawEmail));
@@ -215,7 +217,21 @@ final class AppFactory
                         $link .= '&r=' . rawurlencode($returnTo);
                     }
 
-                    $resolvedMailer->send(
+                    // Per-Board-SMTP auflösen: ersten Pfad-Segment aus returnTo als Slug nutzen.
+                    $boardId = null;
+                    if ($returnTo !== '') {
+                        $firstSeg = explode('/', ltrim($returnTo, '/'))[0];
+                        if ($firstSeg !== '') {
+                            $boardRow = $boardRepo->findBySlug($firstSeg);
+                            $boardId  = is_array($boardRow) ? (int) ($boardRow['id'] ?? 0) : null;
+                            if ($boardId === 0) {
+                                $boardId = null;
+                            }
+                        }
+                    }
+                    $mailToUse = $mailer ?? new SymfonyMailerAdapter($smtpResolver->resolve($boardId));
+
+                    $mailToUse->send(
                         $email,
                         'Dein Votepit Login-Link',
                         "Hallo,\n\nhier ist dein Login-Link:\n\n{$link}\n\nDer Link ist 15 Minuten gültig.\nBitte nicht weitergeben.\n",
@@ -858,6 +874,202 @@ final class AppFactory
                         $toEmail,
                         'Votepit SMTP-Test',
                         "Dies ist eine Votepit-Test-E-Mail.\n\nWenn du diese Nachricht siehst, funktioniert deine SMTP-Konfiguration.\n",
+                    );
+                } catch (\Throwable $e) {
+                    $response->getBody()->write((string) json_encode([
+                        'error' => ['key' => 'send_failed', 'message' => $e->getMessage()],
+                    ]));
+                    return $response->withStatus(502)->withHeader('Content-Type', 'application/json');
+                }
+
+                $response->getBody()->write((string) json_encode(['ok' => true, 'recipient' => $toEmail]));
+                return $response->withStatus(200)->withHeader('Content-Type', 'application/json');
+            })->add(RateLimitMiddleware::perAction(
+                new RateLimiter($conn),
+                $responseFactory,
+                'smtp:test',
+                $smtpTestLimit['limit'],
+                $smtpTestLimit['window'],
+                static function (ServerRequestInterface $r): ?string {
+                    $u = $r->getAttribute(AuthNMiddleware::ATTR_USER);
+                    return is_array($u) ? (string) ($u['id'] ?? '') : null;
+                },
+            ))->add(AuthZMiddleware::admin($responseFactory));
+
+            // GET /admin/boards/{slug}/smtp — Board-SMTP lesen (AuthZ: admin). Kein Passwort zurückgeben.
+            $app->get('/admin/boards/{slug}/smtp', function (
+                ServerRequestInterface $request,
+                ResponseInterface $response,
+                array $args,
+            ) use ($boardRepo, $boardSmtpRepo): ResponseInterface {
+                $slug  = is_string($args['slug'] ?? null) ? $args['slug'] : '';
+                $board = $boardRepo->findBySlug($slug);
+                if (!is_array($board)) {
+                    $response->getBody()->write((string) json_encode([
+                        'error' => ['key' => 'not_found', 'message' => 'Board nicht gefunden.'],
+                    ]));
+                    return $response->withStatus(404)->withHeader('Content-Type', 'application/json');
+                }
+
+                $boardId = (int) $board['id'];
+                $row     = $boardSmtpRepo->find($boardId);
+
+                $response->getBody()->write((string) json_encode([
+                    'board_slug'          => $slug,
+                    'host'                => $row !== null ? (string) ($row['host'] ?? '') : '',
+                    'port'                => $row !== null ? (int) ($row['port'] ?? 587) : 587,
+                    'user'                => $row !== null ? (string) ($row['user'] ?? '') : '',
+                    'encryption'          => $row !== null ? (string) ($row['encryption'] ?? 'tls') : 'tls',
+                    'from_email'          => $row !== null ? (string) ($row['from_email'] ?? '') : '',
+                    'from_name'           => $row !== null ? (string) ($row['from_name'] ?? '') : '',
+                    'password_set'        => $row !== null && ($row['pass'] ?? '') !== '',
+                    'uses_global_default' => $row === null,
+                ]));
+                return $response->withStatus(200)->withHeader('Content-Type', 'application/json');
+            })->add(AuthZMiddleware::admin($responseFactory));
+
+            // PUT /admin/boards/{slug}/smtp — Board-SMTP speichern oder auf Default zurücksetzen
+            $app->put('/admin/boards/{slug}/smtp', function (
+                ServerRequestInterface $request,
+                ResponseInterface $response,
+                array $args,
+            ) use ($boardRepo, $boardSmtpRepo, $encryptionSvc, $audit): ResponseInterface {
+                $slug  = is_string($args['slug'] ?? null) ? $args['slug'] : '';
+                $board = $boardRepo->findBySlug($slug);
+                if (!is_array($board)) {
+                    $response->getBody()->write((string) json_encode([
+                        'error' => ['key' => 'not_found', 'message' => 'Board nicht gefunden.'],
+                    ]));
+                    return $response->withStatus(404)->withHeader('Content-Type', 'application/json');
+                }
+
+                $boardId = (int) $board['id'];
+                $rawBody = $request->getParsedBody();
+                $fields  = is_array($rawBody) ? $rawBody : [];
+
+                // Auf globalen Default zurücksetzen?
+                if (isset($fields['reset_to_global']) && $fields['reset_to_global'] !== false) {
+                    $boardSmtpRepo->delete($boardId);
+                    $audit->log('board.smtp_reset_to_global', ['board_id' => $boardId]);
+                    $response->getBody()->write((string) json_encode(['ok' => true, 'reset' => true]));
+                    return $response->withStatus(200)->withHeader('Content-Type', 'application/json');
+                }
+
+                $host       = trim((string) ($fields['host'] ?? ''));
+                $port       = (int) ($fields['port'] ?? 587);
+                $user       = trim((string) ($fields['user'] ?? ''));
+                $encryption = (string) ($fields['encryption'] ?? 'tls');
+                $fromEmail  = trim((string) ($fields['from_email'] ?? ''));
+                $fromName   = trim((string) ($fields['from_name'] ?? 'Votepit'));
+                $password   = (string) ($fields['password'] ?? '');
+
+                $errors = [];
+                if ($host === '') {
+                    $errors['host'] = 'Host darf nicht leer sein.';
+                }
+                if ($port < 1 || $port > 65535) {
+                    $errors['port'] = 'Port muss zwischen 1 und 65535 liegen.';
+                }
+                if (!in_array($encryption, ['tls', 'ssl', ''], true)) {
+                    $errors['encryption'] = 'Verschlüsselung muss "tls", "ssl" oder "" sein.';
+                }
+                if ($fromEmail === '' || filter_var($fromEmail, FILTER_VALIDATE_EMAIL) === false) {
+                    $errors['from_email'] = 'Absender-E-Mail fehlt oder ist ungültig.';
+                }
+
+                if ($errors !== []) {
+                    $response->getBody()->write((string) json_encode([
+                        'error' => [
+                            'key'     => 'validation_error',
+                            'message' => 'Validation failed.',
+                            'fields'  => $errors,
+                        ],
+                    ]));
+                    return $response->withStatus(422)->withHeader('Content-Type', 'application/json');
+                }
+
+                $encryptedPass = $password !== '' ? $encryptionSvc->encrypt($password) : null;
+
+                $boardSmtpRepo->save($boardId, $host, $port, $user, $encryption, $fromEmail, $fromName, $encryptedPass);
+                $audit->log('board.smtp_updated', ['board_id' => $boardId]);
+
+                $response->getBody()->write((string) json_encode(['ok' => true]));
+                return $response->withStatus(200)->withHeader('Content-Type', 'application/json');
+            })->add(AuthZMiddleware::admin($responseFactory));
+
+            // POST /admin/boards/{slug}/smtp/test — Test-Mail via aufgelöste Board-Settings senden
+            $app->post('/admin/boards/{slug}/smtp/test', function (
+                ServerRequestInterface $request,
+                ResponseInterface $response,
+                array $args,
+            ) use ($boardRepo, $smtpResolver, $boardSmtpRepo, $encryptionSvc): ResponseInterface {
+                $slug  = is_string($args['slug'] ?? null) ? $args['slug'] : '';
+                $board = $boardRepo->findBySlug($slug);
+                if (!is_array($board)) {
+                    $response->getBody()->write((string) json_encode([
+                        'error' => ['key' => 'not_found', 'message' => 'Board nicht gefunden.'],
+                    ]));
+                    return $response->withStatus(404)->withHeader('Content-Type', 'application/json');
+                }
+
+                $boardId = (int) $board['id'];
+                $user    = $request->getAttribute(AuthNMiddleware::ATTR_USER);
+                $toEmail = is_array($user) ? (string) ($user['email'] ?? '') : '';
+
+                if ($toEmail === '') {
+                    $response->getBody()->write((string) json_encode([
+                        'error' => ['key' => 'no_recipient', 'message' => 'Kein Empfänger ermittelbar.'],
+                    ]));
+                    return $response->withStatus(422)->withHeader('Content-Type', 'application/json');
+                }
+
+                $rawBody   = $request->getParsedBody();
+                $fields    = is_array($rawBody) ? $rawBody : [];
+                $host      = trim((string) ($fields['host'] ?? ''));
+                $useInline = $host !== '';
+
+                if ($useInline) {
+                    $port       = (int) ($fields['port'] ?? 587);
+                    $user2      = trim((string) ($fields['user'] ?? ''));
+                    $encryption = (string) ($fields['encryption'] ?? 'tls');
+                    $fromEmail  = trim((string) ($fields['from_email'] ?? ''));
+                    $fromName   = trim((string) ($fields['from_name'] ?? 'Votepit'));
+                    $password   = (string) ($fields['password'] ?? '');
+
+                    // Falls password leer → aus Board-Settings oder Global nachladen.
+                    if ($password === '') {
+                        $boardRow = $boardSmtpRepo->find($boardId);
+                        $encPw    = is_array($boardRow) ? (string) ($boardRow['pass'] ?? '') : '';
+                        $password = ($encPw !== '') ? ($encryptionSvc->decrypt($encPw) ?? '') : '';
+                    }
+
+                    try {
+                        $smtpConfig = \Votepit\SmtpConfig::fromArray([
+                            'host'       => $host,
+                            'port'       => $port,
+                            'user'       => $user2,
+                            'pass'       => $password,
+                            'encryption' => $encryption,
+                            'from_email' => $fromEmail !== '' ? $fromEmail : 'noreply@example.com',
+                            'from_name'  => $fromName,
+                        ]);
+                    } catch (\Votepit\ConfigException $e) {
+                        $response->getBody()->write((string) json_encode([
+                            'error' => ['key' => 'config_error', 'message' => $e->getMessage()],
+                        ]));
+                        return $response->withStatus(422)->withHeader('Content-Type', 'application/json');
+                    }
+                } else {
+                    // Aufgelöste Board-Settings (Board → Global → config.php).
+                    $smtpConfig = $smtpResolver->resolve($boardId);
+                }
+
+                try {
+                    $testMailer = new \Votepit\Mail\SymfonyMailerAdapter($smtpConfig);
+                    $testMailer->send(
+                        $toEmail,
+                        'Votepit SMTP-Test (Board: ' . $slug . ')',
+                        "Dies ist eine Votepit-Test-E-Mail für Board \"{$slug}\".\n\nWenn du diese Nachricht siehst, funktioniert die SMTP-Konfiguration.\n",
                     );
                 } catch (\Throwable $e) {
                     $response->getBody()->write((string) json_encode([

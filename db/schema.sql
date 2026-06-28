@@ -149,6 +149,26 @@ CREATE TABLE IF NOT EXISTS app_settings (
     PRIMARY KEY (`key`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- board_smtp_settings: per-Board-SMTP-Konfiguration. Falls nicht gesetzt, gilt der
+-- installations-weite Default (app_settings). Passwort verschlüsselt at rest
+-- (sodium_crypto_secretbox via EncryptionService). UNIQUE(board_id) = ein Eintrag pro Board.
+CREATE TABLE IF NOT EXISTS board_smtp_settings (
+    id          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    board_id    BIGINT UNSIGNED NOT NULL,
+    host        VARCHAR(255)    NOT NULL DEFAULT '',
+    port        SMALLINT        NOT NULL DEFAULT 587,
+    user        VARCHAR(254)    NOT NULL DEFAULT '',
+    pass        TEXT            NULL,
+    encryption  VARCHAR(8)      NOT NULL DEFAULT 'tls',
+    from_email  VARCHAR(254)    NOT NULL DEFAULT '',
+    from_name   VARCHAR(128)    NOT NULL DEFAULT 'Votepit',
+    created_at  DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at  DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_board_smtp_board (board_id),
+    CONSTRAINT fk_board_smtp_board FOREIGN KEY (board_id) REFERENCES boards(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- score_cache-Pflege: APP-seitig in derselben Transaktion wie die votes-Mutation
 -- (ADR-3-Amendment, Sprint 4 — siehe .scratch/arch.md §11 / VoteRepository).
 -- Bewusst KEINE DB-Trigger: die portable SQLite-Test-Naht kann MySQL-Trigger nicht

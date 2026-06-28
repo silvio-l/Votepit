@@ -26,14 +26,15 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import type { ApiError, ModerationWord } from '../lib/api'
 import {
   bootstrap,
+  getAdminBoardSmtp,
   getAdminBranding,
   getAdminModeration,
-  getAdminSmtp,
   logout,
+  resetAdminBoardSmtp,
+  saveAdminBoardSmtp,
   saveAdminBranding,
   saveAdminModeration,
-  saveAdminSmtp,
-  testAdminSmtp,
+  testAdminBoardSmtp,
 } from '../lib/api'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -104,6 +105,7 @@ export default function AdminPage() {
   const [smtpFromName, setSmtpFromName] = useState('')
   const [smtpPassword, setSmtpPassword] = useState('')
   const [smtpPasswordSet, setSmtpPasswordSet] = useState(false)
+  const [smtpUsesGlobalDefault, setSmtpUsesGlobalDefault] = useState(true)
   const [smtpErrors, setSmtpErrors] = useState<Record<string, string>>({})
   const [smtpGeneralError, setSmtpGeneralError] = useState<string | null>(null)
   const [smtpSaving, setSmtpSaving] = useState(false)
@@ -143,7 +145,7 @@ export default function AdminPage() {
         const [branding, moderation, smtpSettings] = await Promise.all([
           getAdminBranding(slug),
           getAdminModeration(slug),
-          getAdminSmtp(),
+          getAdminBoardSmtp(slug),
         ])
 
         if (cancelled) return
@@ -160,6 +162,7 @@ export default function AdminPage() {
         setSmtpFromEmail(smtpSettings.from_email)
         setSmtpFromName(smtpSettings.from_name)
         setSmtpPasswordSet(smtpSettings.password_set)
+        setSmtpUsesGlobalDefault(smtpSettings.uses_global_default)
         setPageState({ phase: 'ready', boardName: branding.board_name })
       } catch (err) {
         if (cancelled) return
@@ -324,7 +327,7 @@ export default function AdminPage() {
 
   const handleSmtpSave = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (smtpSaving) return
+    if (!boardSlug || smtpSaving) return
 
     setSmtpSaving(true)
     setSmtpErrors({})
@@ -333,7 +336,7 @@ export default function AdminPage() {
     setSmtpTestResult(null)
 
     try {
-      await saveAdminSmtp({
+      await saveAdminBoardSmtp(boardSlug, {
         host: smtpHost,
         port: smtpPort,
         user: smtpUser,
@@ -343,6 +346,7 @@ export default function AdminPage() {
         password: smtpPassword,
       })
       setSmtpSuccess(true)
+      setSmtpUsesGlobalDefault(false)
       setSmtpPassword('') // Passwort-Feld leeren nach Speichern
       if (smtpPassword !== '') setSmtpPasswordSet(true)
     } catch (err) {
@@ -360,13 +364,40 @@ export default function AdminPage() {
     }
   }
 
+  const handleSmtpReset = async () => {
+    if (!boardSlug || smtpSaving) return
+    setSmtpSaving(true)
+    setSmtpErrors({})
+    setSmtpGeneralError(null)
+    setSmtpSuccess(false)
+    setSmtpTestResult(null)
+    try {
+      await resetAdminBoardSmtp(boardSlug)
+      setSmtpUsesGlobalDefault(true)
+      setSmtpHost('')
+      setSmtpPort(587)
+      setSmtpUser('')
+      setSmtpEncryption('tls')
+      setSmtpFromEmail('')
+      setSmtpFromName('')
+      setSmtpPasswordSet(false)
+      setSmtpPassword('')
+      setSmtpSuccess(true)
+    } catch (err) {
+      const apiErr = err as ApiError
+      setSmtpGeneralError(apiErr?.payload?.message ?? 'Zurücksetzen fehlgeschlagen.')
+    } finally {
+      setSmtpSaving(false)
+    }
+  }
+
   const handleSmtpTest = async () => {
-    if (smtpTestSending) return
+    if (!boardSlug || smtpTestSending) return
     setSmtpTestSending(true)
     setSmtpTestResult(null)
 
     try {
-      const result = await testAdminSmtp({
+      const result = await testAdminBoardSmtp(boardSlug, {
         host: smtpHost,
         port: smtpPort,
         user: smtpUser,
@@ -689,11 +720,33 @@ export default function AdminPage() {
           <h2 id="smtp-heading" className="font-archivo font-semibold text-[18px] text-vp-ink mb-1">
             SMTP-Konfiguration
           </h2>
-          <p className="text-[13px] font-inter text-vp-text-muted mb-6">
+          <p className="text-[13px] font-inter text-vp-text-muted mb-4">
             E-Mail-Versand für Magic-Links. Outlook und Gmail erfordern ein{' '}
             <strong>App-Kennwort</strong> (2-Faktor-Auth erforderlich). Die Absender-Adresse muss
             mit dem Konto-Benutzernamen übereinstimmen.
           </p>
+
+          {smtpUsesGlobalDefault ? (
+            <p className="text-[13px] font-inter text-vp-text-muted mb-4 px-3 py-2 bg-vp-surface border border-vp-border-subtle rounded-vp-md">
+              Dieses Board nutzt den <strong>globalen SMTP-Default</strong>. Eigene Einstellung
+              unten konfigurieren.
+            </p>
+          ) : (
+            <div className="flex items-center justify-between gap-3 mb-4 px-3 py-2 bg-vp-surface border border-vp-border-subtle rounded-vp-md">
+              <p className="text-[13px] font-inter text-vp-status-done">
+                Eigene SMTP-Einstellung aktiv
+              </p>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => void handleSmtpReset()}
+                disabled={smtpSaving}
+                aria-busy={smtpSaving}
+              >
+                Auf globalen Default zurücksetzen
+              </Button>
+            </div>
+          )}
 
           <form onSubmit={handleSmtpSave} noValidate className="flex flex-col gap-5">
             {/* Preset-Dropdown */}
