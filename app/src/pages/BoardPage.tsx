@@ -9,6 +9,7 @@ import {
   PageShell,
   Pagination,
   SortTabs,
+  StatusFilter,
 } from '../components'
 import type { Status } from '../components/StatusBadge'
 import { useVote } from '../hooks/useVote'
@@ -67,6 +68,13 @@ function sortValueToApi(sv: SortValue): string {
   return map[sv]
 }
 
+/** Converts the component Status type (hyphen) to the backend allow-list value (underscore). */
+function statusToApi(s: Status | null): string | undefined {
+  if (s === null) return undefined
+  if (s === 'in-progress') return 'in_progress'
+  return s
+}
+
 // ── VotableRow ────────────────────────────────────────────────────────────────
 
 interface VotableRowProps {
@@ -120,6 +128,7 @@ export default function BoardPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [sort, setSort] = useState<SortValue>('newest')
   const [page, setPage] = useState(1)
+  const [status, setStatus] = useState<Status | null>(null)
 
   // Fetch bootstrap once on mount to seed CSRF token + auth state.
   useEffect(() => {
@@ -136,7 +145,7 @@ export default function BoardPage() {
 
     setLoadState({ phase: 'loading' })
 
-    getBoard(boardSlug, { sort: sortValueToApi(sort), page })
+    getBoard(boardSlug, { sort: sortValueToApi(sort), status: statusToApi(status), page })
       .then((data) => {
         setIsAuthenticated(data.is_authenticated)
         setLoadState({ phase: 'done', data })
@@ -150,11 +159,17 @@ export default function BoardPage() {
           message: notFound ? 'Dieses Board gibt es nicht.' : 'Daten konnten nicht geladen werden.',
         })
       })
-  }, [boardSlug, sort, page])
+  }, [boardSlug, sort, status, page])
 
   const handleSortChange = (newSort: SortValue) => {
     setSort(newSort)
     setPage(1)
+  }
+
+  const handleStatusChange = (newStatus: Status | null) => {
+    setStatus(newStatus)
+    setPage(1)
+    // sort is intentionally preserved — invariant: sort survives filter changes
   }
 
   const handlePageChange = (newPage: number) => {
@@ -266,7 +281,7 @@ export default function BoardPage() {
       )}
 
       {/* Sort + action bar */}
-      <div className="flex items-center justify-between mb-5 gap-3 flex-wrap">
+      <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
         <SortTabs value={sort} onChange={handleSortChange} />
         <a
           href={`/${board.slug}/submit`}
@@ -274,6 +289,11 @@ export default function BoardPage() {
         >
           + Idee einreichen
         </a>
+      </div>
+
+      {/* Status filter bar */}
+      <div className="mb-5">
+        <StatusFilter value={status} onChange={handleStatusChange} />
       </div>
 
       {/* Idea list */}

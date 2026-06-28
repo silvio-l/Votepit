@@ -209,4 +209,93 @@ describe('BoardPage', () => {
     expect(screen.getAllByText('Idee Beta').length).toBeGreaterThan(0)
     expect(screen.getAllByText('Idee Gamma').length).toBeGreaterThan(0)
   })
+
+  /**
+   * AC4 — Sort selection is preserved across status-filter and pagination changes.
+   *
+   * Steps:
+   *  1. Page loads with default sort (newest).
+   *  2. User clicks "Top" sort tab → API called with sort=top.
+   *  3. User clicks "Offen" status filter → API called with sort=top (sort preserved).
+   *  4. User clicks "Nächste Seite" (page 2) → API called with sort=top (sort preserved).
+   */
+  it('AC4: chosen sort is preserved across status-filter and pagination changes', async () => {
+    const user = userEvent.setup()
+
+    // Board response with total_pages = 3 so pagination is visible.
+    const multiPageResponse = {
+      ...makeBoardResponse([makeIdea()]),
+      total_pages: 3,
+    }
+
+    // Track every fetch URL (after the bootstrap call).
+    const fetchedUrls: string[] = []
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+      const url = typeof input === 'string' ? input : (input as Request).url
+      fetchedUrls.push(url)
+      // First call is /api/bootstrap; all subsequent calls return the board response.
+      if (url.includes('/api/bootstrap')) {
+        return new Response(JSON.stringify(BOOTSTRAP_RESPONSE), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        })
+      }
+      return new Response(JSON.stringify(multiPageResponse), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    })
+
+    renderBoardPage()
+
+    // Wait for initial board load (default sort=newest, no status).
+    await waitFor(() =>
+      expect(screen.getByRole('heading', { name: 'Demo Board' })).toBeInTheDocument(),
+    )
+
+    // 2. Click "Top" sort tab.
+    const topTab = screen.getByRole('tab', { name: 'Top' })
+    await user.click(topTab)
+
+    // Wait for the API call with sort=top.
+    await waitFor(() => {
+      const boardCalls = fetchedUrls.filter((u) => !u.includes('/api/'))
+      expect(boardCalls.some((u) => u.includes('sort=top'))).toBe(true)
+    })
+
+    // Assert SortTabs shows "Top" as selected.
+    expect(topTab).toHaveAttribute('aria-selected', 'true')
+
+    // 3. Click "Offen" status filter → sort must stay top.
+    const openFilterBtn = screen.getByRole('button', { name: 'Offen' })
+    await user.click(openFilterBtn)
+
+    await waitFor(() => {
+      const boardCalls = fetchedUrls.filter((u) => !u.includes('/api/'))
+      // The most recent board call must carry both sort=top and status=open.
+      const withStatusAndSort = boardCalls.filter(
+        (u) => u.includes('sort=top') && u.includes('status=open'),
+      )
+      expect(withStatusAndSort.length).toBeGreaterThan(0)
+    })
+
+    // "Top" tab must still be marked as selected.
+    expect(screen.getByRole('tab', { name: 'Top' })).toHaveAttribute('aria-selected', 'true')
+
+    // 4. Click "Nächste Seite" → sort + status preserved.
+    const nextPageBtn = screen.getByRole('button', { name: 'Nächste Seite' })
+    await user.click(nextPageBtn)
+
+    await waitFor(() => {
+      const boardCalls = fetchedUrls.filter((u) => !u.includes('/api/'))
+      // Page-2 call must still carry sort=top.
+      const withSortOnPage2 = boardCalls.filter(
+        (u) => u.includes('sort=top') && u.includes('page=2'),
+      )
+      expect(withSortOnPage2.length).toBeGreaterThan(0)
+    })
+
+    // "Top" tab stays selected after page change.
+    expect(screen.getByRole('tab', { name: 'Top' })).toHaveAttribute('aria-selected', 'true')
+  })
 })
