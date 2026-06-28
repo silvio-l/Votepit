@@ -17,13 +17,10 @@ final readonly class EncryptionService
 
     public function __construct(string $appKey)
     {
-        // app_key ist 64-stelliger Hex-String = 32 Bytes.
-        // HKDF-SHA256 leitet einen dedizierten 32-Byte-Key ab (Key-Separation).
-        $raw = hex2bin($appKey);
-        if ($raw === false) {
-            throw new \InvalidArgumentException('app_key muss ein valider Hex-String sein.');
-        }
-        $this->key = hash_hkdf('sha256', $raw, SODIUM_CRYPTO_SECRETBOX_KEYBYTES, 'smtp');
+        // app_key kann ein beliebiger nicht-leerer String sein (Hex oder Klartext).
+        // SHA-256 normalisiert die Entropie auf 32 Bytes; HKDF leitet daraus
+        // einen dedizierten Subkey ab (Key-Separation von Session-/CSRF-Schlüssel).
+        $this->key = hash_hkdf('sha256', hash('sha256', $appKey, true), SODIUM_CRYPTO_SECRETBOX_KEYBYTES, 'smtp');
     }
 
     /**
