@@ -33,7 +33,6 @@ public/
 src/
 tests/
 db/
-templates/
 
 # Moderations-Ressourcen (LDNOOBW-Wortlisten, CC-BY-4.0 — Attribution in
 # resources/moderation/LICENSE-LDNOOBW.txt)

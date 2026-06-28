@@ -127,8 +127,11 @@ final class VerifyActionTest extends IntegrationTestCase
 
         $response = $this->createApp()->handle($this->verifyRequest($plain));
 
-        self::assertSame(302, $response->getStatusCode());
-        self::assertSame('/', $response->getHeaderLine('Location'));
+        self::assertSame(200, $response->getStatusCode());
+        $data = json_decode((string) $response->getBody(), true);
+        self::assertIsArray($data);
+        self::assertTrue($data['ok'] ?? false);
+        self::assertSame('/', $data['redirect'] ?? null);
 
         $sessCookie = $this->cookieValue($response, 'votepit_sess');
         self::assertNotNull($sessCookie);
@@ -184,12 +187,13 @@ final class VerifyActionTest extends IntegrationTestCase
 
         $app    = $this->createApp();
         $first  = $app->handle($this->verifyRequest($plain));
-        self::assertSame(302, $first->getStatusCode());
+        self::assertSame(200, $first->getStatusCode());
 
         $second = $app->handle($this->verifyRequest($plain));
         self::assertSame(400, $second->getStatusCode());
         self::assertNull($this->cookieValue($second, 'votepit_sess'));
-        self::assertStringContainsString('ungültig', (string) $second->getBody());
+        $body2 = json_decode((string) $second->getBody(), true);
+        self::assertStringContainsString('ungültig', $body2['error']['message'] ?? '');
     }
 
     // -------------------------------------------------------------------------
@@ -257,7 +261,7 @@ final class VerifyActionTest extends IntegrationTestCase
             $this->verifyRequest($plain, ['votepit_sess' => $stale]),
         );
 
-        self::assertSame(302, $response->getStatusCode());
+        self::assertSame(200, $response->getStatusCode());
 
         $fresh = $this->cookieValue($response, 'votepit_sess');
         self::assertNotNull($fresh);
@@ -298,7 +302,7 @@ final class VerifyActionTest extends IntegrationTestCase
 
         $response = $this->appWithAdmins('boss@example.com')->handle($this->verifyRequest($plain));
 
-        self::assertSame(302, $response->getStatusCode());
+        self::assertSame(200, $response->getStatusCode());
         $isAdmin = (int) $this->conn->fetchOne('SELECT is_admin FROM users WHERE id = :id', ['id' => $userId]);
         self::assertSame(1, $isAdmin);
     }
@@ -324,7 +328,7 @@ final class VerifyActionTest extends IntegrationTestCase
         // Allowlist ist jetzt leer — Login darf Admin NICHT entziehen.
         $response = $this->appWithAdmins()->handle($this->verifyRequest($plain));
 
-        self::assertSame(302, $response->getStatusCode());
+        self::assertSame(200, $response->getStatusCode());
         $isAdmin = (int) $this->conn->fetchOne('SELECT is_admin FROM users WHERE id = :id', ['id' => $userId]);
         self::assertSame(1, $isAdmin);
     }
@@ -383,8 +387,9 @@ final class VerifyActionTest extends IntegrationTestCase
 
         $response = $this->createApp()->handle($this->verifyRequest($plain, [], '/some/board/path'));
 
-        self::assertSame(302, $response->getStatusCode());
-        self::assertSame('/some/board/path', $response->getHeaderLine('Location'));
+        self::assertSame(200, $response->getStatusCode());
+        $data = json_decode((string) $response->getBody(), true);
+        self::assertSame('/some/board/path', $data['redirect'] ?? null);
     }
 
     public function test_protocol_relative_return_to_falls_back_to_default(): void
@@ -395,8 +400,9 @@ final class VerifyActionTest extends IntegrationTestCase
 
         $response = $this->createApp()->handle($this->verifyRequest($plain, [], '//evil.com'));
 
-        self::assertSame(302, $response->getStatusCode());
-        self::assertSame('/', $response->getHeaderLine('Location'));
+        self::assertSame(200, $response->getStatusCode());
+        $data = json_decode((string) $response->getBody(), true);
+        self::assertSame('/', $data['redirect'] ?? null);
     }
 
     public function test_absolute_url_return_to_falls_back_to_default(): void
@@ -407,8 +413,9 @@ final class VerifyActionTest extends IntegrationTestCase
 
         $response = $this->createApp()->handle($this->verifyRequest($plain, [], 'https://evil.com'));
 
-        self::assertSame(302, $response->getStatusCode());
-        self::assertSame('/', $response->getHeaderLine('Location'));
+        self::assertSame(200, $response->getStatusCode());
+        $data = json_decode((string) $response->getBody(), true);
+        self::assertSame('/', $data['redirect'] ?? null);
     }
 
     public function test_missing_return_to_redirects_to_default(): void
@@ -419,7 +426,8 @@ final class VerifyActionTest extends IntegrationTestCase
 
         $response = $this->createApp()->handle($this->verifyRequest($plain));
 
-        self::assertSame(302, $response->getStatusCode());
-        self::assertSame('/', $response->getHeaderLine('Location'));
+        self::assertSame(200, $response->getStatusCode());
+        $data = json_decode((string) $response->getBody(), true);
+        self::assertSame('/', $data['redirect'] ?? null);
     }
 }

@@ -22,10 +22,11 @@ final class HomeLogoutButtonTest extends IntegrationTestCase
         $app      = $this->createApp();
         $request  = (new ServerRequestFactory())->createServerRequest('GET', '/');
         $response = $app->handle($request);
-        $body     = (string) $response->getBody();
 
         self::assertSame(200, $response->getStatusCode());
-        self::assertStringNotContainsString('action="/logout"', $body);
+        // JSON-API: Anon → is_authenticated=false (SPA zeigt keinen Logout-Button)
+        $data = json_decode((string) $response->getBody(), true);
+        self::assertFalse($data['is_authenticated'] ?? true);
     }
 
     public function test_authenticated_home_shows_logout_form(): void
@@ -40,9 +41,10 @@ final class HomeLogoutButtonTest extends IntegrationTestCase
         $request  = (new ServerRequestFactory())->createServerRequest('GET', '/')
             ->withCookieParams(['votepit_sess' => $sessCookie]);
         $response = $app->handle($request);
-        $body     = (string) $response->getBody();
 
         self::assertSame(200, $response->getStatusCode());
-        self::assertStringContainsString('action="/logout"', $body);
+        // JSON-API: eingeloggter User → is_authenticated=true (SPA zeigt Logout-Button)
+        $data = json_decode((string) $response->getBody(), true);
+        self::assertTrue($data['is_authenticated'] ?? false);
     }
 }

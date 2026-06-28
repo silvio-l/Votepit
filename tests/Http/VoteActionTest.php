@@ -68,8 +68,11 @@ final class VoteActionTest extends IntegrationTestCase
 
         $response = $this->createApp()->handle($this->postVote('vote-prg', $ideaId, 'up', $userId));
 
-        self::assertSame(302, $response->getStatusCode());
-        self::assertSame('/vote-prg/ideas/' . $ideaId, $response->getHeaderLine('Location'));
+        // API gibt immer JSON 200 zurück (kein PRG-Redirect mehr)
+        self::assertSame(200, $response->getStatusCode());
+        $data = json_decode((string) $response->getBody(), true);
+        self::assertSame(1, $data['score'] ?? null);
+        self::assertSame('up', $data['my_vote'] ?? null);
         self::assertSame(1, $this->rowCount($ideaId));
         self::assertSame(1, $this->scoreCache($ideaId));
     }
@@ -346,7 +349,7 @@ final class VoteActionTest extends IntegrationTestCase
         self::assertSame(0, $this->rowCount($ideaId));
     }
 
-    /** Kein JSON-Accept-Header → weiterhin 302 PRG (Non-JS-Pfad intakt). */
+    /** Kein JSON-Accept-Header → trotzdem JSON 200 (keine Content-Negotiation mehr). */
     public function test_no_json_accept_still_returns_302(): void
     {
         $boardId = $this->insertBoard('vjson-prg');
@@ -355,13 +358,16 @@ final class VoteActionTest extends IntegrationTestCase
 
         $response = $this->createApp()->handle($this->postVote('vjson-prg', $ideaId, 'up', $userId));
 
-        self::assertSame(302, $response->getStatusCode());
-        self::assertSame('/vjson-prg/ideas/' . $ideaId, $response->getHeaderLine('Location'));
+        // VoteAction liefert immer JSON — kein PRG-Redirect mehr
+        self::assertSame(200, $response->getStatusCode());
+        self::assertStringContainsString('application/json', $response->getHeaderLine('Content-Type'));
+        $data = json_decode((string) $response->getBody(), true);
+        self::assertSame(1, $data['score'] ?? null);
     }
 
     // --- Detail-page vote controls (Issue 02: anon → login-links; auth → forms) --
 
-    /** Anon sieht Login-Links statt Forms (Issue 02). */
+    /** Anon sieht is_authenticated=false in der JSON-Antwort (SPA rendert Login-Links). */
     public function test_idea_detail_renders_login_links_for_anon(): void
     {
         $boardId = $this->insertBoard('vote-detail-anon');
@@ -370,15 +376,16 @@ final class VoteActionTest extends IntegrationTestCase
 
         $request  = (new ServerRequestFactory())->createServerRequest('GET', '/vote-detail-anon/ideas/' . $ideaId);
         $response = $this->createApp()->handle($request);
-        $body     = (string) $response->getBody();
 
         self::assertSame(200, $response->getStatusCode());
-        self::assertStringContainsString('/login?r=', $body);
-        // Kein POST-Form mehr für Anon — kein action-Attribut auf die Vote-Route.
-        self::assertStringNotContainsString('action="/vote-detail-anon/ideas/' . $ideaId . '/vote"', $body);
+        $data = json_decode((string) $response->getBody(), true);
+        // Anon → is_authenticated=false; SPA rendert Login-Links
+        self::assertFalse($data['is_authenticated'] ?? true);
+        // Kein ausgelieferter Vote-State für Anon
+        self::assertSame('none', $data['my_vote'] ?? 'none');
     }
 
-    /** Eingeloggter User sieht interaktive POST-Forms (wie bisher). */
+    /** Eingeloggter User sieht is_authenticated=true (SPA rendert Vote-Forms). */
     public function test_idea_detail_renders_vote_forms_for_authenticated_user(): void
     {
         $boardId = $this->insertBoard('vote-detail-auth');
@@ -389,11 +396,11 @@ final class VoteActionTest extends IntegrationTestCase
             ->createServerRequest('GET', '/vote-detail-auth/ideas/' . $ideaId)
             ->withCookieParams(['votepit_sess' => $this->sessionCookie($userId)]);
         $response = $this->createApp()->handle($request);
-        $body     = (string) $response->getBody();
 
         self::assertSame(200, $response->getStatusCode());
-        self::assertStringContainsString('action="/vote-detail-auth/ideas/' . $ideaId . '/vote"', $body);
-        self::assertStringContainsString('name="value" value="up"', $body);
-        self::assertStringContainsString('name="value" value="down"', $body);
+        $data = json_decode((string) $response->getBody(), true);
+        // Auth → is_authenticated=true; SPA rendert Vote-Buttons
+        self::assertTrue($data['is_authenticated'] ?? false);
+        self::assertArrayHasKey('my_vote', $data['idea'] ?? []);
     }
 }

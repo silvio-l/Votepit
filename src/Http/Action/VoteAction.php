@@ -26,13 +26,8 @@ use Votepit\Persistence\VoteRepository;
  *
  * Eingabe `value` ∈ {up,down} (bzw. +1/-1); andere Werte → 422, keine Mutation.
  *
- * Content-Negotiation (Issue 04):
- *   - Accept: application/json ODER X-Requested-With: XMLHttpRequest
- *     → JSON { score, my_vote, up_count, down_count }, Status 200
- *   - Sonst → Post/Redirect/Get, Status 302
- *
- * JSON-Pfad durchläuft dieselbe Middleware-Pipeline (AuthZ, CSRF, BlockCheck,
- * RateLimit) wie der PRG-Pfad — keine Umgehung.
+ * Antwortet immer JSON { score, my_vote, up_count, down_count }, Status 200.
+ * Durchläuft dieselbe Middleware-Pipeline (AuthZ, CSRF, BlockCheck, RateLimit).
  */
 final readonly class VoteAction
 {
@@ -89,37 +84,17 @@ final readonly class VoteAction
             'result'    => $result['my_vote'],
         ]);
 
-        // Content-Negotiation: JSON bei Accept:application/json oder XHR-Header.
-        if ($this->wantsJson($request)) {
-            $json = (string) json_encode([
-                'score'      => $result['score'],
-                'my_vote'    => $result['my_vote'],
-                'up_count'   => $result['up_count'],
-                'down_count' => $result['down_count'],
-            ]);
-            $response->getBody()->write($json);
+        $json = (string) json_encode([
+            'score'      => $result['score'],
+            'my_vote'    => $result['my_vote'],
+            'up_count'   => $result['up_count'],
+            'down_count' => $result['down_count'],
+        ]);
+        $response->getBody()->write($json);
 
-            return $response
-                ->withStatus(200)
-                ->withHeader('Content-Type', 'application/json');
-        }
-
-        // Post/Redirect/Get: zurück auf die Idee-Detailseite.
         return $response
-            ->withStatus(302)
-            ->withHeader('Location', '/' . rawurlencode($slug) . '/ideas/' . $ideaId);
-    }
-
-    /**
-     * Erkennt JSON-Präferenz: Accept: application/json ODER X-Requested-With: XMLHttpRequest.
-     */
-    private function wantsJson(ServerRequestInterface $request): bool
-    {
-        $accept = $request->getHeaderLine('Accept');
-        $xhr    = $request->getHeaderLine('X-Requested-With');
-
-        return str_contains($accept, 'application/json')
-            || strtolower($xhr) === 'xmlhttprequest';
+            ->withStatus(200)
+            ->withHeader('Content-Type', 'application/json');
     }
 
     /**

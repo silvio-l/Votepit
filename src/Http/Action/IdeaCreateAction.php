@@ -4,16 +4,13 @@ declare(strict_types=1);
 
 namespace Votepit\Http\Action;
 
-use Psr\Http\Message\MessageInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
-use Slim\Views\Twig;
 use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\Validator\Validation;
 use Votepit\Domain\ContentModerationService;
 use Votepit\Domain\TitleNormalizer;
 use Votepit\Http\Middleware\AuthNMiddleware;
-use Votepit\Http\Middleware\CsrfMiddleware;
 use Votepit\Logging\AuditLogger;
 use Votepit\Persistence\BoardRepository;
 use Votepit\Persistence\IdeaRepository;
@@ -28,21 +25,20 @@ use Votepit\Security\TimeTrapService;
  * RateLimit `idea:submit`: per-Action-RateLimit (in AppFactory angehängt).
  *
  * Validierung: Titel 3..200 Zeichen, Body min. 10 Zeichen — Symfony Validator.
- * Bei Fehler → 422 + Form re-render mit erhaltenen Eingabewerten und Fehlern.
- * Erfolg → 302 auf /{board}/ideas/{id} (Post/Redirect/Get).
+ * Bei Fehler → 422 + einheitlicher JSON-Fehlerkontrakt.
+ * Erfolg → 201 JSON `{"ok": true, "id": N}`.
  *
  * Issue 09: Moderation-Hard-Block, Honeypot, Time-Trap.
  */
 final readonly class IdeaCreateAction
 {
-    /** Honeypot form field name — must match idea-submit.twig. */
+    /** Honeypot form field name. */
     public const HONEYPOT_FIELD = 'website';
 
-    /** Time-Trap form field name — must match idea-submit.twig. */
+    /** Time-Trap form field name. */
     public const TIME_TRAP_FIELD = '_form_at';
 
     public function __construct(
-        private Twig $twig,
         private BoardRepository $boardRepo,
         private IdeaRepository $ideaRepo,
         private TitleNormalizer $normalizer,
@@ -57,12 +53,14 @@ final readonly class IdeaCreateAction
         ServerRequestInterface $request,
         ResponseInterface $response,
         array $args,
-    ): MessageInterface {
+    ): ResponseInterface {
         $slug  = is_string($args['board'] ?? null) ? $args['board'] : '';
         $board = $this->boardRepo->findBySlug($slug);
         if (!is_array($board)) {
-            $response->getBody()->write('Board not found.');
-            return $response->withStatus(404);
+            $response->getBody()->write((string) json_encode([
+                'error' => ['key' => 'not_found', 'message' => 'Board nicht gefunden.'],
+            ]));
+            return $response->withStatus(404)->withHeader('Content-Type', 'application/json');
         }
 
         // Eingeloggter User — AuthZMiddleware::user() sichert, dass er da ist.
@@ -77,38 +75,18 @@ final readonly class IdeaCreateAction
 
         // Bot-Abwehr 1: Honeypot-Feld — befüllt → stille Ablehnung (422 ohne Hinweis).
         if ($honeypot !== '') {
-            $csrfToken = $request->getAttribute(CsrfMiddleware::ATTR_TOKEN);
-            $response  = $this->twig->render(
-                $response->withStatus(422),
-                'board/idea-submit.twig',
-                [
-                    'board_slug' => $slug,
-                    'board_name' => is_string($board['name'] ?? null) ? $board['name'] : $slug,
-                    'csrf_token' => is_string($csrfToken) ? $csrfToken : '',
-                    'values'     => ['title' => $rawTitle, 'body' => $rawBody],
-                    'errors'     => [],
-                    'time_trap'  => $this->timeTrap->stamp(),
-                ],
-            );
-            return $response->withHeader('Content-Type', 'text/html; charset=utf-8');
+            $response->getBody()->write((string) json_encode([
+                'error' => ['key' => 'rejected', 'message' => 'Die Anfrage wurde abgelehnt.'],
+            ]));
+            return $response->withStatus(422)->withHeader('Content-Type', 'application/json');
         }
 
         // Bot-Abwehr 2: Time-Trap — zu schnell → stille Ablehnung (422 ohne Hinweis).
         if (!$this->timeTrap->verify($timeTrapVal)) {
-            $csrfToken = $request->getAttribute(CsrfMiddleware::ATTR_TOKEN);
-            $response  = $this->twig->render(
-                $response->withStatus(422),
-                'board/idea-submit.twig',
-                [
-                    'board_slug' => $slug,
-                    'board_name' => is_string($board['name'] ?? null) ? $board['name'] : $slug,
-                    'csrf_token' => is_string($csrfToken) ? $csrfToken : '',
-                    'values'     => ['title' => $rawTitle, 'body' => $rawBody],
-                    'errors'     => [],
-                    'time_trap'  => $this->timeTrap->stamp(),
-                ],
-            );
-            return $response->withHeader('Content-Type', 'text/html; charset=utf-8');
+            $response->getBody()->write((string) json_encode([
+                'error' => ['key' => 'rejected', 'message' => 'Die Anfrage wurde abgelehnt.'],
+            ]));
+            return $response->withStatus(422)->withHeader('Content-Type', 'application/json');
         }
 
         // Validierung via Symfony Validator (bereits Dependency).
@@ -130,30 +108,27 @@ final readonly class IdeaCreateAction
             ),
         ]);
 
-        $errors = [];
+        /** @var array<string, string> $fields */
+        $fields = [];
         foreach ($titleErrors as $e) {
-            $errors['title'][] = $e->getMessage();
+            $fields['title'] = (string) $e->getMessage();
+            break;
         }
         foreach ($bodyErrors as $e) {
-            $errors['body'][] = $e->getMessage();
+            $fields['body'] = (string) $e->getMessage();
+            break;
         }
 
-        if ($errors !== []) {
-            // Re-render: 422 + Formular mit Fehlern + erhaltene Eingabewerte.
-            $csrfToken = $request->getAttribute(CsrfMiddleware::ATTR_TOKEN);
-            $response  = $this->twig->render(
-                $response->withStatus(422),
-                'board/idea-submit.twig',
-                [
-                    'board_slug' => $slug,
-                    'board_name' => is_string($board['name'] ?? null) ? $board['name'] : $slug,
-                    'csrf_token' => is_string($csrfToken) ? $csrfToken : '',
-                    'values'     => ['title' => $rawTitle, 'body' => $rawBody],
-                    'errors'     => $errors,
-                    'time_trap'  => $this->timeTrap->stamp(),
+        if ($fields !== []) {
+            $response->getBody()->write((string) json_encode([
+                'error' => [
+                    'key'     => 'validation_error',
+                    'message' => 'Validation failed.',
+                    'fields'  => $fields,
+                    'values'  => ['title' => $rawTitle, 'body' => $rawBody],
                 ],
-            );
-            return $response->withHeader('Content-Type', 'text/html; charset=utf-8');
+            ]));
+            return $response->withStatus(422)->withHeader('Content-Type', 'application/json');
         }
 
         // Moderation-Hard-Block: nach Struktur-Validierung, vor DB-Eintrag.
@@ -175,24 +150,18 @@ final readonly class IdeaCreateAction
         if (!$modResult['clean']) {
             // Maskiert loggen — rohe Treffer dürfen nie ins Log.
             $this->audit->log('idea.moderation_blocked', [
-                'board_id' => (int) $board['id'],
+                'board_id'  => (int) $board['id'],
                 'hit_count' => count($modResult['hits']),
             ]);
 
-            $csrfToken = $request->getAttribute(CsrfMiddleware::ATTR_TOKEN);
-            $response  = $this->twig->render(
-                $response->withStatus(422),
-                'board/idea-submit.twig',
-                [
-                    'board_slug' => $slug,
-                    'board_name' => is_string($board['name'] ?? null) ? $board['name'] : $slug,
-                    'csrf_token' => is_string($csrfToken) ? $csrfToken : '',
-                    'values'     => ['title' => $rawTitle, 'body' => $rawBody],
-                    'errors'     => ['moderation' => ['Dein Text enthält unzulässige Begriffe. Bitte formuliere ihn um.']],
-                    'time_trap'  => $this->timeTrap->stamp(),
+            $response->getBody()->write((string) json_encode([
+                'error' => [
+                    'key'     => 'moderation_blocked',
+                    'message' => 'Dein Text enthält unzulässige Begriffe. Bitte formuliere ihn um.',
+                    'fields'  => [],
                 ],
-            );
-            return $response->withHeader('Content-Type', 'text/html; charset=utf-8');
+            ]));
+            return $response->withStatus(422)->withHeader('Content-Type', 'application/json');
         }
 
         // Normalisierung (TitleNormalizer, Sprint 5-kompatibler Key).
@@ -205,9 +174,7 @@ final readonly class IdeaCreateAction
 
         $this->audit->log('idea.created', ['board_id' => $boardId, 'idea_id' => $ideaId]);
 
-        // Post/Redirect/Get — Reload löst kein Doppel-Submit aus.
-        return $response
-            ->withStatus(302)
-            ->withHeader('Location', '/' . rawurlencode($slug) . '/ideas/' . $ideaId);
+        $response->getBody()->write((string) json_encode(['ok' => true, 'id' => $ideaId]));
+        return $response->withStatus(201)->withHeader('Content-Type', 'application/json');
     }
 }

@@ -71,9 +71,7 @@ final readonly class IdeaWithdrawAction
         $this->ideaRepo->withdraw($ideaId, $authorId, $boardId);
         $this->audit->log('idea.withdrawn', ['board_id' => $boardId, 'idea_id' => $ideaId]);
 
-        // Post/Redirect/Get — Redirect auf Board-Home (Ideenliste).
-        return $response
-            ->withStatus(302)
-            ->withHeader('Location', '/' . rawurlencode($slug));
+        $response->getBody()->write((string) json_encode(['ok' => true]));
+        return $response->withStatus(200)->withHeader('Content-Type', 'application/json');
     }
 }

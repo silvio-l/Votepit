@@ -70,7 +70,7 @@ final class BoardHomeActionTest extends IntegrationTestCase
         $response = $this->createApp()->handle($this->getRequest('myboard'));
 
         self::assertSame(200, $response->getStatusCode());
-        self::assertStringContainsString('text/html', $response->getHeaderLine('Content-Type'));
+        self::assertStringContainsString('application/json', $response->getHeaderLine('Content-Type'));
     }
 
     // -------------------------------------------------------------------------
@@ -83,7 +83,9 @@ final class BoardHomeActionTest extends IntegrationTestCase
 
         $body = (string) $this->createApp()->handle($this->getRequest('empty-board'))->getBody();
 
-        self::assertStringContainsString('Noch keine Ideen', $body);
+        $data = json_decode($body, true);
+        self::assertIsArray($data);
+        self::assertEmpty($data['ideas'] ?? ['not_empty']);
     }
 
     // -------------------------------------------------------------------------
@@ -118,12 +120,14 @@ final class BoardHomeActionTest extends IntegrationTestCase
 
         $body = (string) $this->createApp()->handle($this->getRequest('order-board'))->getBody();
 
-        $posOld = strpos($body, 'Ältere Idee');
-        $posNew = strpos($body, 'Neuere Idee');
+        $data   = json_decode($body, true);
+        $titles = array_column($data['ideas'] ?? [], 'title');
+        $posOld = array_search('Ältere Idee', $titles, true);
+        $posNew = array_search('Neuere Idee', $titles, true);
 
         self::assertIsInt($posOld);
         self::assertIsInt($posNew);
-        // Neuere Idee muss vor der älteren erscheinen
+        // Neuere Idee muss vor der älteren erscheinen (kleinerer Array-Index)
         self::assertLessThan($posOld, $posNew, 'Neuere Idee muss vor älterer Idee erscheinen (Newest first)');
     }
 
@@ -139,10 +143,12 @@ final class BoardHomeActionTest extends IntegrationTestCase
         $this->seedIdea($boardId, $authorId, 'Offene Idee', ['status' => 'open']);
         $this->seedIdea($boardId, $authorId, 'Erledigte Idee', ['status' => 'done']);
 
-        $body = (string) $this->createApp()->handle($this->getRequest('filter-board', 'open'))->getBody();
+        $body   = (string) $this->createApp()->handle($this->getRequest('filter-board', 'open'))->getBody();
+        $data   = json_decode($body, true);
+        $titles = array_column($data['ideas'] ?? [], 'title');
 
-        self::assertStringContainsString('Offene Idee', $body);
-        self::assertStringNotContainsString('Erledigte Idee', $body);
+        self::assertContains('Offene Idee', $titles);
+        self::assertNotContains('Erledigte Idee', $titles);
     }
 
     public function test_invalid_status_filter_shows_all(): void
@@ -153,12 +159,14 @@ final class BoardHomeActionTest extends IntegrationTestCase
         $this->seedIdea($boardId, $authorId, 'Idee A', ['status' => 'open']);
         $this->seedIdea($boardId, $authorId, 'Idee B', ['status' => 'done']);
 
-        $body = (string) $this->createApp()
+        $body   = (string) $this->createApp()
             ->handle($this->getRequest('invalid-filter-board', 'nonsense'))
             ->getBody();
+        $data   = json_decode($body, true);
+        $titles = array_column($data['ideas'] ?? [], 'title');
 
-        self::assertStringContainsString('Idee A', $body);
-        self::assertStringContainsString('Idee B', $body);
+        self::assertContains('Idee A', $titles);
+        self::assertContains('Idee B', $titles);
     }
 
     public function test_all_allowed_statuses_are_accepted(): void
@@ -173,7 +181,9 @@ final class BoardHomeActionTest extends IntegrationTestCase
         foreach (['open', 'planned', 'in_progress', 'done', 'declined'] as $status) {
             $response = $this->createApp()->handle($this->getRequest('all-status-board', $status));
             self::assertSame(200, $response->getStatusCode(), "Status '{$status}' soll 200 liefern");
-            self::assertStringContainsString("Idee-{$status}", (string) $response->getBody());
+            $data   = json_decode((string) $response->getBody(), true);
+            $titles = array_column($data['ideas'] ?? [], 'title');
+            self::assertContains("Idee-{$status}", $titles, "Status '{$status}' soll Idee enthalten");
         }
     }
 
@@ -190,10 +200,12 @@ final class BoardHomeActionTest extends IntegrationTestCase
         $this->seedIdea($boardAId, $authorId, 'Geheime Idee aus A');
         $this->seedIdea($boardBId, $authorId, 'Öffentliche Idee aus B');
 
-        $bodyB = (string) $this->createApp()->handle($this->getRequest('board-b'))->getBody();
+        $bodyB  = (string) $this->createApp()->handle($this->getRequest('board-b'))->getBody();
+        $dataB  = json_decode($bodyB, true);
+        $titlesB = array_column($dataB['ideas'] ?? [], 'title');
 
-        self::assertStringContainsString('Öffentliche Idee aus B', $bodyB);
-        self::assertStringNotContainsString('Geheime Idee aus A', $bodyB);
+        self::assertContains('Öffentliche Idee aus B', $titlesB);
+        self::assertNotContains('Geheime Idee aus A', $titlesB);
     }
 
     // -------------------------------------------------------------------------
@@ -230,9 +242,10 @@ final class BoardHomeActionTest extends IntegrationTestCase
 
         $body = (string) $this->createApp()->handle($this->getRequest('xss-board'))->getBody();
 
-        // Roh-Markup darf nicht im Output erscheinen; escaped als &lt;script&gt; schon
-        self::assertStringNotContainsString('<script>alert', $body);
-        self::assertStringContainsString('&lt;script&gt;', $body);
+        // JSON-API liefert den Rohwert; React escaped beim Rendern (kein HTML-Output hier)
+        $data   = json_decode($body, true);
+        $titles = array_column($data['ideas'] ?? [], 'title');
+        self::assertContains($xssTitle, $titles, 'XSS-Titel muss als Klartext in der JSON-Antwort stehen.');
     }
 
     // -------------------------------------------------------------------------
@@ -249,12 +262,15 @@ final class BoardHomeActionTest extends IntegrationTestCase
         $this->seedIdea($boardId, $authorId, 'Idee Beta');
 
         // Seite 1 liefert Ideen
-        $body1 = (string) $this->createApp()->handle($this->getRequest('paged-board', null, 1))->getBody();
-        self::assertStringContainsString('Idee Alpha', $body1);
+        $body1  = (string) $this->createApp()->handle($this->getRequest('paged-board', null, 1))->getBody();
+        $data1  = json_decode($body1, true);
+        $titles1 = array_column($data1['ideas'] ?? [], 'title');
+        self::assertContains('Idee Alpha', $titles1);
 
-        // Seite 999 (weit weg) → empty state (Offset > Anzahl Ideen)
+        // Seite 999 (weit weg) → leere Ideenliste
         $body999 = (string) $this->createApp()->handle($this->getRequest('paged-board', null, 999))->getBody();
-        self::assertStringContainsString('Noch keine Ideen', $body999);
+        $data999 = json_decode($body999, true);
+        self::assertEmpty($data999['ideas'] ?? ['not_empty']);
     }
 
     // -------------------------------------------------------------------------
@@ -267,6 +283,7 @@ final class BoardHomeActionTest extends IntegrationTestCase
 
         $body = (string) $this->createApp()->handle($this->getRequest('named-board'))->getBody();
 
-        self::assertStringContainsString('Mein Super Board', $body);
+        $data = json_decode($body, true);
+        self::assertSame('Mein Super Board', $data['board']['name'] ?? null);
     }
 }

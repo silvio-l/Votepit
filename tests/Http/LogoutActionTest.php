@@ -99,7 +99,7 @@ final class LogoutActionTest extends IntegrationTestCase
 
         $response = $this->createApp()->handle($this->logoutRequest($userId));
 
-        self::assertSame(302, $response->getStatusCode());
+        self::assertSame(200, $response->getStatusCode());
 
         // token_version muss jetzt 1 sein
         $version = (int) $this->conn->fetchOne(

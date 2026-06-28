@@ -106,8 +106,10 @@ final class IdeaWithdrawActionTest extends IntegrationTestCase
 
         $response = $this->createApp()->handle($this->postWithdraw('withdraw-ac1-board', $ideaId, $userId));
 
-        self::assertSame(302, $response->getStatusCode());
-        self::assertSame('/withdraw-ac1-board', $response->getHeaderLine('Location'));
+        // 200 + JSON {"ok": true} (SPA navigiert selbst; kein 302-Redirect)
+        self::assertSame(200, $response->getStatusCode());
+        $data = json_decode((string) $response->getBody(), true);
+        self::assertTrue($data['ok'] ?? false);
     }
 
     public function test_owner_withdraw_deletes_idea_from_db(): void
@@ -153,7 +155,9 @@ final class IdeaWithdrawActionTest extends IntegrationTestCase
 
         $listResponse = $app->handle($this->getBoardHome('withdraw-list-board'));
         self::assertSame(200, $listResponse->getStatusCode());
-        self::assertStringNotContainsString('Unique Title XYZ123', (string) $listResponse->getBody());
+        $listData = json_decode((string) $listResponse->getBody(), true);
+        $titles   = array_column($listData['ideas'] ?? [], 'title');
+        self::assertNotContains('Unique Title XYZ123', $titles);
     }
 
     // -------------------------------------------------------------------------

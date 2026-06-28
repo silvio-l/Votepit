@@ -134,7 +134,10 @@ final class BoardBrandingActionTest extends IntegrationTestCase
         $response = $this->createApp()->handle($this->getRequest($slug, $adminId));
 
         self::assertSame(200, $response->getStatusCode());
-        self::assertStringContainsString('Branding', (string) $response->getBody());
+        self::assertStringContainsString('application/json', $response->getHeaderLine('Content-Type'));
+        $data = json_decode((string) $response->getBody(), true);
+        self::assertIsArray($data);
+        self::assertArrayHasKey('board_slug', $data);
     }
 
     public function test_post_as_non_admin_with_valid_csrf_is_rejected(): void
@@ -183,7 +186,10 @@ final class BoardBrandingActionTest extends IntegrationTestCase
             'logo_url'        => '/assets/logo.svg',
         ]));
 
-        self::assertSame(302, $response->getStatusCode());
+        // 200 + JSON {"ok": true} (kein 302-Redirect; SPA navigiert selbst)
+        self::assertSame(200, $response->getStatusCode());
+        $data = json_decode((string) $response->getBody(), true);
+        self::assertTrue($data['ok'] ?? false);
 
         $row = $this->conn->fetchAssociative('SELECT * FROM boards WHERE slug = :s', ['s' => $slug]);
         self::assertIsArray($row);
@@ -205,7 +211,7 @@ final class BoardBrandingActionTest extends IntegrationTestCase
             'primary_color' => '#abc;color:red',
         ]));
 
-        self::assertSame(302, $response->getStatusCode());
+        self::assertSame(200, $response->getStatusCode());
 
         $stored = $this->conn->fetchOne('SELECT primary_color FROM boards WHERE slug = :s', ['s' => $slug]);
         self::assertNull($stored); // ungültig → null, kein roher Wert gespeichert
@@ -220,16 +226,16 @@ final class BoardBrandingActionTest extends IntegrationTestCase
         $slug    = $this->seedBoard('branded', '#123456', '#654321', '/assets/logo.svg');
         $adminId = $this->seedUser('admin5@example.com', true);
 
-        $body = (string) $this->createApp()->handle($this->getRequest($slug, $adminId))->getBody();
-
-        self::assertMatchesRegularExpression(
-            '/<html[^>]*\sstyle="[^"]*--vp-primary:\s*#123456;[^"]*"/',
-            $body,
+        $data = json_decode(
+            (string) $this->createApp()->handle($this->getRequest($slug, $adminId))->getBody(),
+            true,
         );
-        self::assertStringContainsString('src="/assets/logo.svg"', $body);
-        // Semantische Tokens dürfen nicht im Inline-Override stehen.
-        self::assertSame(1, preg_match('/<html[^>]*\sstyle="([^"]*)"/', $body, $m));
-        self::assertStringNotContainsString('--vp-vote-up', $m[1]);
+
+        // JSON-API liefert sanitisierte Branding-Felder (SPA rendert den Inline-Override)
+        self::assertSame('#123456', $data['primary_color'] ?? null);
+        self::assertSame('/assets/logo.svg', $data['logo_url'] ?? null);
+        // Kein semantischer Token darf direkt im primary_color stehen
+        self::assertStringNotContainsString('--vp-vote-up', $data['primary_color'] ?? '');
     }
 
     public function test_unbranded_board_renders_default_theme(): void
@@ -237,10 +243,14 @@ final class BoardBrandingActionTest extends IntegrationTestCase
         $slug    = $this->seedBoard('plain-board');
         $adminId = $this->seedUser('admin6@example.com', true);
 
-        $body = (string) $this->createApp()->handle($this->getRequest($slug, $adminId))->getBody();
+        $data = json_decode(
+            (string) $this->createApp()->handle($this->getRequest($slug, $adminId))->getBody(),
+            true,
+        );
 
-        self::assertSame(0, preg_match('/<html[^>]*\sstyle=/', $body));
-        self::assertStringContainsString('--vp-primary:', $body); // Default-Token greift
+        // Kein Branding gesetzt → null-Felder (SPA zeigt Default-Theme)
+        self::assertArrayHasKey('primary_color', $data);
+        self::assertNull($data['primary_color']);
     }
 
     public function test_invalid_stored_color_falls_back_to_default(): void
@@ -249,11 +259,14 @@ final class BoardBrandingActionTest extends IntegrationTestCase
         $slug    = $this->seedBoard('legacy', '#abc;color:red');
         $adminId = $this->seedUser('admin7@example.com', true);
 
-        $body = (string) $this->createApp()->handle($this->getRequest($slug, $adminId))->getBody();
+        $data = json_decode(
+            (string) $this->createApp()->handle($this->getRequest($slug, $adminId))->getBody(),
+            true,
+        );
 
-        // Kein Inline-Override am <html> → der ungültige Wert erreicht NIE die CSS-Senke.
-        // (Im Formularfeld wird er escaped als Attributwert gespiegelt — harmlos.)
-        self::assertSame(0, preg_match('/<html[^>]*\sstyle=/', $body));
+        // Ungültiger gespeicherter Wert → API sanitisiert auf null (Default-Theme greift)
+        self::assertArrayHasKey('primary_color', $data);
+        self::assertNull($data['primary_color']);
     }
 
     public function test_unknown_board_returns_404(): void

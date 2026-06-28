@@ -5,12 +5,10 @@ declare(strict_types=1);
 namespace Votepit\Http;
 
 use Doctrine\DBAL\Connection;
-use Psr\Http\Message\MessageInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Slim\App;
 use Slim\Psr7\Factory\ResponseFactory;
-use Slim\Views\Twig;
 use Votepit\Config;
 use Votepit\Domain\ContentModerationService;
 use Votepit\Domain\TitleNormalizer;
@@ -50,6 +48,8 @@ use Votepit\Security\TokenVault;
  * BlockCheck/CSRF als Pipeline, AuthZ per-Route.
  * Sprint 2: GET /login + POST /login (Magic-Link-Request-Flow), Mailer-Seam,
  * UserRepository, LoginTokenRepository.
+ * Sprint 4 (Issue 04): alle Routes liefern JSON-API-Antworten; Twig entfernt;
+ * GET /api/bootstrap (CSRF-Token + Whoami für SPA).
  *
  * Die DB-Connection ist optional: ohne sie (DB-loser Smoke-Test) entfällt die
  * RateLimit(IP)-Schicht und die Login-Routen werden nicht registriert.
@@ -88,12 +88,6 @@ final class AppFactory
         // UserRepository wird (mit DB) bereits für die AuthN-Hydratation gebraucht.
         $userRepo = $conn instanceof Connection ? new UserRepository($conn) : null;
 
-        $twig = Twig::create($root . '/templates', [
-            'cache'            => $config->env === 'prod' ? $root . '/var/twig-cache' : false,
-            'autoescape'       => 'html', // Sicherheits-Default (A03 — XSS)
-            'strict_variables' => false,
-        ]);
-
         // --- Globale PSR-15-Pipeline -------------------------------------
         // Add-Reihenfolge ist umgekehrt zur Ausführung (zuletzt added = außen).
         // Ausführung außen → innen:
@@ -124,17 +118,18 @@ final class AppFactory
         );
 
         // --- Routes -------------------------------------------------------
-        // Smoke-Route: beweist Boot + Pipeline + Twig + Security-Header.
-        $app->get('/', function (ServerRequestInterface $request, ResponseInterface $response) use ($twig, $audit): MessageInterface {
+        // Smoke-Route: beweist Boot + Pipeline + Security-Header.
+        $app->get('/', function (ServerRequestInterface $request, ResponseInterface $response) use ($audit): ResponseInterface {
             $audit->log('smoke.hit', ['ua' => $request->getHeaderLine('User-Agent')]);
             $csrfToken = $request->getAttribute(CsrfMiddleware::ATTR_TOKEN);
-            $response  = $twig->render($response, 'home.twig', [
-                'title'            => 'Votepit',
+            $user      = $request->getAttribute(AuthNMiddleware::ATTR_USER);
+            $response->getBody()->write((string) json_encode([
+                'ok'               => true,
                 'status'           => 'Security-Foundation aktiv.',
                 'csrf_token'       => is_string($csrfToken) ? $csrfToken : '',
-                'is_authenticated' => $request->getAttribute(AuthNMiddleware::ATTR_USER) !== null,
-            ]);
-            return $response->withHeader('Content-Type', 'text/html; charset=utf-8');
+                'is_authenticated' => $user !== null,
+            ]));
+            return $response->withStatus(200)->withHeader('Content-Type', 'application/json');
         })->add(AuthZMiddleware::anon($responseFactory));
 
         // Login-Routen (Sprint 2): nur mit DB-Connection registrieren.
@@ -149,20 +144,42 @@ final class AppFactory
             $emailRateLimit = $config->rateLimit('magiclink:email');
             $mlIpRateLimit  = $config->rateLimit('magiclink:ip');
 
-            // GET /login — zeigt das E-Mail-Formular (AuthZ: anon).
+            // GET /api/bootstrap — CSRF-Token + Whoami für SPA (AuthZ: anon).
+            // Gibt dem SPA den aktuellen CSRF-Token und den eingeloggten Nutzer zurück.
+            // Muss vom SPA beim Start aufgerufen werden, bevor mutierende Requests gesendet werden.
+            $app->get('/api/bootstrap', function (
+                ServerRequestInterface $request,
+                ResponseInterface $response,
+            ): ResponseInterface {
+                $csrfToken = $request->getAttribute(CsrfMiddleware::ATTR_TOKEN);
+                $user      = $request->getAttribute(AuthNMiddleware::ATTR_USER);
+                $userPayload = null;
+                if (is_array($user)) {
+                    $userPayload = [
+                        'id'       => (int) ($user['id'] ?? 0),
+                        'is_admin' => (bool) ($user['is_admin'] ?? false),
+                    ];
+                }
+                $response->getBody()->write((string) json_encode([
+                    'csrf_token' => is_string($csrfToken) ? $csrfToken : '',
+                    'user'       => $userPayload,
+                ]));
+                return $response->withStatus(200)->withHeader('Content-Type', 'application/json');
+            })->add(AuthZMiddleware::anon($responseFactory));
+
+            // GET /login — SPA-Route: liefert validierten return_to-Pfad (AuthZ: anon).
             $app->get('/login', function (
                 ServerRequestInterface $request,
                 ResponseInterface $response,
-            ) use ($twig): MessageInterface {
-                $csrfToken = $request->getAttribute(CsrfMiddleware::ATTR_TOKEN);
-                $params    = $request->getQueryParams();
-                $rawR      = is_string($params['r'] ?? null) ? $params['r'] : '';
-                $returnTo  = ReturnToValidator::isValid($rawR) ? $rawR : '';
-                $response  = $twig->render($response, 'login.twig', [
-                    'csrf_token' => is_string($csrfToken) ? $csrfToken : '',
-                    'return_to'  => $returnTo,
-                ]);
-                return $response->withHeader('Content-Type', 'text/html; charset=utf-8');
+            ): ResponseInterface {
+                $params   = $request->getQueryParams();
+                $rawR     = is_string($params['r'] ?? null) ? $params['r'] : '';
+                $returnTo = ReturnToValidator::isValid($rawR) ? $rawR : '';
+                $response->getBody()->write((string) json_encode([
+                    'ok'        => true,
+                    'return_to' => $returnTo,
+                ]));
+                return $response->withStatus(200)->withHeader('Content-Type', 'application/json');
             })->add(AuthZMiddleware::anon($responseFactory));
 
             // POST /login — verarbeitet die E-Mail, versendet den Magic-Link (AuthZ: anon).
@@ -170,7 +187,7 @@ final class AppFactory
             $app->post('/login', function (
                 ServerRequestInterface $request,
                 ResponseInterface $response,
-            ) use ($twig, $userRepo, $tokenRepo, $vault, $resolvedMailer, $audit, $config): MessageInterface {
+            ) use ($userRepo, $tokenRepo, $vault, $resolvedMailer, $audit, $config): ResponseInterface {
                 $parsed    = $request->getParsedBody();
                 $rawEmail  = is_array($parsed) ? (string) ($parsed['email'] ?? '') : '';
                 $email     = strtolower(trim($rawEmail));
@@ -203,8 +220,8 @@ final class AppFactory
                     $audit->log('magic_link.requested', ['email' => $email]);
                 }
 
-                $response = $twig->render($response, 'login-sent.twig', []);
-                return $response->withHeader('Content-Type', 'text/html; charset=utf-8');
+                $response->getBody()->write((string) json_encode(['ok' => true]));
+                return $response->withStatus(200)->withHeader('Content-Type', 'application/json');
             })
             ->add(AuthZMiddleware::anon($responseFactory))
             ->add(RateLimitMiddleware::perAction(
@@ -244,17 +261,20 @@ final class AppFactory
                     $userRepo->bumpTokenVersion((int) $user['id']);
                     $audit->log('user.logout', ['uid' => (int) $user['id']]);
                 }
-                return $sessions->clear($response->withStatus(302)->withHeader('Location', '/login'));
+                $response->getBody()->write((string) json_encode(['ok' => true]));
+                return $sessions->clear(
+                    $response->withStatus(200)->withHeader('Content-Type', 'application/json')
+                );
             })->add(AuthZMiddleware::user($responseFactory));
 
             // GET /login/verify?token=<klartext> — verifiziert den Magic-Link und
             // stellt eine frische Session aus (AuthZ: anon, GET → CSRF-exempt:
             // der Einmal-Token selbst ist die Capability). Bei Misserfolg KEIN
-            // Side-Effect, einheitliche 4xx-Fehlerseite.
+            // Side-Effect, einheitliche 4xx-JSON-Fehlerantwort.
             $app->get('/login/verify', function (
                 ServerRequestInterface $request,
                 ResponseInterface $response,
-            ) use ($twig, $userRepo, $tokenRepo, $vault, $audit, $config, $sessions, $conn): MessageInterface {
+            ) use ($userRepo, $tokenRepo, $vault, $audit, $config, $sessions, $conn): ResponseInterface {
                 $params   = $request->getQueryParams();
                 $token    = is_string($params['token'] ?? null) ? $params['token'] : '';
                 $rawR     = is_string($params['r'] ?? null) ? $params['r'] : '';
@@ -265,8 +285,13 @@ final class AppFactory
                 // Konstant-zeitige Bestätigung; Misserfolg → keine Mutation.
                 if (!is_array($row) || !$vault->verify($token, (string) $row['token_hash'])) {
                     $audit->log('magic_link.verify_failed', []);
-                    $response = $twig->render($response->withStatus(400), 'login-invalid.twig', []);
-                    return $response->withHeader('Content-Type', 'text/html; charset=utf-8');
+                    $response->getBody()->write((string) json_encode([
+                        'error' => [
+                            'key'     => 'invalid_token',
+                            'message' => 'Der Link ist ungültig oder abgelaufen.',
+                        ],
+                    ]));
+                    return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
                 }
 
                 $userId    = (int) $row['user_id'];
@@ -302,14 +327,16 @@ final class AppFactory
                 }
 
                 // Frische Session — etwaiges Vor-Login-Cookie wird ignoriert/ersetzt
-                // (Session-Fixation-Schutz). Redirect-Ziel: validierter Return-To-Pfad
-                // oder Default '/' (Issue 05: Open-Redirect-sicheres Deep-Linking).
-                $response = $sessions->issue(
-                    $response->withStatus(302)->withHeader('Location', $returnTo),
+                // (Session-Fixation-Schutz). JSON-Antwort mit Redirect-Ziel für SPA.
+                $response->getBody()->write((string) json_encode([
+                    'ok'       => true,
+                    'redirect' => $returnTo,
+                ]));
+
+                return $sessions->issue(
+                    $response->withStatus(200)->withHeader('Content-Type', 'application/json'),
                     ['uid' => $userId, 'v' => (int) ($user['token_version'] ?? 0)],
                 );
-
-                return $response;
             })->add(AuthZMiddleware::anon($responseFactory));
 
             $ideaRepo      = new IdeaRepository($conn);
@@ -323,12 +350,14 @@ final class AppFactory
                 ServerRequestInterface $request,
                 ResponseInterface $response,
                 array $args,
-            ) use ($twig, $boardRepo, $ideaRepo): MessageInterface {
+            ) use ($boardRepo, $ideaRepo): ResponseInterface {
                 $slug  = is_string($args['board'] ?? null) ? $args['board'] : '';
                 $board = $boardRepo->findBySlug($slug);
                 if (!is_array($board)) {
-                    $response->getBody()->write('Board not found.');
-                    return $response->withStatus(404);
+                    $response->getBody()->write((string) json_encode([
+                        'error' => ['key' => 'not_found', 'message' => 'Board nicht gefunden.'],
+                    ]));
+                    return $response->withStatus(404)->withHeader('Content-Type', 'application/json');
                 }
 
                 $params = $request->getQueryParams();
@@ -353,7 +382,6 @@ final class AppFactory
                 $currentUser   = $request->getAttribute(AuthNMiddleware::ATTR_USER);
                 $isAuth        = $currentUser !== null;
                 $currentUserId = is_array($currentUser) ? (int) ($currentUser['id'] ?? 0) : null;
-                $csrfToken     = $request->getAttribute(CsrfMiddleware::ATTR_TOKEN);
 
                 $ideas = $ideaRepo->listByBoard((int) $board['id'], $activeStatus, $limit, $offset, $activeSort, $currentUserId);
 
@@ -364,96 +392,91 @@ final class AppFactory
                     $totalPages = max(1, (int) ceil($total / $limit));
                 }
 
-                $response = $twig->render($response, 'board/home.twig', [
-                    'board_slug'       => $slug,
-                    'board_name'       => is_string($board['name'] ?? null) ? $board['name'] : $slug,
-                    'board_intro'      => is_string($board['intro'] ?? null) ? $board['intro'] : '',
+                $response->getBody()->write((string) json_encode([
+                    'board'            => [
+                        'id'    => (int) $board['id'],
+                        'slug'  => $slug,
+                        'name'  => is_string($board['name'] ?? null) ? $board['name'] : $slug,
+                        'intro' => is_string($board['intro'] ?? null) ? $board['intro'] : '',
+                    ],
                     'ideas'            => $ideas,
                     'active_status'    => $activeStatus,
                     'active_sort'      => $activeSort,
                     'page'             => $page,
                     'total_pages'      => $totalPages,
                     'is_authenticated' => $isAuth,
-                    'csrf_token'       => is_string($csrfToken) ? $csrfToken : '',
-                    'current_user_id'  => $currentUserId,
-                ]);
-                return $response->withHeader('Content-Type', 'text/html; charset=utf-8');
+                ]));
+                return $response->withStatus(200)->withHeader('Content-Type', 'application/json');
             })->add(AuthZMiddleware::anon($responseFactory));
 
             // GET /{board}/ideas/{id} — Idee-Detailansicht (Sprint 3, Issue 04).
             // AuthZ: anon (Lesen ist öffentlich). Unbekannter Slug oder Idee → 404.
             // Cross-Board-Leak verhindert durch board-scopedes findInBoard().
-            // csrf_token + current_user_id werden für den Withdraw-Button übergeben (Issue 07).
             $app->get('/{board}/ideas/{id:[0-9]+}', function (
                 ServerRequestInterface $request,
                 ResponseInterface $response,
                 array $args,
-            ) use ($twig, $boardRepo, $ideaRepo): MessageInterface {
+            ) use ($boardRepo, $ideaRepo): ResponseInterface {
                 $slug  = is_string($args['board'] ?? null) ? $args['board'] : '';
                 $board = $boardRepo->findBySlug($slug);
                 if (!is_array($board)) {
-                    $response->getBody()->write('Board not found.');
-                    return $response->withStatus(404);
+                    $response->getBody()->write((string) json_encode([
+                        'error' => ['key' => 'not_found', 'message' => 'Board nicht gefunden.'],
+                    ]));
+                    return $response->withStatus(404)->withHeader('Content-Type', 'application/json');
                 }
 
                 $ideaId      = (int) ($args['id'] ?? 0);
-                $csrfToken   = $request->getAttribute(CsrfMiddleware::ATTR_TOKEN);
                 $currentUser = $request->getAttribute(AuthNMiddleware::ATTR_USER);
                 // Issue 02: my_vote per set-basierter Subquery wenn eingeloggt.
                 $currentUserId = is_array($currentUser) ? (int) ($currentUser['id'] ?? 0) : null;
 
                 $idea = $ideaRepo->findInBoard((int) $board['id'], $ideaId, $currentUserId);
                 if (!is_array($idea)) {
-                    $response->getBody()->write('Idea not found.');
-                    return $response->withStatus(404);
+                    $response->getBody()->write((string) json_encode([
+                        'error' => ['key' => 'not_found', 'message' => 'Idee nicht gefunden.'],
+                    ]));
+                    return $response->withStatus(404)->withHeader('Content-Type', 'application/json');
                 }
 
-                $response = $twig->render($response, 'board/idea-detail.twig', [
-                    'board_slug'      => $slug,
-                    'board_name'      => is_string($board['name'] ?? null) ? $board['name'] : $slug,
-                    'idea'            => $idea,
-                    'csrf_token'      => is_string($csrfToken) ? $csrfToken : '',
-                    'current_user_id' => $currentUserId,
-                ]);
-                return $response->withHeader('Content-Type', 'text/html; charset=utf-8');
+                $response->getBody()->write((string) json_encode([
+                    'board'            => [
+                        'id'   => (int) $board['id'],
+                        'slug' => $slug,
+                        'name' => is_string($board['name'] ?? null) ? $board['name'] : $slug,
+                    ],
+                    'idea'             => $idea,
+                    'is_authenticated' => $currentUser !== null,
+                ]));
+                return $response->withStatus(200)->withHeader('Content-Type', 'application/json');
             })->add(AuthZMiddleware::anon($responseFactory));
 
-            // GET /{board}/ideas/new — Submit-Formular (Sprint 3, Issue 05).
-            // AuthZ: anon; anon-Nutzer werden in der Action per Redirect zum Login geleitet
-            // (Return-To auf die aktuelle URL gesetzt). Eingeloggte sehen das Formular.
-            // POST-Route ist user-gated; das Formular selbst enthält keine Secrets.
-            // Issue 09: Time-Trap-Stamp wird als Hidden-Field eingebettet.
+            // GET /{board}/ideas/new — SPA-Route: liefert Board-Info + Auth-Status (AuthZ: anon).
+            // PRG-Redirect auf Login entfällt serverseitig; SPA wertet is_authenticated aus.
             $app->get('/{board}/ideas/new', function (
                 ServerRequestInterface $request,
                 ResponseInterface $response,
                 array $args,
-            ) use ($twig, $boardRepo, $timeTrap): MessageInterface {
+            ) use ($boardRepo): ResponseInterface {
                 $slug  = is_string($args['board'] ?? null) ? $args['board'] : '';
                 $board = $boardRepo->findBySlug($slug);
                 if (!is_array($board)) {
-                    $response->getBody()->write('Board not found.');
-                    return $response->withStatus(404);
+                    $response->getBody()->write((string) json_encode([
+                        'error' => ['key' => 'not_found', 'message' => 'Board nicht gefunden.'],
+                    ]));
+                    return $response->withStatus(404)->withHeader('Content-Type', 'application/json');
                 }
 
-                // Anon → Redirect auf Login mit Return-To (Open-Redirect-sicher via rawurlencode).
                 $user = $request->getAttribute(AuthNMiddleware::ATTR_USER);
-                if (!is_array($user)) {
-                    $returnTo = '/' . rawurlencode($slug) . '/ideas/new';
-                    return $response
-                        ->withStatus(302)
-                        ->withHeader('Location', '/login?r=' . rawurlencode($returnTo));
-                }
-
-                $csrfToken = $request->getAttribute(CsrfMiddleware::ATTR_TOKEN);
-                $response  = $twig->render($response, 'board/idea-submit.twig', [
-                    'board_slug' => $slug,
-                    'board_name' => is_string($board['name'] ?? null) ? $board['name'] : $slug,
-                    'csrf_token' => is_string($csrfToken) ? $csrfToken : '',
-                    'values'     => ['title' => '', 'body' => ''],
-                    'errors'     => [],
-                    'time_trap'  => $timeTrap->stamp(),
-                ]);
-                return $response->withHeader('Content-Type', 'text/html; charset=utf-8');
+                $response->getBody()->write((string) json_encode([
+                    'board'            => [
+                        'id'   => (int) $board['id'],
+                        'slug' => $slug,
+                        'name' => is_string($board['name'] ?? null) ? $board['name'] : $slug,
+                    ],
+                    'is_authenticated' => $user !== null,
+                ]));
+                return $response->withStatus(200)->withHeader('Content-Type', 'application/json');
             })->add(AuthZMiddleware::anon($responseFactory));
 
             // POST /{board}/ideas — Idee anlegen (Sprint 3, Issue 05).
@@ -461,7 +484,7 @@ final class AppFactory
             $submitRateLimit = $config->rateLimit('idea:submit');
             $normalizer      = new TitleNormalizer();
 
-            $app->post('/{board}/ideas', new IdeaCreateAction($twig, $boardRepo, $ideaRepo, $normalizer, $audit, $moderation, $timeTrap, $modConfigRepo))
+            $app->post('/{board}/ideas', new IdeaCreateAction($boardRepo, $ideaRepo, $normalizer, $audit, $moderation, $timeTrap, $modConfigRepo))
             ->add(AuthZMiddleware::user($responseFactory))
             ->add(RateLimitMiddleware::perAction(
                 new RateLimiter($conn),
@@ -476,10 +499,9 @@ final class AppFactory
             ));
 
             // GET /{board}/ideas/{id}/edit — Edit-Formular (Sprint 3, Issue 06).
-            // AuthZ: user; row-level Ownership-Check in der Action.
+            // AuthZ: anon; row-level Ownership-Check in der Action; anon → 401 JSON.
             // Issue 06: Time-Trap-Stamp wird als Hidden-Field eingebettet.
             $editAction = new IdeaEditAction(
-                $twig,
                 $boardRepo,
                 $ideaRepo,
                 $normalizer,
@@ -489,7 +511,7 @@ final class AppFactory
                 $modConfigRepo,
             );
 
-            // GET /edit: anon → Login-Redirect (in-action, wie submit GET).
+            // GET /edit: anon → 401 JSON (in-action).
             // Ownership-Check ebenfalls in der Action (404/403).
             $app->get('/{board}/ideas/{id:[0-9]+}/edit', $editAction->getEdit(...))
                 ->add(AuthZMiddleware::anon($responseFactory));
@@ -525,39 +547,38 @@ final class AppFactory
             ));
 
             // GET /admin/boards/{slug}/branding — Branding-Einstellseite (AuthZ: admin).
-            // Rendert das Base-Layout mit dem (validierten) Branding des Boards selbst:
-            // beweist den Konsum-Seam (Override greift / Default greift) observabel.
+            // Gibt das (validierte) Branding des Boards als JSON zurück.
             $app->get('/admin/boards/{slug}/branding', function (
                 ServerRequestInterface $request,
                 ResponseInterface $response,
                 array $args,
-            ) use ($twig, $boardRepo): MessageInterface {
+            ) use ($boardRepo): ResponseInterface {
                 $slug  = is_string($args['slug'] ?? null) ? $args['slug'] : '';
                 $board = $boardRepo->findBySlug($slug);
                 if (!is_array($board)) {
-                    $response->getBody()->write('Board not found.');
-                    return $response->withStatus(404);
+                    $response->getBody()->write((string) json_encode([
+                        'error' => ['key' => 'not_found', 'message' => 'Board nicht gefunden.'],
+                    ]));
+                    return $response->withStatus(404)->withHeader('Content-Type', 'application/json');
                 }
 
                 $primary   = is_string($board['primary_color'] ?? null) ? $board['primary_color'] : '';
                 $secondary = is_string($board['secondary_color'] ?? null) ? $board['secondary_color'] : '';
                 $logo      = is_string($board['logo_url'] ?? null) ? $board['logo_url'] : '';
-                $csrfToken = $request->getAttribute(CsrfMiddleware::ATTR_TOKEN);
 
-                $response = $twig->render($response, 'admin/board-branding.twig', [
-                    'csrf_token'      => is_string($csrfToken) ? $csrfToken : '',
+                // Gespeicherte Werte validieren — ungültig → null (Default-Theme).
+                $sanitizedPrimary   = $primary !== '' ? BrandingValidator::color($primary) : null;
+                $sanitizedSecondary = $secondary !== '' ? BrandingValidator::color($secondary) : null;
+                $sanitizedLogo      = $logo !== '' ? BrandingValidator::logoUrl($logo) : null;
+
+                $response->getBody()->write((string) json_encode([
                     'board_slug'      => $slug,
                     'board_name'      => is_string($board['name'] ?? null) ? $board['name'] : $slug,
-                    'primary_color'   => $primary,
-                    'secondary_color' => $secondary,
-                    'logo_url'        => $logo,
-                    'brand_style'     => BrandingValidator::inlineStyle(
-                        $primary !== '' ? $primary : null,
-                        $secondary !== '' ? $secondary : null,
-                    ),
-                    'brand_logo_url'  => $logo !== '' ? (BrandingValidator::logoUrl($logo) ?? '') : '',
-                ]);
-                return $response->withHeader('Content-Type', 'text/html; charset=utf-8');
+                    'primary_color'   => $sanitizedPrimary,
+                    'secondary_color' => $sanitizedSecondary,
+                    'logo_url'        => $sanitizedLogo,
+                ]));
+                return $response->withStatus(200)->withHeader('Content-Type', 'application/json');
             })->add(AuthZMiddleware::admin($responseFactory));
 
             // POST /admin/boards/{slug}/branding — speichert das Branding (AuthZ: admin,
@@ -571,8 +592,10 @@ final class AppFactory
                 $slug  = is_string($args['slug'] ?? null) ? $args['slug'] : '';
                 $board = $boardRepo->findBySlug($slug);
                 if (!is_array($board)) {
-                    $response->getBody()->write('Board not found.');
-                    return $response->withStatus(404);
+                    $response->getBody()->write((string) json_encode([
+                        'error' => ['key' => 'not_found', 'message' => 'Board nicht gefunden.'],
+                    ]));
+                    return $response->withStatus(404)->withHeader('Content-Type', 'application/json');
                 }
 
                 $parsed       = $request->getParsedBody();
@@ -589,60 +612,59 @@ final class AppFactory
 
                 $audit->log('board.branding_updated', ['board_id' => (int) $board['id']]);
 
-                // Post/Redirect/Get: zurück auf die Einstellseite.
-                return $response->withStatus(302)
-                    ->withHeader('Location', '/admin/boards/' . rawurlencode($slug) . '/branding');
+                $response->getBody()->write((string) json_encode(['ok' => true]));
+                return $response->withStatus(200)->withHeader('Content-Type', 'application/json');
             })->add(AuthZMiddleware::admin($responseFactory));
 
             // GET /admin/boards/{slug}/moderation — Moderation-Einstellseite (AuthZ: admin).
-            // Zeigt Toggle (an/aus) + aktuelle Board-Custom-Wörter.
+            // Zeigt Toggle (an/aus) + aktuelle Board-Custom-Wörter als JSON.
             $app->get('/admin/boards/{slug}/moderation', function (
                 ServerRequestInterface $request,
                 ResponseInterface $response,
                 array $args,
-            ) use ($twig, $boardRepo, $modConfigRepo): MessageInterface {
+            ) use ($boardRepo, $modConfigRepo): ResponseInterface {
                 $slug  = is_string($args['slug'] ?? null) ? $args['slug'] : '';
                 $board = $boardRepo->findBySlug($slug);
                 if (!is_array($board)) {
-                    $response->getBody()->write('Board not found.');
-                    return $response->withStatus(404);
+                    $response->getBody()->write((string) json_encode([
+                        'error' => ['key' => 'not_found', 'message' => 'Board nicht gefunden.'],
+                    ]));
+                    return $response->withStatus(404)->withHeader('Content-Type', 'application/json');
                 }
 
-                $boardId   = (int) $board['id'];
-                $csrfToken = $request->getAttribute(CsrfMiddleware::ATTR_TOKEN);
+                $boardId = (int) $board['id'];
 
-                $response = $twig->render($response, 'admin/board-moderation.twig', [
-                    'csrf_token'         => is_string($csrfToken) ? $csrfToken : '',
+                $response->getBody()->write((string) json_encode([
                     'board_slug'         => $slug,
                     'board_name'         => is_string($board['name'] ?? null) ? $board['name'] : $slug,
                     'moderation_enabled' => $modConfigRepo->isModerationEnabled($boardId),
                     'words'              => $modConfigRepo->listWords($boardId),
-                ]);
-                return $response->withHeader('Content-Type', 'text/html; charset=utf-8');
+                ]));
+                return $response->withStatus(200)->withHeader('Content-Type', 'application/json');
             })->add(AuthZMiddleware::admin($responseFactory));
 
             // POST /admin/boards/{slug}/moderation — speichert Toggle + Wortlisten-Änderungen
-            // (AuthZ: admin, CSRF global erzwungen). PRG: 302 zurück auf die Einstellseite.
+            // (AuthZ: admin, CSRF global erzwungen). JSON-Antwort: 200 ok | 422 error.
             // Drei Sub-Aktionen via Hidden-Field "action": toggle | add | remove.
-            // Ungültige Eingaben → Re-Render ohne 500 (kein Ausnahmen-Rethrow).
+            // Ungültige Eingaben → 422 JSON ohne 500 (kein Ausnahmen-Rethrow).
             $app->post('/admin/boards/{slug}/moderation', function (
                 ServerRequestInterface $request,
                 ResponseInterface $response,
                 array $args,
-            ) use ($twig, $boardRepo, $modConfigRepo, $audit): MessageInterface {
+            ) use ($boardRepo, $modConfigRepo, $audit): ResponseInterface {
                 $slug  = is_string($args['slug'] ?? null) ? $args['slug'] : '';
                 $board = $boardRepo->findBySlug($slug);
                 if (!is_array($board)) {
-                    $response->getBody()->write('Board not found.');
-                    return $response->withStatus(404);
+                    $response->getBody()->write((string) json_encode([
+                        'error' => ['key' => 'not_found', 'message' => 'Board nicht gefunden.'],
+                    ]));
+                    return $response->withStatus(404)->withHeader('Content-Type', 'application/json');
                 }
 
-                $boardId   = (int) $board['id'];
-                $rawBody   = $request->getParsedBody();
-                $fields    = is_array($rawBody) ? $rawBody : [];
-                $action    = (string) ($fields['action'] ?? '');
-                $csrfToken = $request->getAttribute(CsrfMiddleware::ATTR_TOKEN);
-                $wordError = '';
+                $boardId  = (int) $board['id'];
+                $rawBody  = $request->getParsedBody();
+                $fields   = is_array($rawBody) ? $rawBody : [];
+                $action   = (string) ($fields['action'] ?? '');
 
                 if ($action === 'toggle') {
                     $enabled = isset($fields['moderation_enabled']) && $fields['moderation_enabled'] === '1';
@@ -652,27 +674,29 @@ final class AppFactory
                     $rawWord = mb_substr(trim((string) ($fields['new_word'] ?? '')), 0, 200, 'UTF-8');
 
                     if ($rawWord === '') {
-                        $wordError = 'Das Wort darf nicht leer sein.';
-                    } elseif (mb_strlen($rawWord, 'UTF-8') > 200) {
-                        $wordError = 'Das Wort darf maximal 200 Zeichen lang sein.';
-                    } else {
-                        $modConfigRepo->addWord($boardId, $rawWord);
-                        $audit->log('board.moderation_word_added', ['board_id' => $boardId]);
+                        $response->getBody()->write((string) json_encode([
+                            'error' => [
+                                'key'     => 'validation_error',
+                                'message' => 'Validation failed.',
+                                'fields'  => ['new_word' => 'Das Wort darf nicht leer sein.'],
+                            ],
+                        ]));
+                        return $response->withStatus(422)->withHeader('Content-Type', 'application/json');
                     }
 
-                    // Bei Fehler: Re-Render ohne 500, Eingabe erhalten.
-                    if ($wordError !== '') {
-                        $response = $twig->render($response->withStatus(422), 'admin/board-moderation.twig', [
-                            'csrf_token'         => is_string($csrfToken) ? $csrfToken : '',
-                            'board_slug'         => $slug,
-                            'board_name'         => is_string($board['name'] ?? null) ? $board['name'] : $slug,
-                            'moderation_enabled' => $modConfigRepo->isModerationEnabled($boardId),
-                            'words'              => $modConfigRepo->listWords($boardId),
-                            'new_word'           => $rawWord,
-                            'word_error'         => $wordError,
-                        ]);
-                        return $response->withHeader('Content-Type', 'text/html; charset=utf-8');
+                    if (mb_strlen($rawWord, 'UTF-8') > 200) {
+                        $response->getBody()->write((string) json_encode([
+                            'error' => [
+                                'key'     => 'validation_error',
+                                'message' => 'Validation failed.',
+                                'fields'  => ['new_word' => 'Das Wort darf maximal 200 Zeichen lang sein.'],
+                            ],
+                        ]));
+                        return $response->withStatus(422)->withHeader('Content-Type', 'application/json');
                     }
+
+                    $modConfigRepo->addWord($boardId, $rawWord);
+                    $audit->log('board.moderation_word_added', ['board_id' => $boardId]);
                 } elseif ($action === 'remove') {
                     $wordId = (int) ($fields['word_id'] ?? 0);
                     if ($wordId > 0) {
@@ -681,9 +705,8 @@ final class AppFactory
                     }
                 }
 
-                // Post/Redirect/Get: zurück auf die Einstellseite.
-                return $response->withStatus(302)
-                    ->withHeader('Location', '/admin/boards/' . rawurlencode($slug) . '/moderation');
+                $response->getBody()->write((string) json_encode(['ok' => true]));
+                return $response->withStatus(200)->withHeader('Content-Type', 'application/json');
             })->add(AuthZMiddleware::admin($responseFactory));
         }
 

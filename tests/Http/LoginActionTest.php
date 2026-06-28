@@ -54,13 +54,12 @@ final class LoginActionTest extends IntegrationTestCase
         $response = $app->handle($request);
 
         self::assertSame(200, $response->getStatusCode());
+        self::assertStringContainsString('application/json', $response->getHeaderLine('Content-Type'));
 
-        $body = (string) $response->getBody();
-        self::assertStringContainsString('<form', $body);
-        // Hidden CSRF-Feld ist im Template vorhanden (Wert kommt vom Middleware-Attribut)
-        self::assertStringContainsString('name="_csrf"', $body);
-        // Autoescape: der Token-Wert steht im value-Attribut (kein leeres value)
-        self::assertStringContainsString('value=', $body);
+        // JSON-API: SPA fragt CSRF-Token via /api/bootstrap ab; GET /login liefert nur ok + return_to
+        $data = json_decode((string) $response->getBody(), true);
+        self::assertIsArray($data);
+        self::assertTrue($data['ok'] ?? false);
     }
 
     // -------------------------------------------------------------------------
@@ -319,9 +318,10 @@ final class LoginActionTest extends IntegrationTestCase
         $response = $app->handle($request);
 
         self::assertSame(200, $response->getStatusCode());
-        $body = (string) $response->getBody();
-        self::assertStringContainsString('name="r"', $body);
-        self::assertStringContainsString('/some/board/path', $body);
+        // Validierter return_to-Pfad wird im JSON zurückgegeben (SPA liest ihn aus)
+        $data = json_decode((string) $response->getBody(), true);
+        self::assertIsArray($data);
+        self::assertSame('/some/board/path', $data['return_to'] ?? null);
     }
 
     public function test_get_login_with_invalid_r_does_not_render_hidden_field(): void
@@ -333,8 +333,10 @@ final class LoginActionTest extends IntegrationTestCase
         $response = $app->handle($request);
 
         self::assertSame(200, $response->getStatusCode());
-        $body = (string) $response->getBody();
-        // Kein hidden r-Feld mit bösartigem Wert
-        self::assertStringNotContainsString('evil.com', $body);
+        // Ungültiger Return-To darf NICHT im JSON erscheinen
+        $data = json_decode((string) $response->getBody(), true);
+        self::assertIsArray($data);
+        self::assertSame('', $data['return_to'] ?? null);
+        self::assertStringNotContainsString('evil.com', (string) $response->getBody());
     }
 }

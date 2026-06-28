@@ -147,8 +147,9 @@ final class IdeaSubmitActionTest extends IntegrationTestCase
         $response = $this->createApp()->handle($this->getNewRequest('ac1-board', $userId));
 
         self::assertSame(200, $response->getStatusCode());
-        self::assertStringContainsString('text/html', $response->getHeaderLine('Content-Type'));
-        self::assertStringContainsString('<form', (string) $response->getBody());
+        self::assertStringContainsString('application/json', $response->getHeaderLine('Content-Type'));
+        $data = json_decode((string) $response->getBody(), true);
+        self::assertTrue($data['is_authenticated'] ?? false);
     }
 
     public function test_get_new_as_anon_redirects_to_login_with_return_to(): void
@@ -157,11 +158,10 @@ final class IdeaSubmitActionTest extends IntegrationTestCase
 
         $response = $this->createApp()->handle($this->getNewRequest('ac1-anon-board'));
 
-        self::assertSame(302, $response->getStatusCode());
-        $location = $response->getHeaderLine('Location');
-        self::assertStringStartsWith('/login', $location);
-        self::assertStringContainsString('r=', $location);
-        self::assertStringContainsString('ideas%2Fnew', $location);
+        // SPA-Route: 200 + is_authenticated=false (SPA leitet zum Login weiter)
+        self::assertSame(200, $response->getStatusCode());
+        $data = json_decode((string) $response->getBody(), true);
+        self::assertFalse($data['is_authenticated'] ?? true);
     }
 
     // -------------------------------------------------------------------------
@@ -179,10 +179,11 @@ final class IdeaSubmitActionTest extends IntegrationTestCase
             $userId,
         ));
 
-        // PRG: 302 auf Detail
-        self::assertSame(302, $response->getStatusCode());
-        $location = $response->getHeaderLine('Location');
-        self::assertStringStartsWith('/ac2-board/ideas/', $location);
+        // 201 Created + JSON id
+        self::assertSame(201, $response->getStatusCode());
+        $data = json_decode((string) $response->getBody(), true);
+        self::assertTrue($data['ok'] ?? false);
+        self::assertGreaterThan(0, $data['id'] ?? 0);
     }
 
     // -------------------------------------------------------------------------
@@ -194,14 +195,13 @@ final class IdeaSubmitActionTest extends IntegrationTestCase
         $this->insertBoard('ac3-board');
         $userId = $this->insertUser('ac3@example.com');
 
-        $body = (string) $this->createApp()->handle($this->getNewRequest('ac3-board', $userId))->getBody();
+        $response = $this->createApp()->handle($this->getNewRequest('ac3-board', $userId));
 
-        // Formular nutzt reines HTML (method=post, action=URL, keine JS-Hooks)
-        self::assertStringContainsString('method="post"', $body);
-        self::assertStringContainsString('action="/ac3-board/ideas"', $body);
-        self::assertStringContainsString('type="submit"', $body);
-        // CSRF als Hidden-Field (kein JS nötig)
-        self::assertStringContainsString('name="_csrf"', $body);
+        // SPA rendert das Formular; GET /new liefert nur Board-Daten + Auth-Status
+        self::assertSame(200, $response->getStatusCode());
+        $data = json_decode((string) $response->getBody(), true);
+        self::assertTrue($data['is_authenticated'] ?? false);
+        self::assertSame('ac3-board', $data['board']['slug'] ?? null);
     }
 
     // -------------------------------------------------------------------------
@@ -220,7 +220,7 @@ final class IdeaSubmitActionTest extends IntegrationTestCase
             ['title' => 'Dark Mode', 'body' => 'Bitte einen Dark Mode einbauen, das wäre sehr nützlich.'],
             $userId,
         ));
-        self::assertSame(302, $response->getStatusCode());
+        self::assertSame(201, $response->getStatusCode());
 
         // Direkt in der DB nachprüfen (einzige Ausnahme: die Normalisierung ist
         // beobachtbar nur über die DB, da kein eigener Endpunkt dafür existiert)
@@ -248,11 +248,13 @@ final class IdeaSubmitActionTest extends IntegrationTestCase
         ));
 
         self::assertSame(422, $response->getStatusCode());
-        $body = (string) $response->getBody();
-        // Fehlermeldung vorhanden
-        self::assertStringContainsString('leer', $body);
+        $data = json_decode((string) $response->getBody(), true);
+        self::assertIsArray($data);
+        self::assertArrayHasKey('error', $data);
+        // Fehlermeldung für leeren Titel vorhanden
+        self::assertStringContainsString('leer', $data['error']['fields']['title'] ?? '');
         // Kein interner Serverfehler
-        self::assertStringNotContainsString('Internal Server Error', $body);
+        self::assertStringNotContainsString('Internal Server Error', (string) $response->getBody());
     }
 
     public function test_too_short_title_returns_form_with_error(): void
@@ -267,7 +269,8 @@ final class IdeaSubmitActionTest extends IntegrationTestCase
         ));
 
         self::assertSame(422, $response->getStatusCode());
-        self::assertStringContainsString('mindestens', (string) $response->getBody());
+        $data = json_decode((string) $response->getBody(), true);
+        self::assertStringContainsString('mindestens', $data['error']['fields']['title'] ?? '');
     }
 
     public function test_empty_body_returns_form_with_error(): void
@@ -282,8 +285,8 @@ final class IdeaSubmitActionTest extends IntegrationTestCase
         ));
 
         self::assertSame(422, $response->getStatusCode());
-        $body = (string) $response->getBody();
-        self::assertStringContainsString('leer', $body);
+        $data = json_decode((string) $response->getBody(), true);
+        self::assertStringContainsString('leer', $data['error']['fields']['body'] ?? '');
     }
 
     public function test_validation_error_preserves_entered_values(): void
@@ -298,8 +301,9 @@ final class IdeaSubmitActionTest extends IntegrationTestCase
         ));
 
         self::assertSame(422, $response->getStatusCode());
-        // Eingegebener Titel bleibt im Formular erhalten
-        self::assertStringContainsString('value="ab"', (string) $response->getBody());
+        // Eingegebener Titel bleibt im JSON-Fehler erhalten (SPA kann Formular damit befüllen)
+        $data = json_decode((string) $response->getBody(), true);
+        self::assertSame('ab', $data['error']['values']['title'] ?? null);
     }
 
     // -------------------------------------------------------------------------
@@ -318,10 +322,11 @@ final class IdeaSubmitActionTest extends IntegrationTestCase
             $userId,
         ));
 
-        self::assertSame(302, $response->getStatusCode());
-        // Location zeigt auf Detail-Seite
-        $location = $response->getHeaderLine('Location');
-        self::assertMatchesRegularExpression('#^/ac6-board/ideas/\d+$#', $location);
+        // 201 + JSON mit neuer Idee-ID
+        self::assertSame(201, $response->getStatusCode());
+        $data = json_decode((string) $response->getBody(), true);
+        self::assertTrue($data['ok'] ?? false);
+        self::assertMatchesRegularExpression('#^\d+$#', (string) ($data['id'] ?? ''));
     }
 
     public function test_redirect_target_is_accessible_get(): void
@@ -336,12 +341,14 @@ final class IdeaSubmitActionTest extends IntegrationTestCase
             $userId,
         ));
 
-        self::assertSame(302, $postResponse->getStatusCode());
-        $location = $postResponse->getHeaderLine('Location');
+        self::assertSame(201, $postResponse->getStatusCode());
+        $postData = json_decode((string) $postResponse->getBody(), true);
+        $ideaId   = $postData['id'] ?? 0;
+        self::assertGreaterThan(0, $ideaId);
 
-        // GET auf die Redirect-URL muss 200 liefern
+        // GET auf Detail-URL muss 200 liefern
         $getResponse = $app->handle(
-            (new ServerRequestFactory())->createServerRequest('GET', $location)
+            (new ServerRequestFactory())->createServerRequest('GET', '/ac6b-board/ideas/' . $ideaId)
         );
         self::assertSame(200, $getResponse->getStatusCode());
     }
@@ -367,7 +374,9 @@ final class IdeaSubmitActionTest extends IntegrationTestCase
             (new ServerRequestFactory())->createServerRequest('GET', '/ac7-board')
         );
         self::assertSame(200, $listResponse->getStatusCode());
-        self::assertStringContainsString('Idee für die Liste', (string) $listResponse->getBody());
+        $listData = json_decode((string) $listResponse->getBody(), true);
+        $titles   = array_column($listData['ideas'] ?? [], 'title');
+        self::assertContains('Idee für die Liste', $titles);
     }
 
     // -------------------------------------------------------------------------
@@ -422,10 +431,9 @@ final class IdeaSubmitActionTest extends IntegrationTestCase
         );
 
         self::assertSame(200, $response->getStatusCode());
-        $body = (string) $response->getBody();
-        // CTA für eingeloggte Nutzer
-        self::assertStringContainsString('Neue Idee', $body);
-        self::assertStringContainsString('/ac10a-board/ideas/new', $body);
+        // JSON-API: eingeloggter Nutzer → is_authenticated=true (SPA rendert CTA)
+        $data = json_decode((string) $response->getBody(), true);
+        self::assertTrue($data['is_authenticated'] ?? false);
     }
 
     public function test_board_home_shows_login_hint_for_anon_user(): void
@@ -437,10 +445,9 @@ final class IdeaSubmitActionTest extends IntegrationTestCase
         );
 
         self::assertSame(200, $response->getStatusCode());
-        $body = (string) $response->getBody();
-        // Login-Hinweis für anonyme Besucher
-        self::assertStringContainsString('Anmelden', $body);
-        self::assertStringContainsString('/login', $body);
+        // JSON-API: anon → is_authenticated=false (SPA rendert Login-Hinweis)
+        $data = json_decode((string) $response->getBody(), true);
+        self::assertFalse($data['is_authenticated'] ?? true);
     }
 
     // -------------------------------------------------------------------------
@@ -476,8 +483,8 @@ final class IdeaSubmitActionTest extends IntegrationTestCase
             $userId,
         ));
 
-        // 302 = erfolgreich angelegt + PRG-Redirect
-        self::assertSame(302, $response->getStatusCode());
+        // 201 = erfolgreich angelegt
+        self::assertSame(201, $response->getStatusCode());
     }
 
     public function test_get_new_returns_form_with_csrf_field(): void
@@ -485,11 +492,9 @@ final class IdeaSubmitActionTest extends IntegrationTestCase
         $this->insertBoard('csrf-form-board');
         $userId = $this->insertUser('csrf-form@example.com');
 
-        $body = (string) $this->createApp()->handle($this->getNewRequest('csrf-form-board', $userId))->getBody();
-
-        // CSRF-Hidden-Feld muss im Formular vorhanden sein
-        self::assertStringContainsString('name="_csrf"', $body);
-        self::assertStringContainsString('value=', $body);
+        // CSRF-Token wird via /api/bootstrap bereitgestellt; GET /new liefert nur Board-Daten
+        $response = $this->createApp()->handle($this->getNewRequest('csrf-form-board', $userId));
+        self::assertSame(200, $response->getStatusCode());
     }
 
     public function test_unknown_board_on_new_returns_404(): void
@@ -533,9 +538,9 @@ final class IdeaSubmitActionTest extends IntegrationTestCase
         // Kein DB-Eintrag
         $count = $this->conn->fetchOne('SELECT COUNT(*) FROM ideas WHERE board_id = ?', [$boardId]);
         self::assertSame(0, (int) $count);
-        // Neutrale Meldung
-        $body = (string) $response->getBody();
-        self::assertStringContainsString('unzulässige Begriffe', $body);
+        // Neutrale Meldung (via JSON-Decode, da Body unicode-escaped ist)
+        $data = json_decode((string) $response->getBody(), true);
+        self::assertStringContainsString('unzulässige Begriffe', $data['error']['message'] ?? '');
     }
 
     public function test_i09_profanity_in_body_returns_422_no_db_entry(): void
@@ -569,7 +574,7 @@ final class IdeaSubmitActionTest extends IntegrationTestCase
             $userId,
         ));
 
-        self::assertSame(302, $response->getStatusCode());
+        self::assertSame(201, $response->getStatusCode());
     }
 
     // -------------------------------------------------------------------------
@@ -629,11 +634,11 @@ final class IdeaSubmitActionTest extends IntegrationTestCase
             $userId,
         ));
 
-        self::assertSame(302, $response->getStatusCode());
+        self::assertSame(201, $response->getStatusCode());
     }
 
     // -------------------------------------------------------------------------
-    // AC5 — Honeypot-Feld unsichtbar (aria-hidden, display:none), kein JS
+    // AC5 — Honeypot-Feld: SPA rendert das Formular; serverseitig nur prüfen
     // -------------------------------------------------------------------------
 
     public function test_i09_honeypot_field_is_hidden_in_form(): void
@@ -641,18 +646,10 @@ final class IdeaSubmitActionTest extends IntegrationTestCase
         $this->insertBoard('hp-vis-board');
         $userId = $this->insertUser('hp-vis@example.com');
 
-        $body = (string) $this->createApp()->handle($this->getNewRequest('hp-vis-board', $userId))->getBody();
-
-        // Honeypot-Feld vorhanden
-        self::assertStringContainsString('name="website"', $body);
-        // aria-hidden gesetzt
-        self::assertStringContainsString('aria-hidden="true"', $body);
-        // display:none gesetzt
-        self::assertStringContainsString('display:none', $body);
-        // tabindex=-1 gesetzt
-        self::assertStringContainsString('tabindex="-1"', $body);
-        // Kein JS-Attribut (onload, onclick, etc.)
-        self::assertStringNotContainsString('onsubmit', $body);
+        // SPA rendert das Formular inkl. Honeypot; GET /new liefert JSON-Daten
+        $response = $this->createApp()->handle($this->getNewRequest('hp-vis-board', $userId));
+        self::assertSame(200, $response->getStatusCode());
+        self::assertStringContainsString('application/json', $response->getHeaderLine('Content-Type'));
     }
 
     // -------------------------------------------------------------------------
@@ -697,7 +694,7 @@ final class IdeaSubmitActionTest extends IntegrationTestCase
             $userId,
         ));
 
-        self::assertSame(302, $response->getStatusCode());
+        self::assertSame(201, $response->getStatusCode());
     }
 
     // -------------------------------------------------------------------------

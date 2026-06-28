@@ -133,11 +133,10 @@ final class IdeaEditActionTest extends IntegrationTestCase
         $response = $this->createApp()->handle($this->getEditRequest('edit-ac1-board', $ideaId, $userId));
 
         self::assertSame(200, $response->getStatusCode());
-        $body = (string) $response->getBody();
-        self::assertStringContainsString('text/html', $response->getHeaderLine('Content-Type'));
-        self::assertStringContainsString('<form', $body);
-        // Vorbefüllter Titel
-        self::assertStringContainsString('Original Titel', $body);
+        self::assertStringContainsString('application/json', $response->getHeaderLine('Content-Type'));
+        $data = json_decode((string) $response->getBody(), true);
+        // Vorbefüllter Titel im JSON
+        self::assertSame('Original Titel', $data['idea']['title'] ?? null);
     }
 
     public function test_get_edit_form_has_csrf_field(): void
@@ -146,10 +145,9 @@ final class IdeaEditActionTest extends IntegrationTestCase
         $userId  = $this->insertUser('edit-csrf@example.com');
         $ideaId  = $this->seedIdea($boardId, $userId);
 
-        $body = (string) $this->createApp()->handle($this->getEditRequest('edit-csrf-board', $ideaId, $userId))->getBody();
-
-        self::assertStringContainsString('name="_csrf"', $body);
-        self::assertStringContainsString('value=', $body);
+        // CSRF-Token wird via /api/bootstrap bereitgestellt; GET /edit liefert nur Idee-Daten
+        $response = $this->createApp()->handle($this->getEditRequest('edit-csrf-board', $ideaId, $userId));
+        self::assertSame(200, $response->getStatusCode());
     }
 
     public function test_get_edit_form_has_honeypot_field_hidden(): void
@@ -158,12 +156,10 @@ final class IdeaEditActionTest extends IntegrationTestCase
         $userId  = $this->insertUser('edit-hp-vis@example.com');
         $ideaId  = $this->seedIdea($boardId, $userId);
 
-        $body = (string) $this->createApp()->handle($this->getEditRequest('edit-hp-vis-board', $ideaId, $userId))->getBody();
-
-        self::assertStringContainsString('name="website"', $body);
-        self::assertStringContainsString('aria-hidden="true"', $body);
-        self::assertStringContainsString('display:none', $body);
-        self::assertStringContainsString('tabindex="-1"', $body);
+        // SPA rendert das Formular inkl. Honeypot; GET /edit liefert JSON-Daten
+        $response = $this->createApp()->handle($this->getEditRequest('edit-hp-vis-board', $ideaId, $userId));
+        self::assertSame(200, $response->getStatusCode());
+        self::assertStringContainsString('application/json', $response->getHeaderLine('Content-Type'));
     }
 
     public function test_get_edit_unknown_idea_returns_404(): void
@@ -206,8 +202,10 @@ final class IdeaEditActionTest extends IntegrationTestCase
             $userId,
         ));
 
-        self::assertSame(302, $response->getStatusCode());
-        self::assertStringContainsString('/edit-update-board/ideas/' . $ideaId, $response->getHeaderLine('Location'));
+        // 200 + JSON ok:true (kein 302-Redirect; SPA navigiert selbst)
+        self::assertSame(200, $response->getStatusCode());
+        $data = json_decode((string) $response->getBody(), true);
+        self::assertTrue($data['ok'] ?? false);
     }
 
     public function test_post_edit_persists_updated_title_in_db(): void
@@ -311,11 +309,12 @@ final class IdeaEditActionTest extends IntegrationTestCase
         $userId  = $this->insertUser('anon-author@example.com');
         $ideaId  = $this->seedIdea($boardId, $userId);
 
-        // Kein User-Cookie → AuthZMiddleware::user() → 302 auf /login
+        // Kein User-Cookie → Action gibt 401 zurück (SPA leitet zum Login weiter)
         $response = $this->createApp()->handle($this->getEditRequest('edit-anon-board', $ideaId));
 
-        self::assertSame(302, $response->getStatusCode());
-        self::assertStringStartsWith('/login', $response->getHeaderLine('Location'));
+        self::assertSame(401, $response->getStatusCode());
+        $data = json_decode((string) $response->getBody(), true);
+        self::assertSame('unauthenticated', $data['error']['key'] ?? null);
     }
 
     public function test_post_edit_anon_returns_401(): void
@@ -386,9 +385,9 @@ final class IdeaEditActionTest extends IntegrationTestCase
         ));
 
         self::assertSame(422, $response->getStatusCode());
-        $body = (string) $response->getBody();
-        self::assertStringContainsString('leer', $body);
-        self::assertStringNotContainsString('Internal Server Error', $body);
+        $data = json_decode((string) $response->getBody(), true);
+        self::assertStringContainsString('leer', $data['error']['fields']['title'] ?? '');
+        self::assertStringNotContainsString('Internal Server Error', (string) $response->getBody());
     }
 
     public function test_too_short_title_on_edit_returns_422(): void
@@ -405,7 +404,8 @@ final class IdeaEditActionTest extends IntegrationTestCase
         ));
 
         self::assertSame(422, $response->getStatusCode());
-        self::assertStringContainsString('mindestens', (string) $response->getBody());
+        $data = json_decode((string) $response->getBody(), true);
+        self::assertStringContainsString('mindestens', $data['error']['fields']['title'] ?? '');
     }
 
     public function test_validation_error_preserves_entered_values_on_edit(): void
@@ -422,8 +422,9 @@ final class IdeaEditActionTest extends IntegrationTestCase
         ));
 
         self::assertSame(422, $response->getStatusCode());
-        // Eingegebener (fehlerhafter) Wert bleibt im Formular erhalten
-        self::assertStringContainsString('value="ab"', (string) $response->getBody());
+        // Eingegebener (fehlerhafter) Wert bleibt im JSON-Fehler erhalten (SPA befüllt das Formular)
+        $data = json_decode((string) $response->getBody(), true);
+        self::assertSame('ab', $data['error']['values']['title'] ?? null);
     }
 
     public function test_validation_error_does_not_modify_db(): void
@@ -500,8 +501,9 @@ final class IdeaEditActionTest extends IntegrationTestCase
         $row = $this->conn->fetchAssociative('SELECT title FROM ideas WHERE id = ?', [$ideaId]);
         self::assertIsArray($row);
         self::assertSame('Sauberer Originaltitel', $row['title']);
-        // Neutrale Meldung
-        self::assertStringContainsString('unzulässige Begriffe', (string) $response->getBody());
+        // Neutrale Meldung (via JSON-Decode, da Body unicode-escaped ist)
+        $errData = json_decode((string) $response->getBody(), true);
+        self::assertStringContainsString('unzulässige Begriffe', $errData['error']['message'] ?? '');
     }
 
     public function test_moderation_hit_on_edit_is_logged_masked(): void
@@ -582,7 +584,7 @@ final class IdeaEditActionTest extends IntegrationTestCase
             $userId,
         ));
 
-        self::assertSame(302, $response->getStatusCode());
+        self::assertSame(200, $response->getStatusCode());
     }
 
     public function test_error_messages_contain_no_security_marketing(): void

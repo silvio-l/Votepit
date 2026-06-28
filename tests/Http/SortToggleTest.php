@@ -61,12 +61,13 @@ final class SortToggleTest extends IntegrationTestCase
             'updated_at'  => '2025-01-01 10:00:00',
         ]);
 
-        $body = (string) $this->createApp()
-            ->handle($this->getBoard('sort-top-board', ['sort' => 'top']))
-            ->getBody();
-
-        $posHigh = strpos($body, 'Hoch-Score-Idee');
-        $posLow  = strpos($body, 'Niedrig-Score-Idee');
+        $data   = json_decode(
+            (string) $this->createApp()->handle($this->getBoard('sort-top-board', ['sort' => 'top']))->getBody(),
+            true,
+        );
+        $titles  = array_column($data['ideas'] ?? [], 'title');
+        $posHigh = array_search('Hoch-Score-Idee', $titles, true);
+        $posLow  = array_search('Niedrig-Score-Idee', $titles, true);
 
         self::assertIsInt($posHigh);
         self::assertIsInt($posLow);
@@ -92,12 +93,13 @@ final class SortToggleTest extends IntegrationTestCase
         ]);
 
         // Kein ?sort= → Newest-Fallback
-        $body = (string) $this->createApp()
-            ->handle($this->getBoard('sort-newest-board'))
-            ->getBody();
-
-        $posOld = strpos($body, 'Ältere Idee');
-        $posNew = strpos($body, 'Neuere Idee');
+        $data   = json_decode(
+            (string) $this->createApp()->handle($this->getBoard('sort-newest-board'))->getBody(),
+            true,
+        );
+        $titles = array_column($data['ideas'] ?? [], 'title');
+        $posOld = array_search('Ältere Idee', $titles, true);
+        $posNew = array_search('Neuere Idee', $titles, true);
 
         self::assertIsInt($posOld);
         self::assertIsInt($posNew);
@@ -119,12 +121,15 @@ final class SortToggleTest extends IntegrationTestCase
         ]);
 
         // Ungültiger ?sort= → Newest-Fallback
-        $body = (string) $this->createApp()
-            ->handle($this->getBoard('sort-invalid-board', ['sort' => 'invalid_sort_key']))
-            ->getBody();
-
-        $posOld = strpos($body, 'Ältere Idee');
-        $posNew = strpos($body, 'Neuere Idee');
+        $data   = json_decode(
+            (string) $this->createApp()
+                ->handle($this->getBoard('sort-invalid-board', ['sort' => 'invalid_sort_key']))
+                ->getBody(),
+            true,
+        );
+        $titles = array_column($data['ideas'] ?? [], 'title');
+        $posOld = array_search('Ältere Idee', $titles, true);
+        $posNew = array_search('Neuere Idee', $titles, true);
 
         self::assertIsInt($posOld);
         self::assertIsInt($posNew);
@@ -141,12 +146,15 @@ final class SortToggleTest extends IntegrationTestCase
         $authorId = $this->insertUser('preservestatus@example.com');
         $this->seedIdea($boardId, $authorId, 'Test-Idee');
 
-        $body = (string) $this->createApp()
-            ->handle($this->getBoard('sort-preserve-status-board', ['sort' => 'top']))
-            ->getBody();
+        $data = json_decode(
+            (string) $this->createApp()
+                ->handle($this->getBoard('sort-preserve-status-board', ['sort' => 'top']))
+                ->getBody(),
+            true,
+        );
 
-        // Status-Filter-Links müssen sort=top durchreichen
-        self::assertStringContainsString('sort=top', $body, 'Status-Filter-Links sollen sort=top durchreichen');
+        // active_sort zeigt an welcher Sort-Modus aktiv ist (SPA baut Links mit diesem Parameter)
+        self::assertSame('top', $data['active_sort'] ?? null, 'active_sort muss top sein');
     }
 
     public function test_sort_is_preserved_in_pagination_links(): void
@@ -159,12 +167,15 @@ final class SortToggleTest extends IntegrationTestCase
             $this->seedIdea($boardId, $authorId, "Idee {$i}");
         }
 
-        $body = (string) $this->createApp()
-            ->handle($this->getBoard('sort-preserve-page-board', ['sort' => 'top']))
-            ->getBody();
+        $data = json_decode(
+            (string) $this->createApp()
+                ->handle($this->getBoard('sort-preserve-page-board', ['sort' => 'top']))
+                ->getBody(),
+            true,
+        );
 
-        // Pagination-Links müssen sort=top durchreichen
-        self::assertStringContainsString('sort=top', $body, 'Pagination-Links sollen sort=top durchreichen');
+        // active_sort=top in der JSON-Antwort; SPA baut Pagination-Links mit sort=top
+        self::assertSame('top', $data['active_sort'] ?? null, 'active_sort muss top sein für Pagination-Kontext');
     }
 
     // -------------------------------------------------------------------------
@@ -177,17 +188,15 @@ final class SortToggleTest extends IntegrationTestCase
         $authorId = $this->insertUser('activetabtop@example.com');
         $this->seedIdea($boardId, $authorId, 'Test-Idee');
 
-        $body = (string) $this->createApp()
-            ->handle($this->getBoard('sort-active-tab-top-board', ['sort' => 'top']))
-            ->getBody();
-
-        // Der aktive Tab muss die CSS-Klasse vp-sorttab--active tragen
-        // und der „Top"-Tab muss aktiv sein — wir prüfen dass der aktive Tab „Top" enthält
-        self::assertMatchesRegularExpression(
-            '/vp-sorttab--active[^>]*>[^<]*Top|Top[^<]*<[^>]*vp-sorttab--active/',
-            $body,
-            'Bei ?sort=top muss der Top-Tab aktiv markiert sein',
+        $data = json_decode(
+            (string) $this->createApp()
+                ->handle($this->getBoard('sort-active-tab-top-board', ['sort' => 'top']))
+                ->getBody(),
+            true,
         );
+
+        // active_sort=top in der JSON-Antwort (SPA markiert den Tab)
+        self::assertSame('top', $data['active_sort'] ?? null, 'Bei ?sort=top muss active_sort=top sein');
     }
 
     public function test_active_sort_tab_marked_for_newest_by_default(): void
@@ -196,16 +205,15 @@ final class SortToggleTest extends IntegrationTestCase
         $authorId = $this->insertUser('activetabnewest@example.com');
         $this->seedIdea($boardId, $authorId, 'Test-Idee');
 
-        $body = (string) $this->createApp()
-            ->handle($this->getBoard('sort-active-tab-newest-board'))
-            ->getBody();
-
-        // Ohne ?sort= muss der „Neu"-Tab aktiv sein
-        self::assertMatchesRegularExpression(
-            '/vp-sorttab--active[^>]*>[^<]*Neu|Neu[^<]*<[^>]*vp-sorttab--active/',
-            $body,
-            'Ohne ?sort= muss der Neu-Tab aktiv markiert sein',
+        $data = json_decode(
+            (string) $this->createApp()
+                ->handle($this->getBoard('sort-active-tab-newest-board'))
+                ->getBody(),
+            true,
         );
+
+        // Ohne ?sort= muss active_sort=newest sein (SPA markiert den Neu-Tab)
+        self::assertSame('newest', $data['active_sort'] ?? null, 'Ohne ?sort= muss active_sort=newest sein');
     }
 
     // -------------------------------------------------------------------------
@@ -218,15 +226,18 @@ final class SortToggleTest extends IntegrationTestCase
         $authorId = $this->insertUser('controversial@example.com');
         $this->seedIdea($boardId, $authorId, 'Test-Idee');
 
-        $body = (string) $this->createApp()
-            ->handle($this->getBoard('sort-controversial-board'))
-            ->getBody();
+        $data = json_decode(
+            (string) $this->createApp()
+                ->handle($this->getBoard('sort-controversial-board'))
+                ->getBody(),
+            true,
+        );
 
-        // „Umstritten" darf nie als aktiver Tab erscheinen
-        self::assertStringNotContainsString(
-            'sort=controversial',
-            $body,
-            'Umstritten-Tab darf keinen ?sort=controversial-Link erzeugen',
+        // „Umstritten" darf nie als active_sort erscheinen
+        self::assertNotSame(
+            'controversial',
+            $data['active_sort'] ?? null,
+            'Umstritten-Tab darf nicht als active_sort erscheinen',
         );
     }
 }

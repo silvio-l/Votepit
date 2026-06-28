@@ -4,16 +4,13 @@ declare(strict_types=1);
 
 namespace Votepit\Http\Action;
 
-use Psr\Http\Message\MessageInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
-use Slim\Views\Twig;
 use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\Validator\Validation;
 use Votepit\Domain\ContentModerationService;
 use Votepit\Domain\TitleNormalizer;
 use Votepit\Http\Middleware\AuthNMiddleware;
-use Votepit\Http\Middleware\CsrfMiddleware;
 use Votepit\Logging\AuditLogger;
 use Votepit\Persistence\BoardRepository;
 use Votepit\Persistence\IdeaRepository;
@@ -21,13 +18,13 @@ use Votepit\Persistence\ModerationConfigRepository;
 use Votepit\Security\TimeTrapService;
 
 /**
- * GET /{board}/ideas/{id}/edit  — Edit-Formular (AuthZ: user + Ownership).
+ * GET /{board}/ideas/{id}/edit  — Edit-Formular (AuthZ: anon + Ownership, anon → 401 JSON).
  * POST /{board}/ideas/{id}      — Idee aktualisieren (AuthZ: user + Ownership, CSRF erzwungen).
  *
  * Ownership-Check in der Action (nicht im Pipeline-Guard):
  *   - Idee nicht im Board → 404
  *   - Idee vorhanden aber anderer Autor → 403
- *   - Anonym → AuthZMiddleware::user() leitet vorher zum Login um
+ *   - Anonym → 401 JSON (in-action, kein PRG-Redirect mehr)
  *
  * Moderation + Bot-Abwehr: gleicher Vertrag wie IdeaCreateAction (Issue 09/10).
  * Honeypot + Time-Trap aktiv unabhängig vom Board-Toggle.
@@ -35,14 +32,13 @@ use Votepit\Security\TimeTrapService;
  */
 final readonly class IdeaEditAction
 {
-    /** Honeypot form field name — must match idea-edit.twig. */
+    /** Honeypot form field name. */
     public const HONEYPOT_FIELD = 'website';
 
-    /** Time-Trap form field name — must match idea-edit.twig. */
+    /** Time-Trap form field name. */
     public const TIME_TRAP_FIELD = '_form_at';
 
     public function __construct(
-        private Twig $twig,
         private BoardRepository $boardRepo,
         private IdeaRepository $ideaRepo,
         private TitleNormalizer $normalizer,
@@ -63,47 +59,51 @@ final readonly class IdeaEditAction
         ServerRequestInterface $request,
         ResponseInterface $response,
         array $args,
-    ): MessageInterface {
+    ): ResponseInterface {
         $slug  = is_string($args['board'] ?? null) ? $args['board'] : '';
         $board = $this->boardRepo->findBySlug($slug);
         if (!is_array($board)) {
-            $response->getBody()->write('Board not found.');
-            return $response->withStatus(404);
+            $response->getBody()->write((string) json_encode([
+                'error' => ['key' => 'not_found', 'message' => 'Board nicht gefunden.'],
+            ]));
+            return $response->withStatus(404)->withHeader('Content-Type', 'application/json');
         }
 
         $ideaId = (int) ($args['id'] ?? 0);
         $idea   = $this->ideaRepo->findInBoard((int) $board['id'], $ideaId);
         if (!is_array($idea)) {
-            $response->getBody()->write('Idea not found.');
-            return $response->withStatus(404);
+            $response->getBody()->write((string) json_encode([
+                'error' => ['key' => 'not_found', 'message' => 'Idee nicht gefunden.'],
+            ]));
+            return $response->withStatus(404)->withHeader('Content-Type', 'application/json');
         }
 
-        // Anon → Redirect auf Login mit Return-To (Open-Redirect-sicher).
+        // Anon → 401 JSON (SPA leitet zum Login weiter).
         $user = $request->getAttribute(AuthNMiddleware::ATTR_USER);
         if (!is_array($user)) {
-            $returnTo = '/' . rawurlencode($slug) . '/ideas/' . $ideaId . '/edit';
-            return $response
-                ->withStatus(302)
-                ->withHeader('Location', '/login?r=' . rawurlencode($returnTo));
+            $response->getBody()->write((string) json_encode([
+                'error' => ['key' => 'unauthenticated', 'message' => 'Login erforderlich.'],
+            ]));
+            return $response->withStatus(401)->withHeader('Content-Type', 'application/json');
         }
 
-        /** @var array<string, mixed> $user */
         if ((int) ($idea['author_id'] ?? -1) !== (int) ($user['id'] ?? 0)) {
-            $response->getBody()->write('Forbidden.');
-            return $response->withStatus(403);
+            $response->getBody()->write((string) json_encode([
+                'error' => ['key' => 'forbidden', 'message' => 'Zugriff verweigert.'],
+            ]));
+            return $response->withStatus(403)->withHeader('Content-Type', 'application/json');
         }
 
-        $csrfToken = $request->getAttribute(CsrfMiddleware::ATTR_TOKEN);
-        $response  = $this->twig->render($response, 'board/idea-edit.twig', [
-            'board_slug' => $slug,
-            'board_name' => is_string($board['name'] ?? null) ? $board['name'] : $slug,
-            'idea'       => $idea,
-            'csrf_token' => is_string($csrfToken) ? $csrfToken : '',
-            'values'     => ['title' => (string) ($idea['title'] ?? ''), 'body' => (string) ($idea['body'] ?? '')],
-            'errors'     => [],
-            'time_trap'  => $this->timeTrap->stamp(),
-        ]);
-        return $response->withHeader('Content-Type', 'text/html; charset=utf-8');
+        $response->getBody()->write((string) json_encode([
+            'board'            => [
+                'id'   => (int) $board['id'],
+                'slug' => $slug,
+                'name' => is_string($board['name'] ?? null) ? $board['name'] : $slug,
+            ],
+            'idea'             => $idea,
+            'is_authenticated' => true,
+        ]));
+        return $response->withStatus(200)->withHeader('Content-Type', 'application/json');
     }
 
     // -------------------------------------------------------------------------
@@ -117,26 +117,32 @@ final readonly class IdeaEditAction
         ServerRequestInterface $request,
         ResponseInterface $response,
         array $args,
-    ): MessageInterface {
+    ): ResponseInterface {
         $slug  = is_string($args['board'] ?? null) ? $args['board'] : '';
         $board = $this->boardRepo->findBySlug($slug);
         if (!is_array($board)) {
-            $response->getBody()->write('Board not found.');
-            return $response->withStatus(404);
+            $response->getBody()->write((string) json_encode([
+                'error' => ['key' => 'not_found', 'message' => 'Board nicht gefunden.'],
+            ]));
+            return $response->withStatus(404)->withHeader('Content-Type', 'application/json');
         }
 
         $ideaId = (int) ($args['id'] ?? 0);
         $idea   = $this->ideaRepo->findInBoard((int) $board['id'], $ideaId);
         if (!is_array($idea)) {
-            $response->getBody()->write('Idea not found.');
-            return $response->withStatus(404);
+            $response->getBody()->write((string) json_encode([
+                'error' => ['key' => 'not_found', 'message' => 'Idee nicht gefunden.'],
+            ]));
+            return $response->withStatus(404)->withHeader('Content-Type', 'application/json');
         }
 
         /** @var array<string, mixed> $user */
         $user = $request->getAttribute(AuthNMiddleware::ATTR_USER);
         if ((int) ($idea['author_id'] ?? -1) !== (int) ($user['id'] ?? 0)) {
-            $response->getBody()->write('Forbidden.');
-            return $response->withStatus(403);
+            $response->getBody()->write((string) json_encode([
+                'error' => ['key' => 'forbidden', 'message' => 'Zugriff verweigert.'],
+            ]));
+            return $response->withStatus(403)->withHeader('Content-Type', 'application/json');
         }
 
         $parsed = $request->getParsedBody();
@@ -147,40 +153,18 @@ final readonly class IdeaEditAction
 
         // Bot-Abwehr 1: Honeypot-Feld — befüllt → stille Ablehnung (422 ohne Hinweis).
         if ($honeypot !== '') {
-            $csrfToken = $request->getAttribute(CsrfMiddleware::ATTR_TOKEN);
-            $response  = $this->twig->render(
-                $response->withStatus(422),
-                'board/idea-edit.twig',
-                [
-                    'board_slug' => $slug,
-                    'board_name' => is_string($board['name'] ?? null) ? $board['name'] : $slug,
-                    'idea'       => $idea,
-                    'csrf_token' => is_string($csrfToken) ? $csrfToken : '',
-                    'values'     => ['title' => $rawTitle, 'body' => $rawBody],
-                    'errors'     => [],
-                    'time_trap'  => $this->timeTrap->stamp(),
-                ],
-            );
-            return $response->withHeader('Content-Type', 'text/html; charset=utf-8');
+            $response->getBody()->write((string) json_encode([
+                'error' => ['key' => 'rejected', 'message' => 'Die Anfrage wurde abgelehnt.'],
+            ]));
+            return $response->withStatus(422)->withHeader('Content-Type', 'application/json');
         }
 
         // Bot-Abwehr 2: Time-Trap — zu schnell → stille Ablehnung (422 ohne Hinweis).
         if (!$this->timeTrap->verify($timeTrapVal)) {
-            $csrfToken = $request->getAttribute(CsrfMiddleware::ATTR_TOKEN);
-            $response  = $this->twig->render(
-                $response->withStatus(422),
-                'board/idea-edit.twig',
-                [
-                    'board_slug' => $slug,
-                    'board_name' => is_string($board['name'] ?? null) ? $board['name'] : $slug,
-                    'idea'       => $idea,
-                    'csrf_token' => is_string($csrfToken) ? $csrfToken : '',
-                    'values'     => ['title' => $rawTitle, 'body' => $rawBody],
-                    'errors'     => [],
-                    'time_trap'  => $this->timeTrap->stamp(),
-                ],
-            );
-            return $response->withHeader('Content-Type', 'text/html; charset=utf-8');
+            $response->getBody()->write((string) json_encode([
+                'error' => ['key' => 'rejected', 'message' => 'Die Anfrage wurde abgelehnt.'],
+            ]));
+            return $response->withStatus(422)->withHeader('Content-Type', 'application/json');
         }
 
         // Validierung via Symfony Validator.
@@ -202,30 +186,27 @@ final readonly class IdeaEditAction
             ),
         ]);
 
-        $errors = [];
+        /** @var array<string, string> $fields */
+        $fields = [];
         foreach ($titleErrors as $e) {
-            $errors['title'][] = $e->getMessage();
+            $fields['title'] = (string) $e->getMessage();
+            break;
         }
         foreach ($bodyErrors as $e) {
-            $errors['body'][] = $e->getMessage();
+            $fields['body'] = (string) $e->getMessage();
+            break;
         }
 
-        if ($errors !== []) {
-            $csrfToken = $request->getAttribute(CsrfMiddleware::ATTR_TOKEN);
-            $response  = $this->twig->render(
-                $response->withStatus(422),
-                'board/idea-edit.twig',
-                [
-                    'board_slug' => $slug,
-                    'board_name' => is_string($board['name'] ?? null) ? $board['name'] : $slug,
-                    'idea'       => $idea,
-                    'csrf_token' => is_string($csrfToken) ? $csrfToken : '',
-                    'values'     => ['title' => $rawTitle, 'body' => $rawBody],
-                    'errors'     => $errors,
-                    'time_trap'  => $this->timeTrap->stamp(),
+        if ($fields !== []) {
+            $response->getBody()->write((string) json_encode([
+                'error' => [
+                    'key'     => 'validation_error',
+                    'message' => 'Validation failed.',
+                    'fields'  => $fields,
+                    'values'  => ['title' => $rawTitle, 'body' => $rawBody],
                 ],
-            );
-            return $response->withHeader('Content-Type', 'text/html; charset=utf-8');
+            ]));
+            return $response->withStatus(422)->withHeader('Content-Type', 'application/json');
         }
 
         // Moderation-Hard-Block: nach Struktur-Validierung, vor DB-Update.
@@ -244,25 +225,18 @@ final readonly class IdeaEditAction
         $modResult = $moderationEnabled ? $effectiveModeration->check($rawTitle, $rawBody) : ['clean' => true, 'hits' => []];
         if (!$modResult['clean']) {
             $this->audit->log('idea.moderation_blocked', [
-                'board_id' => $boardId,
+                'board_id'  => $boardId,
                 'hit_count' => count($modResult['hits']),
             ]);
 
-            $csrfToken = $request->getAttribute(CsrfMiddleware::ATTR_TOKEN);
-            $response  = $this->twig->render(
-                $response->withStatus(422),
-                'board/idea-edit.twig',
-                [
-                    'board_slug' => $slug,
-                    'board_name' => is_string($board['name'] ?? null) ? $board['name'] : $slug,
-                    'idea'       => $idea,
-                    'csrf_token' => is_string($csrfToken) ? $csrfToken : '',
-                    'values'     => ['title' => $rawTitle, 'body' => $rawBody],
-                    'errors'     => ['moderation' => ['Dein Text enthält unzulässige Begriffe. Bitte formuliere ihn um.']],
-                    'time_trap'  => $this->timeTrap->stamp(),
+            $response->getBody()->write((string) json_encode([
+                'error' => [
+                    'key'     => 'moderation_blocked',
+                    'message' => 'Dein Text enthält unzulässige Begriffe. Bitte formuliere ihn um.',
+                    'fields'  => [],
                 ],
-            );
-            return $response->withHeader('Content-Type', 'text/html; charset=utf-8');
+            ]));
+            return $response->withStatus(422)->withHeader('Content-Type', 'application/json');
         }
 
         // Normalisierung + Update (board-scoped, author-scoped, Prepared-Statement).
@@ -273,9 +247,7 @@ final readonly class IdeaEditAction
 
         $this->audit->log('idea.updated', ['board_id' => $boardId, 'idea_id' => $ideaId]);
 
-        // Post/Redirect/Get — Reload löst kein Doppel-Submit aus.
-        return $response
-            ->withStatus(302)
-            ->withHeader('Location', '/' . rawurlencode($slug) . '/ideas/' . $ideaId);
+        $response->getBody()->write((string) json_encode(['ok' => true]));
+        return $response->withStatus(200)->withHeader('Content-Type', 'application/json');
     }
 }

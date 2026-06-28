@@ -170,9 +170,10 @@ final class BoardModerationActionTest extends IntegrationTestCase
         $response = $this->createApp()->handle($this->getRequest($slug, $adminId));
 
         self::assertSame(200, $response->getStatusCode());
-        $body = (string) $response->getBody();
-        self::assertStringContainsString('Moderation', $body);
-        self::assertStringContainsString('moderation_enabled', $body);
+        self::assertStringContainsString('application/json', $response->getHeaderLine('Content-Type'));
+        $data = json_decode((string) $response->getBody(), true);
+        self::assertArrayHasKey('board_slug', $data);
+        self::assertArrayHasKey('moderation_enabled', $data);
     }
 
     public function test_get_shows_custom_words(): void
@@ -188,8 +189,9 @@ final class BoardModerationActionTest extends IntegrationTestCase
             'created_at' => (new \DateTimeImmutable())->format('Y-m-d H:i:s'),
         ]);
 
-        $body = (string) $this->createApp()->handle($this->getRequest($slug, $adminId))->getBody();
-        self::assertStringContainsString('testspam', $body);
+        $data  = json_decode((string) $this->createApp()->handle($this->getRequest($slug, $adminId))->getBody(), true);
+        $words = array_column($data['words'] ?? [], 'word');
+        self::assertContains('testspam', $words);
     }
 
     public function test_unknown_board_returns_404(): void
@@ -242,8 +244,10 @@ final class BoardModerationActionTest extends IntegrationTestCase
             // No moderation_enabled in body → checkbox unchecked → 0
         );
 
-        self::assertSame(302, $response->getStatusCode());
-        self::assertStringContainsString('/admin/boards/mod-toggle-off/moderation', $response->getHeaderLine('Location'));
+        // 200 + JSON {"ok": true} (kein 302-Redirect)
+        self::assertSame(200, $response->getStatusCode());
+        $data = json_decode((string) $response->getBody(), true);
+        self::assertTrue($data['ok'] ?? false);
 
         $stored = $this->conn->fetchOne('SELECT moderation_enabled FROM boards WHERE slug = :s', ['s' => $slug]);
         self::assertSame('0', (string) $stored);
@@ -258,7 +262,7 @@ final class BoardModerationActionTest extends IntegrationTestCase
             $this->postRequest($slug, $adminId, ['action' => 'toggle', 'moderation_enabled' => '1']),
         );
 
-        self::assertSame(302, $response->getStatusCode());
+        self::assertSame(200, $response->getStatusCode());
 
         $stored = $this->conn->fetchOne('SELECT moderation_enabled FROM boards WHERE slug = :s', ['s' => $slug]);
         self::assertSame('1', (string) $stored);
@@ -274,7 +278,7 @@ final class BoardModerationActionTest extends IntegrationTestCase
             $this->postRequest($slug, $adminId, ['action' => 'add', 'new_word' => 'spamword']),
         );
 
-        self::assertSame(302, $response->getStatusCode());
+        self::assertSame(200, $response->getStatusCode());
 
         $count = (int) $this->conn->fetchOne(
             'SELECT COUNT(*) FROM board_blocklist WHERE board_id = :bid AND word = :w',
@@ -300,7 +304,7 @@ final class BoardModerationActionTest extends IntegrationTestCase
             $this->postRequest($slug, $adminId, ['action' => 'remove', 'word_id' => (string) $wordId]),
         );
 
-        self::assertSame(302, $response->getStatusCode());
+        self::assertSame(200, $response->getStatusCode());
 
         $count = (int) $this->conn->fetchOne(
             'SELECT COUNT(*) FROM board_blocklist WHERE board_id = :bid',
@@ -319,9 +323,10 @@ final class BoardModerationActionTest extends IntegrationTestCase
         );
 
         self::assertSame(422, $response->getStatusCode());
-        $body = (string) $response->getBody();
-        self::assertStringContainsString('leer', $body);
-        self::assertStringNotContainsString('Internal Server Error', $body);
+        $data = json_decode((string) $response->getBody(), true);
+        // Das Feld-Fehlertext enthält 'leer' (die error.message ist generisch)
+        self::assertStringContainsString('leer', $data['error']['fields']['new_word'] ?? '');
+        self::assertStringNotContainsString('Internal Server Error', (string) $response->getBody());
     }
 
     // =========================================================================
@@ -341,8 +346,8 @@ final class BoardModerationActionTest extends IntegrationTestCase
             $userId,
         ));
 
-        // Toggle aus → Wortfilter übersprungen → Idee wird angelegt → 302
-        self::assertSame(302, $response->getStatusCode());
+        // Toggle aus → Wortfilter übersprungen → Idee wird angelegt → 201
+        self::assertSame(201, $response->getStatusCode());
     }
 
     public function test_toggle_off_honeypot_still_active(): void
@@ -382,7 +387,7 @@ final class BoardModerationActionTest extends IntegrationTestCase
         $response = $this->createApp()->handle(
             $this->postRequest($slug, $adminId, ['action' => 'add', 'new_word' => 'xyzforbidden']),
         );
-        self::assertSame(302, $response->getStatusCode());
+        self::assertSame(200, $response->getStatusCode());
 
         // Submit mit dem Custom-Wort im Titel.
         $submitResponse = $this->createApp()->handle($this->postIdea(
@@ -431,7 +436,7 @@ final class BoardModerationActionTest extends IntegrationTestCase
             ['title' => 'onlyinboarda Idee', 'body' => 'Saubere Beschreibung ohne Probleme hier.'],
             $userId,
         ));
-        self::assertSame(302, $responseB->getStatusCode());
+        self::assertSame(201, $responseB->getStatusCode());
         $countB = (int) $this->conn->fetchOne('SELECT COUNT(*) FROM ideas WHERE board_id = :bid', ['bid' => $boardBId]);
         self::assertSame(1, $countB);
     }

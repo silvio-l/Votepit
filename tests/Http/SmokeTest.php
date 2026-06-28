@@ -11,7 +11,7 @@ use Votepit\ConfigException;
 use Votepit\Http\AppFactory;
 
 /**
- * Smoke-Test: beweist Boot, Pipeline, Twig-Rendering und Security-Header.
+ * Smoke-Test: beweist Boot, Pipeline, JSON-Response und Security-Header.
  * Keine DB nötig (Smoke-Route ist datenbankfrei).
  */
 final class SmokeTest extends TestCase
@@ -27,14 +27,14 @@ final class SmokeTest extends TestCase
         ]);
     }
 
-    public function test_home_responds_200_with_html_and_security_headers(): void
+    public function test_home_responds_200_with_json_and_security_headers(): void
     {
         $app      = AppFactory::create($this->config());
         $request  = (new ServerRequestFactory())->createServerRequest('GET', '/');
         $response = $app->handle($request);
 
         self::assertSame(200, $response->getStatusCode());
-        self::assertStringContainsString('text/html', $response->getHeaderLine('Content-Type'));
+        self::assertStringContainsString('application/json', $response->getHeaderLine('Content-Type'));
 
         // Security-Header (security.md §3 — A05)
         self::assertSame('nosniff', $response->getHeaderLine('X-Content-Type-Options'));
@@ -45,9 +45,10 @@ final class SmokeTest extends TestCase
         self::assertStringContainsString("default-src 'self'", $csp);
         self::assertStringNotContainsString("unsafe-eval", $csp);
 
-        // Body (Twig-Rendering mit Autoescape)
-        $body = (string) $response->getBody();
-        self::assertStringContainsString('Votepit', $body);
+        // Body: JSON-API-Antwort
+        $data = json_decode((string) $response->getBody(), true);
+        self::assertIsArray($data);
+        self::assertTrue($data['ok'] ?? false);
 
         // CSRF-Synchronizer: die Pipeline stellt auf GET ein signiertes Cookie aus.
         self::assertStringContainsString('votepit_csrf=', $response->getHeaderLine('Set-Cookie'));

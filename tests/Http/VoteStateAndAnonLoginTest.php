@@ -75,10 +75,12 @@ final class VoteStateAndAnonLoginTest extends IntegrationTestCase
         $ideaId   = $this->seedIdea($boardId, $authorId, 'Hochgestimmte Idee');
         $this->seedVote($ideaId, $voterId, 1);
 
-        $body = (string) $this->createApp()->handle($this->getDetail('vs-detail-up', $ideaId, $voterId))->getBody();
+        $data = json_decode(
+            (string) $this->createApp()->handle($this->getDetail('vs-detail-up', $ideaId, $voterId))->getBody(),
+            true,
+        );
 
-        self::assertStringContainsString('vp-vote--up"', $body, 'Eingeloggter User mit Up-Stimme muss vp-vote--up-Klasse sehen.');
-        self::assertStringNotContainsString('vp-vote--down"', $body);
+        self::assertSame('up', $data['idea']['my_vote'] ?? null, 'Eingeloggter User mit Up-Stimme muss my_vote=up sehen.');
     }
 
     public function test_idea_detail_shows_vote_down_state_for_logged_in_user(): void
@@ -89,10 +91,12 @@ final class VoteStateAndAnonLoginTest extends IntegrationTestCase
         $ideaId   = $this->seedIdea($boardId, $authorId, 'Runtergestimmte Idee');
         $this->seedVote($ideaId, $voterId, -1);
 
-        $body = (string) $this->createApp()->handle($this->getDetail('vs-detail-dn', $ideaId, $voterId))->getBody();
+        $data = json_decode(
+            (string) $this->createApp()->handle($this->getDetail('vs-detail-dn', $ideaId, $voterId))->getBody(),
+            true,
+        );
 
-        self::assertStringContainsString('vp-vote--down"', $body, 'Eingeloggter User mit Down-Stimme muss vp-vote--down-Klasse sehen.');
-        self::assertStringNotContainsString('vp-vote--up"', $body);
+        self::assertSame('down', $data['idea']['my_vote'] ?? null, 'Eingeloggter User mit Down-Stimme muss my_vote=down sehen.');
     }
 
     public function test_idea_detail_shows_no_active_state_when_user_has_not_voted(): void
@@ -102,10 +106,12 @@ final class VoteStateAndAnonLoginTest extends IntegrationTestCase
         $voterId  = $this->insertUser('vs-detail-none-v@example.com');
         $ideaId   = $this->seedIdea($boardId, $authorId, 'Nicht Abgestimmt');
 
-        $body = (string) $this->createApp()->handle($this->getDetail('vs-detail-none', $ideaId, $voterId))->getBody();
+        $data = json_decode(
+            (string) $this->createApp()->handle($this->getDetail('vs-detail-none', $ideaId, $voterId))->getBody(),
+            true,
+        );
 
-        self::assertStringNotContainsString('vp-vote--up"', $body);
-        self::assertStringNotContainsString('vp-vote--down"', $body);
+        self::assertSame('none', $data['idea']['my_vote'] ?? null, 'Kein Vote → my_vote=none erwartet.');
     }
 
     // -------------------------------------------------------------------------
@@ -120,9 +126,13 @@ final class VoteStateAndAnonLoginTest extends IntegrationTestCase
         $ideaId   = $this->seedIdea($boardId, $authorId, 'Hochgestimmt');
         $this->seedVote($ideaId, $voterId, 1);
 
-        $body = (string) $this->createApp()->handle($this->getBoard('vs-list-up', $voterId))->getBody();
+        $data   = json_decode(
+            (string) $this->createApp()->handle($this->getBoard('vs-list-up', $voterId))->getBody(),
+            true,
+        );
+        $myVotes = array_column($data['ideas'] ?? [], 'my_vote');
 
-        self::assertStringContainsString('vp-vote--up"', $body, 'Board-Liste muss vp-vote--up für Up-gestimmte Idee zeigen.');
+        self::assertContains('up', $myVotes, 'Board-Liste muss my_vote=up für Up-gestimmte Idee liefern.');
     }
 
     public function test_board_list_shows_vote_down_state_for_logged_in_user(): void
@@ -133,9 +143,13 @@ final class VoteStateAndAnonLoginTest extends IntegrationTestCase
         $ideaId   = $this->seedIdea($boardId, $authorId, 'Runtergestimmt');
         $this->seedVote($ideaId, $voterId, -1);
 
-        $body = (string) $this->createApp()->handle($this->getBoard('vs-list-dn', $voterId))->getBody();
+        $data   = json_decode(
+            (string) $this->createApp()->handle($this->getBoard('vs-list-dn', $voterId))->getBody(),
+            true,
+        );
+        $myVotes = array_column($data['ideas'] ?? [], 'my_vote');
 
-        self::assertStringContainsString('vp-vote--down"', $body, 'Board-Liste muss vp-vote--down für Down-gestimmte Idee zeigen.');
+        self::assertContains('down', $myVotes, 'Board-Liste muss my_vote=down für Down-gestimmte Idee liefern.');
     }
 
     // -------------------------------------------------------------------------
@@ -148,14 +162,15 @@ final class VoteStateAndAnonLoginTest extends IntegrationTestCase
         $authorId = $this->insertUser('vs-anon-link@example.com');
         $ideaId   = $this->seedIdea($boardId, $authorId, 'Anon-Link-Idee', ['score_cache' => 3]);
 
-        $body = (string) $this->createApp()->handle($this->getDetail('vs-anon-link', $ideaId))->getBody();
+        $data = json_decode(
+            (string) $this->createApp()->handle($this->getDetail('vs-anon-link', $ideaId))->getBody(),
+            true,
+        );
 
-        // Login-Link mit r= vorhanden
-        self::assertStringContainsString('/login?r=', $body, 'Anon-Besucher muss Login-Link sehen.');
-        // Kein POST-Form für Vote
-        self::assertStringNotContainsString('action="/vs-anon-link/ideas/' . $ideaId . '/vote"', $body);
-        // Score bleibt sichtbar (lesbar)
-        self::assertStringContainsString('3', $body, 'Score muss für Anon-Besucher sichtbar sein.');
+        // Anon → is_authenticated=false; SPA zeigt Login-Link
+        self::assertFalse($data['is_authenticated'] ?? true, 'Anon-Besucher muss is_authenticated=false sehen.');
+        // Score bleibt lesbar (Feld heißt score_cache in der DB-Row)
+        self::assertSame(3, (int) ($data['idea']['score_cache'] ?? null), 'Score muss für Anon-Besucher sichtbar sein.');
     }
 
     public function test_anon_board_list_shows_login_links(): void
@@ -164,15 +179,17 @@ final class VoteStateAndAnonLoginTest extends IntegrationTestCase
         $authorId = $this->insertUser('vs-anon-list@example.com');
         $this->seedIdea($boardId, $authorId, 'Anon-Listen-Idee');
 
-        $body = (string) $this->createApp()->handle($this->getBoard('vs-anon-list'))->getBody();
+        $data = json_decode(
+            (string) $this->createApp()->handle($this->getBoard('vs-anon-list'))->getBody(),
+            true,
+        );
 
-        self::assertStringContainsString('/login?r=', $body, 'Board-Liste muss Login-Links für Anon zeigen.');
-        // Kein POST-Form für Vote
-        self::assertStringNotContainsString('name="value" value="up"', $body);
+        // Anon → is_authenticated=false; SPA rendert Login-Links
+        self::assertFalse($data['is_authenticated'] ?? true, 'Board-Liste muss is_authenticated=false für Anon liefern.');
     }
 
     // -------------------------------------------------------------------------
-    // AC5 — Return-To-URL korrekt rawurlencode(d)
+    // AC5 — Return-To-URL: JSON-API liefert is_authenticated=false; SPA baut den Link
     // -------------------------------------------------------------------------
 
     public function test_anon_login_link_contains_rawurlencoded_return_to(): void
@@ -181,11 +198,15 @@ final class VoteStateAndAnonLoginTest extends IntegrationTestCase
         $authorId = $this->insertUser('vs-return@example.com');
         $ideaId   = $this->seedIdea($boardId, $authorId, 'Return-To-Idee');
 
-        $body = (string) $this->createApp()->handle($this->getDetail('vs-return', $ideaId))->getBody();
+        $data = json_decode(
+            (string) $this->createApp()->handle($this->getDetail('vs-return', $ideaId))->getBody(),
+            true,
+        );
 
-        // rawurlencode('/vs-return/ideas/{id}') = '%2Fvs-return%2Fideas%2F{id}'
-        $expectedEncoded = rawurlencode('/vs-return/ideas/' . $ideaId);
-        self::assertStringContainsString('r=' . $expectedEncoded, $body, 'Return-To muss rawurlencode(d) sein.');
+        // API liefert is_authenticated=false; SPA baut den Login-Link mit rawurlencodem Return-To selbst
+        self::assertFalse($data['is_authenticated'] ?? true, 'Anon-Detail muss is_authenticated=false liefern.');
+        // Idea-URL ist im JSON vorhanden, damit die SPA den Return-To-Parameter korrekt bauen kann
+        self::assertArrayHasKey('idea', $data);
     }
 
     // -------------------------------------------------------------------------
@@ -204,16 +225,20 @@ final class VoteStateAndAnonLoginTest extends IntegrationTestCase
         $ideaB = $this->seedIdea($boardBId, $authorId, 'Idee in Board B');
         $this->seedVote($ideaA, $voterId, 1);
 
-        // Board B muss kein vp-vote--up zeigen für den Voter.
-        $bodyB = (string) $this->createApp()->handle($this->getBoard('vs-cross-b', $voterId))->getBody();
-        self::assertStringNotContainsString('vp-vote--up"', $bodyB, 'Stimme aus Board A darf in Board B nicht angezeigt werden.');
+        $app = $this->createApp();
 
-        // Detail-Seite in Board B: auch kein vp-vote--up.
-        $bodyDetailB = (string) $this->createApp()->handle($this->getDetail('vs-cross-b', $ideaB, $voterId))->getBody();
-        self::assertStringNotContainsString('vp-vote--up"', $bodyDetailB);
+        // Board B: my_vote für ideaB muss 'none' sein (nicht 'up' aus Board A)
+        $dataB   = json_decode((string) $app->handle($this->getBoard('vs-cross-b', $voterId))->getBody(), true);
+        $myVotesB = array_column($dataB['ideas'] ?? [], 'my_vote');
+        self::assertNotContains('up', $myVotesB, 'Stimme aus Board A darf in Board B nicht erscheinen.');
 
-        // Board A hingegen zeigt vp-vote--up.
-        $bodyA = (string) $this->createApp()->handle($this->getBoard('vs-cross-a', $voterId))->getBody();
-        self::assertStringContainsString('vp-vote--up"', $bodyA, 'Board A muss vp-vote--up für die eigene Stimme zeigen.');
+        // Detail in Board B: my_vote muss 'none' sein
+        $dataDetailB = json_decode((string) $app->handle($this->getDetail('vs-cross-b', $ideaB, $voterId))->getBody(), true);
+        self::assertSame('none', $dataDetailB['idea']['my_vote'] ?? null, 'Detail Board B: my_vote muss none sein.');
+
+        // Board A: my_vote für ideaA muss 'up' sein
+        $dataA   = json_decode((string) $app->handle($this->getBoard('vs-cross-a', $voterId))->getBody(), true);
+        $myVotesA = array_column($dataA['ideas'] ?? [], 'my_vote');
+        self::assertContains('up', $myVotesA, 'Board A muss my_vote=up für die eigene Stimme liefern.');
     }
 }

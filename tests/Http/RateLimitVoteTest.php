@@ -60,9 +60,9 @@ final class RateLimitVoteTest extends IntegrationTestCase
 
         $app = $this->createApp();
 
-        // 1. Vote (count=1, 1 <= 1 → erlaubt → PRG 302)
+        // 1. Vote (count=1, 1 <= 1 → erlaubt → JSON 200)
         $first = $app->handle($this->postVote('rl-vote', $ideaA, 'up', $userId));
-        self::assertSame(302, $first->getStatusCode());
+        self::assertSame(200, $first->getStatusCode());
 
         // 2. Vote desselben Users (count=2, 2 > 1 → 429)
         $second = $app->handle($this->postVote('rl-vote', $ideaB, 'up', $userId));

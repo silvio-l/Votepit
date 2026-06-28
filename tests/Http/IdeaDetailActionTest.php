@@ -49,11 +49,12 @@ final class IdeaDetailActionTest extends IntegrationTestCase
         $response = $this->createApp()->handle($this->getDetailRequest('detail-board', $ideaId));
 
         self::assertSame(200, $response->getStatusCode());
-        self::assertStringContainsString('text/html', $response->getHeaderLine('Content-Type'));
+        self::assertStringContainsString('application/json', $response->getHeaderLine('Content-Type'));
 
-        $body = (string) $response->getBody();
-        self::assertStringContainsString('Meine Detail-Idee', $body);
-        self::assertStringContainsString('Das ist der vollständige Body der Idee.', $body);
+        $data = json_decode((string) $response->getBody(), true);
+        self::assertIsArray($data);
+        self::assertSame('Meine Detail-Idee', $data['idea']['title'] ?? null);
+        self::assertSame('Das ist der vollständige Body der Idee.', $data['idea']['body'] ?? null);
     }
 
     // -------------------------------------------------------------------------
@@ -113,8 +114,9 @@ final class IdeaDetailActionTest extends IntegrationTestCase
 
         $body = (string) $this->createApp()->handle($this->getDetailRequest('xss-detail-board', $ideaId))->getBody();
 
-        self::assertStringNotContainsString('<script>alert', $body);
-        self::assertStringContainsString('&lt;script&gt;', $body);
+        // JSON-API liefert den Rohwert; React escaped beim Rendern
+        $data = json_decode($body, true);
+        self::assertSame($xssTitle, $data['idea']['title'] ?? null, 'XSS-Titel muss als Klartext in JSON stehen.');
     }
 
     // -------------------------------------------------------------------------
@@ -132,7 +134,8 @@ final class IdeaDetailActionTest extends IntegrationTestCase
 
         $body = (string) $this->createApp()->handle($this->getDetailRequest('xss-body-board', $ideaId))->getBody();
 
-        self::assertStringNotContainsString('<img src=x onerror', $body);
-        self::assertStringContainsString('&lt;img', $body);
+        // JSON-API liefert den Rohwert; React escaped beim Rendern
+        $data = json_decode($body, true);
+        self::assertSame($xssBody, $data['idea']['body'] ?? null, 'XSS-Body muss als Klartext in JSON stehen.');
     }
 }

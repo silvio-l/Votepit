@@ -44,7 +44,13 @@ final readonly class CsrfMiddleware implements MiddlewareInterface
             $parsed    = $request->getParsedBody();
             $submitted = is_array($parsed) ? ($parsed[$this->csrf->fieldName()] ?? null) : null;
 
-            // Kein gültiger Vor-Token (Cookie fehlte/manipuliert) oder Feld-Mismatch → ablehnen.
+            // SPA-Fallback: Token alternativ als X-CSRF-Token-Header akzeptieren.
+            if (!is_string($submitted)) {
+                $header    = $request->getHeaderLine('X-CSRF-Token');
+                $submitted = $header !== '' ? $header : null;
+            }
+
+            // Kein gültiger Vor-Token (Cookie fehlte/manipuliert) oder Feld/Header-Mismatch → ablehnen.
             if ($isNew || !is_string($submitted) || !hash_equals($token, $submitted)) {
                 $response = $this->responseFactory->createResponse(403);
                 $response->getBody()->write('CSRF token invalid.');

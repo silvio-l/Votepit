@@ -91,4 +91,18 @@ final class CsrfMiddlewareTest extends TestCase
 
         self::assertSame(403, $mw->process($request, $this->handler())->getStatusCode());
     }
+
+    /** SPA-Fallback: X-CSRF-Token-Header wird statt des Form-Feldes akzeptiert. */
+    public function test_mutating_post_with_header_token_passes(): void
+    {
+        $csrf    = $this->csrf();
+        $token   = $csrf->generate();
+        $mw      = new CsrfMiddleware($csrf, new ResponseFactory());
+        // Kein _csrf im Body, aber das Token im X-CSRF-Token-Header
+        $request = (new ServerRequestFactory())->createServerRequest('POST', '/')
+            ->withCookieParams([$csrf->cookieName() => $csrf->sign($token)])
+            ->withHeader('X-CSRF-Token', $token);
+
+        self::assertSame(200, $mw->process($request, $this->handler())->getStatusCode());
+    }
 }
