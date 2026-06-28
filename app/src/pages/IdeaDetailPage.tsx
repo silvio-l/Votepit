@@ -83,6 +83,7 @@ function IdeaDetailContent({
           logoHref={`/${board.slug}`}
           loginLabel={is_authenticated ? 'Konto' : 'Anmelden'}
           isAuthenticated={is_authenticated}
+          onLoginClick={() => navigate(`/login?r=${encodeURIComponent(`/${board.slug}`)}`)}
           onLogoutClick={onLogout}
         />
       }
