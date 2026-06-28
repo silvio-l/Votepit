@@ -17,7 +17,7 @@ const status = instance.getEnum('Status', {
 
 export default {
   example: figma.code`<StatusBadge status="${status}" />`,
-  imports: ['import { StatusBadge } from "@votepit/components"'],
+  imports: ['import { StatusBadge } from "@votepit/ui"'],
   id: 'status-badge',
   metadata: { nestable: true },
 }

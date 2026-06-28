@@ -13,7 +13,7 @@ const tone = instance.getEnum('Tone', {
 
 export default {
   example: figma.code`<VoteWidget tone="${tone}" score={42} onVoteUp={() => {}} onVoteDown={() => {}} />`,
-  imports: ['import { VoteWidget } from "@votepit/components"'],
+  imports: ['import { VoteWidget } from "@votepit/ui"'],
   id: 'vote-widget',
   metadata: { nestable: true },
 }

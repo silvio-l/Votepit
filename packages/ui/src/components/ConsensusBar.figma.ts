@@ -7,7 +7,7 @@ import figma from 'figma'
 // The percent prop drives the fill width and label ("Konsens" vs "Umstritten").
 export default {
   example: figma.code`<ConsensusBar percent={82} />`,
-  imports: ['import { ConsensusBar } from "@votepit/components"'],
+  imports: ['import { ConsensusBar } from "@votepit/ui"'],
   id: 'consensus-bar',
   metadata: { nestable: true },
 }

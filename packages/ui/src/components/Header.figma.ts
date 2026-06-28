@@ -7,7 +7,7 @@ import figma from 'figma'
 // Real props are shown below as a usage example.
 export default {
   example: figma.code`<Header loginLabel="Anmelden" isAuthenticated={false} onLoginClick={() => {}} />`,
-  imports: ['import { Header } from "@votepit/components"'],
+  imports: ['import { Header } from "@votepit/ui"'],
   id: 'header',
   metadata: { nestable: false },
 }

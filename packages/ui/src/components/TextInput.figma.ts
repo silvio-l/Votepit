@@ -15,7 +15,7 @@ const isError = instance.getEnum('State', {
 
 export default {
   example: figma.code`<TextInput label="${label}" placeholder="${placeholder}" value="" onChange={() => {}} ${isError ? 'error="Ungültige Eingabe"' : ''} />`,
-  imports: ['import { TextInput } from "@votepit/components"'],
+  imports: ['import { TextInput } from "@votepit/ui"'],
   id: 'text-input',
   metadata: { nestable: true },
 }

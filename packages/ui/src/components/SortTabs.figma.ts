@@ -7,7 +7,7 @@ import figma from 'figma'
 // Active tab state and handler are shown as a usage example.
 export default {
   example: figma.code`<SortTabs value="top" onChange={(v) => {}} />`,
-  imports: ['import { SortTabs } from "@votepit/components"'],
+  imports: ['import { SortTabs } from "@votepit/ui"'],
   id: 'sort-tabs',
   metadata: { nestable: true },
 }

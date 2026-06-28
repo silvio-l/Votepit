@@ -3,10 +3,10 @@
     "parser": "react",
     "include": ["src/components/**/*.figma.ts"],
     "paths": {
-      "@votepit/components": ["./src/components"]
+      "@votepit/ui": ["./src/components"]
     },
     "importPaths": {
-      "src/components/*": "@votepit/components"
+      "src/components/*": "@votepit/ui"
     }
   }
 }

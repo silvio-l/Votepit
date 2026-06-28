@@ -15,7 +15,7 @@ const isError = instance.getEnum('State', {
 
 export default {
   example: figma.code`<Textarea label="${label}" placeholder="${placeholder}" value="" onChange={() => {}} ${isError ? 'error="Pflichtfeld"' : ''} />`,
-  imports: ['import { Textarea } from "@votepit/components"'],
+  imports: ['import { Textarea } from "@votepit/ui"'],
   id: 'textarea',
   metadata: { nestable: true },
 }

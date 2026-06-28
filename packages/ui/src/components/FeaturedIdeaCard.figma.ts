@@ -22,7 +22,7 @@ export default {
       weeklyNewIdeas={18}
       avgConsensusPercent={92}
     />`,
-  imports: ['import { FeaturedIdeaCard } from "@votepit/components"'],
+  imports: ['import { FeaturedIdeaCard } from "@votepit/ui"'],
   id: 'featured-idea-card',
   metadata: { nestable: true },
 }

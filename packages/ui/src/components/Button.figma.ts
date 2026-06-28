@@ -14,7 +14,7 @@ const variant = instance.getEnum('Variant', {
 
 export default {
   example: figma.code`<Button variant="${variant}">${label}</Button>`,
-  imports: ['import { Button } from "@votepit/components"'],
+  imports: ['import { Button } from "@votepit/ui"'],
   id: 'button',
   metadata: { nestable: true },
 }

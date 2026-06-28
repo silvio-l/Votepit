@@ -21,7 +21,7 @@ export default {
       timeAgo="vor 3 Tagen"
       consensusPercent={82}
     />`,
-  imports: ['import { IdeaListRow } from "@votepit/components"'],
+  imports: ['import { IdeaListRow } from "@votepit/ui"'],
   id: 'idea-list-row',
   metadata: { nestable: true },
 }
