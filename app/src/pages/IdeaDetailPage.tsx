@@ -97,7 +97,7 @@ function IdeaDetailContent({
       </div>
 
       <article
-        className="bg-vp-surface backdrop-blur-xl rounded-vp-xl border border-vp-border-subtle shadow max-w-[820px] mx-auto p-6 md:p-8"
+        className="bg-vp-surface backdrop-blur-xl rounded-vp-xl border border-vp-border-subtle shadow-vp-soft max-w-[820px] mx-auto p-6 md:p-8"
         aria-label={idea.title}
       >
         <div className="flex gap-6 items-start">

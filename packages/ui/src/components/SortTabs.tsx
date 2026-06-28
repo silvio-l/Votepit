@@ -22,7 +22,7 @@ export function SortTabs({ value, onChange }: SortTabsProps) {
         className={[
           'flex gap-[3px] p-1',
           'bg-vp-surface-frost border border-vp-border-subtle rounded-vp-md',
-          'shadow-[0px_8px_24px_-6px_rgba(20,23,26,0.07)]',
+          'shadow-vp-soft',
         ].join(' ')}
         role="tablist"
         aria-label="Sortierung"

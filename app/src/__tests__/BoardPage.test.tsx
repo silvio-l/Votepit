@@ -151,7 +151,7 @@ describe('BoardPage', () => {
 
     await waitFor(() => expect(screen.getByTestId('featured-idea')).toBeInTheDocument())
     expect(screen.getByText('+312')).toBeInTheDocument()
-    expect(screen.getByText('neue Stimmen')).toBeInTheDocument()
+    expect(screen.getByText('Stimmen abgegeben')).toBeInTheDocument()
     expect(screen.getByText('18')).toBeInTheDocument()
     expect(screen.getByText('neue Ideen')).toBeInTheDocument()
   })

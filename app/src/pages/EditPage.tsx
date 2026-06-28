@@ -198,7 +198,7 @@ export default function EditPage() {
           initial={reduceMotion ? false : { opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.25, ease: 'easeOut' }}
-          className="bg-vp-surface border border-vp-border-subtle rounded-vp-lg shadow p-8"
+          className="bg-vp-surface border border-vp-border-subtle rounded-vp-lg shadow-vp-soft p-8"
         >
           <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-6">
             {/*

@@ -36,10 +36,10 @@ export function FeaturedIdeaCard({
   return (
     <div className="flex flex-col md:flex-row gap-[14px]">
       {/* Left panel */}
-      <div className="flex-1 bg-vp-surface border border-vp-border-subtle rounded-vp-xl shadow pl-6 pr-[26px] py-6">
+      <div className="flex-1 bg-vp-surface border border-vp-border-subtle rounded-vp-xl shadow-vp-soft pl-6 pr-[26px] py-6">
         <div className="flex gap-[22px]">
           {/* VoteWidget leading */}
-          <div className="shrink-0 self-start pt-1">
+          <div className="shrink-0 h-[80px] flex items-center">
             <VoteWidget
               tone="leading"
               score={score}
@@ -50,7 +50,7 @@ export function FeaturedIdeaCard({
           </div>
 
           {/* Content */}
-          <div className="flex-1 min-w-0 flex flex-col gap-3">
+          <div className="flex-1 min-w-0 flex flex-col gap-[11px]">
             {/* TOP-IDEE label */}
             <span className="text-[11px] font-bold font-inter text-vp-vote-up tracking-[1.32px] uppercase">
               Top-Idee
@@ -65,12 +65,12 @@ export function FeaturedIdeaCard({
             <p className="text-[15px] text-vp-text-secondary leading-[1.48]">{description}</p>
 
             {/* Meta */}
-            <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex items-center gap-[18px] pt-0.5">
               <StatusBadge status={status} />
-              <span className="text-[13px] text-vp-text-muted font-mono-num">
-                {commentCount} Kommentare
+              <span className="text-[13px] text-vp-text-muted">
+                {commentCount} {commentCount === 1 ? 'Kommentar' : 'Kommentare'}
               </span>
-              <div className="flex-1 min-w-[120px]">
+              <div className="w-[152px] shrink-0">
                 <ConsensusBar percent={consensusPercent} />
               </div>
             </div>
@@ -79,7 +79,7 @@ export function FeaturedIdeaCard({
       </div>
 
       {/* Right panel */}
-      <div className="w-full md:w-[300px] shrink-0 bg-vp-surface border border-vp-border-subtle rounded-vp-xl shadow p-[22px] flex flex-col gap-4">
+      <div className="w-full md:w-[300px] shrink-0 bg-vp-surface border border-vp-border-subtle rounded-vp-xl shadow-vp-soft p-[22px] flex flex-col gap-4">
         {/* DIESE WOCHE label */}
         <span className="text-[11px] font-bold text-vp-text-muted tracking-[1.1px] uppercase">
           Diese Woche
@@ -92,7 +92,7 @@ export function FeaturedIdeaCard({
             <span className="text-[24px] font-mono-num font-bold text-vp-ink leading-none">
               +{weeklyVotes}
             </span>
-            <span className="text-[13px] text-vp-text-secondary">neue Stimmen</span>
+            <span className="text-[13px] text-vp-text-secondary">Stimmen abgegeben</span>
           </div>
 
           {/* Weekly new ideas */}
@@ -108,7 +108,7 @@ export function FeaturedIdeaCard({
             <span className="text-[24px] font-mono-num font-bold text-vp-vote-up leading-none">
               {avgConsensusPercent}%
             </span>
-            <span className="text-[13px] text-vp-text-secondary">⌀ Konsens</span>
+            <span className="text-[13px] text-vp-text-secondary">Ø Konsens</span>
           </div>
         </div>
       </div>

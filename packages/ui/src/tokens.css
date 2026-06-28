@@ -129,6 +129,11 @@
   --radius-vp-lg:   16px;
   --radius-vp-xl:   20px;
   --radius-vp-full: 9999px;
+
+  /* ── Elevation — single soft glow (Figma: weiche Glows, keine harten
+     Schatten). Every card/surface uses this; never Tailwind's default
+     hard `shadow`. ─────────────────────────────────────────────────── */
+  --shadow-vp-soft: 0px 8px 24px -6px rgba(20, 23, 26, 0.07);
 }
 
 /* a11y: visible focus indicator — consistent across all interactive elements */

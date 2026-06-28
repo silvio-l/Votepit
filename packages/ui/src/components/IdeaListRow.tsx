@@ -38,7 +38,7 @@ export function IdeaListRow({
         'flex items-center gap-5',
         'bg-vp-surface-frost border border-vp-border-subtle rounded-vp-lg',
         'pl-5 pr-6 py-[18px]',
-        'shadow-[0px_8px_24px_-6px_rgba(20,23,26,0.07)]',
+        'shadow-vp-soft',
         href ? 'hover:border-vp-text-muted transition-colors duration-150' : '',
       ]
         .filter(Boolean)

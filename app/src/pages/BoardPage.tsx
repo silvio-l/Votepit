@@ -1,5 +1,6 @@
 import type { SortValue, Status } from '@votepit/ui'
 import {
+  Button,
   EmptyState,
   FeaturedIdeaCard,
   Header,
@@ -257,7 +258,7 @@ export default function BoardPage() {
     >
       {/* Hero: H1 + subtitle + primary CTA — Figma 80:33 hero block (left-aligned) */}
       <div className="mb-7">
-        <h1 className="font-archivo font-extrabold text-[28px] text-vp-ink leading-[1.15]">
+        <h1 className="font-archivo font-bold text-[40px] text-vp-ink leading-[1.08]">
           {board.name}
         </h1>
         {board.intro && (
@@ -265,12 +266,13 @@ export default function BoardPage() {
             {board.intro}
           </p>
         )}
-        <a
-          href={`/${board.slug}/submit`}
-          className="mt-4 inline-flex items-center px-4 py-2.5 bg-vp-ink text-white font-semibold text-[13px] rounded-vp-md hover:opacity-90 transition-opacity focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-vp-ink"
+        <Button
+          variant="primary"
+          className="mt-4"
+          onClick={() => navigate(`/${board.slug}/submit`)}
         >
           + Neue Idee
-        </a>
+        </Button>
       </div>
 
       {/* Controls: status filter chips, then sort tabs — Figma filter-section (above featured) */}
@@ -302,12 +304,9 @@ export default function BoardPage() {
           title="Noch keine Ideen"
           description="Sei die Erste oder der Erste, der eine Idee einreicht — und bring das Board in Gang."
           action={
-            <a
-              href={`/${board.slug}/submit`}
-              className="px-5 py-2.5 bg-vp-ink text-white font-semibold text-[14px] rounded-vp-md hover:opacity-90 transition-opacity focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-vp-ink"
-            >
+            <Button variant="primary" onClick={() => navigate(`/${board.slug}/submit`)}>
               Erste Idee einreichen
-            </a>
+            </Button>
           }
         />
       ) : (
