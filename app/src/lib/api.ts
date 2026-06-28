@@ -223,6 +223,47 @@ export async function logout(): Promise<{ ok: boolean }> {
   return request<{ ok: boolean }>('POST', '/logout', {})
 }
 
+// ── Idea submission ───────────────────────────────────────────────────────────
+
+/**
+ * Response shape for GET /{boardSlug}/ideas/new.
+ * form_at is the server-signed Time-Trap stamp; send it back as _form_at in the POST.
+ */
+export interface SubmitFormData {
+  board: { id: number; slug: string; name: string }
+  is_authenticated: boolean
+  form_at: string
+}
+
+export interface CreateIdeaResponse {
+  ok: boolean
+  id: number
+}
+
+/**
+ * GET /{boardSlug}/ideas/new — fetch board context, auth state, and Time-Trap stamp.
+ * Must be called before rendering the submit form.
+ * Throws ApiError(404) if the board slug is unknown.
+ */
+export async function getSubmitForm(boardSlug: string): Promise<SubmitFormData> {
+  return request<SubmitFormData>('GET', `/${boardSlug}/ideas/new`)
+}
+
+/**
+ * POST /{boardSlug}/ideas — create a new idea.
+ * website must always be '' (honeypot — server rejects non-empty).
+ * _form_at must be the stamp returned by getSubmitForm() (Time-Trap — server validates HMAC + elapsed time).
+ * Requires auth (AuthZ: user → 401 if anonymous) and a valid CSRF token.
+ * Call bootstrap() before this to ensure cachedCsrfToken is populated.
+ * Throws ApiError(422) with fields map on validation / moderation / anti-spam failure.
+ */
+export async function createIdea(
+  boardSlug: string,
+  payload: { title: string; body: string; website: string; _form_at: string },
+): Promise<CreateIdeaResponse> {
+  return request<CreateIdeaResponse>('POST', `/${boardSlug}/ideas`, payload)
+}
+
 // ── Voting ────────────────────────────────────────────────────────────────────
 
 export interface VoteResponse {

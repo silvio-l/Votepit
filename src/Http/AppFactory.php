@@ -451,13 +451,14 @@ final class AppFactory
                 return $response->withStatus(200)->withHeader('Content-Type', 'application/json');
             })->add(AuthZMiddleware::anon($responseFactory));
 
-            // GET /{board}/ideas/new — SPA-Route: liefert Board-Info + Auth-Status (AuthZ: anon).
-            // PRG-Redirect auf Login entfällt serverseitig; SPA wertet is_authenticated aus.
+            // GET /{board}/ideas/new — SPA-Route: liefert Board-Info + Auth-Status + Time-Trap-Stamp
+            // (AuthZ: anon). PRG-Redirect auf Login entfällt serverseitig; SPA wertet is_authenticated
+            // aus. form_at must be echoed back by the SPA as the _form_at field in the POST.
             $app->get('/{board}/ideas/new', function (
                 ServerRequestInterface $request,
                 ResponseInterface $response,
                 array $args,
-            ) use ($boardRepo): ResponseInterface {
+            ) use ($boardRepo, $timeTrap): ResponseInterface {
                 $slug  = is_string($args['board'] ?? null) ? $args['board'] : '';
                 $board = $boardRepo->findBySlug($slug);
                 if (!is_array($board)) {
@@ -475,6 +476,7 @@ final class AppFactory
                         'name' => is_string($board['name'] ?? null) ? $board['name'] : $slug,
                     ],
                     'is_authenticated' => $user !== null,
+                    'form_at'          => $timeTrap->stamp(),
                 ]));
                 return $response->withStatus(200)->withHeader('Content-Type', 'application/json');
             })->add(AuthZMiddleware::anon($responseFactory));
