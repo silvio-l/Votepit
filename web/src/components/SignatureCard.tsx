@@ -78,6 +78,12 @@ export default function SignatureCard({
     (d: 1 | -1, event: React.MouseEvent) => {
       setInteracted(true)
       setDir(d)
+
+      // Cookieless Matomo engagement event (Matomo-Goal "Demo-Vote ausprobiert",
+      // idSite=6). Guarded — fires sobald der Matomo-Snippet _paq bereitstellt.
+      const paq = (window as unknown as { _paq?: unknown[][] })._paq
+      if (paq) paq.push(['trackEvent', 'Engagement', 'Demo-Vote ausprobiert', d === 1 ? 'up' : 'down'])
+
       if (d === 1) {
         setUpCount((c) => c + 1)
       } else {
