@@ -204,6 +204,15 @@ abstract class IntegrationTestCase extends TestCase
                 FOREIGN KEY (author_id) REFERENCES users(id)  ON DELETE CASCADE
             )',
         );
+
+        $conn->executeStatement(
+            'CREATE TABLE IF NOT EXISTS app_settings (
+                "key"      VARCHAR(128) NOT NULL,
+                value      TEXT         NULL,
+                updated_at DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY ("key")
+            )',
+        );
     }
 
     // -------------------------------------------------------------------------

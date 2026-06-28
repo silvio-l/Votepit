@@ -65,5 +65,6 @@ return [
         'idea:vote'       => ['limit' => 60, 'window' => 60],        // 60 Votes/Minute
         'comment:user'    => ['limit' => 10, 'window' => 3600],      // 10 Kommentare/Stunde (Sprint 6)
         'dupsearch:user'  => ['limit' => 30, 'window' => 60],        // 30/Minute Duplikat-Suche (Sprint 5)
+        'smtp:test'       => ['limit' => 5,  'window' => 300],       // 5 Test-Mails / 5 Minuten
     ],
 ];

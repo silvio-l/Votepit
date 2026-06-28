@@ -422,3 +422,55 @@ export async function vote(
 ): Promise<VoteResponse> {
   return request<VoteResponse>('POST', `/${boardSlug}/ideas/${ideaId}/vote`, { value: direction })
 }
+
+// ── Admin: SMTP ───────────────────────────────────────────────────────────────
+
+export interface SmtpSettingsData {
+  host: string
+  port: number
+  user: string
+  encryption: 'tls' | 'ssl' | ''
+  from_email: string
+  from_name: string
+  password_set: boolean
+}
+
+export interface SmtpTestBody {
+  host?: string
+  port?: number
+  user?: string
+  encryption?: 'tls' | 'ssl' | ''
+  from_email?: string
+  from_name?: string
+  password?: string
+}
+
+/**
+ * GET /admin/smtp — liest aktuelle SMTP-Settings (kein Passwort).
+ * AuthZ: admin — throws ApiError(401) für anon, ApiError(403) für non-admin.
+ */
+export async function getAdminSmtp(): Promise<SmtpSettingsData> {
+  return request<SmtpSettingsData>('GET', '/admin/smtp')
+}
+
+/**
+ * PUT /admin/smtp — speichert SMTP-Settings.
+ * Leeres password = bestehendes Passwort unverändert lassen.
+ * Requires admin AuthZ + CSRF — call bootstrap() first.
+ */
+export async function saveAdminSmtp(
+  data: Omit<SmtpSettingsData, 'password_set'> & { password: string },
+): Promise<{ ok: boolean }> {
+  return request<{ ok: boolean }>('PUT', '/admin/smtp', data)
+}
+
+/**
+ * POST /admin/smtp/test — sendet Test-Mail mit übergebenen ODER gespeicherten Settings.
+ * Requires admin AuthZ + CSRF — call bootstrap() first.
+ * Returns { ok: true, recipient: string } or throws ApiError.
+ */
+export async function testAdminSmtp(
+  data?: SmtpTestBody,
+): Promise<{ ok: boolean; recipient: string }> {
+  return request<{ ok: boolean; recipient: string }>('POST', '/admin/smtp/test', data ?? {})
+}

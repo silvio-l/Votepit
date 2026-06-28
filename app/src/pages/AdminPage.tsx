@@ -28,9 +28,12 @@ import {
   bootstrap,
   getAdminBranding,
   getAdminModeration,
+  getAdminSmtp,
   logout,
   saveAdminBranding,
   saveAdminModeration,
+  saveAdminSmtp,
+  testAdminSmtp,
 } from '../lib/api'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -91,6 +94,25 @@ export default function AdminPage() {
   const [modSaving, setModSaving] = useState(false)
   const [modSuccess, setModSuccess] = useState<string | null>(null)
 
+  // ── SMTP state ─────────────────────────────────────────────────────────────
+  const [smtpPreset, setSmtpPreset] = useState<'outlook' | 'gmail' | 'custom'>('custom')
+  const [smtpHost, setSmtpHost] = useState('')
+  const [smtpPort, setSmtpPort] = useState(587)
+  const [smtpUser, setSmtpUser] = useState('')
+  const [smtpEncryption, setSmtpEncryption] = useState<'tls' | 'ssl' | ''>('tls')
+  const [smtpFromEmail, setSmtpFromEmail] = useState('')
+  const [smtpFromName, setSmtpFromName] = useState('')
+  const [smtpPassword, setSmtpPassword] = useState('')
+  const [smtpPasswordSet, setSmtpPasswordSet] = useState(false)
+  const [smtpErrors, setSmtpErrors] = useState<Record<string, string>>({})
+  const [smtpGeneralError, setSmtpGeneralError] = useState<string | null>(null)
+  const [smtpSaving, setSmtpSaving] = useState(false)
+  const [smtpSuccess, setSmtpSuccess] = useState(false)
+  const [smtpTestSending, setSmtpTestSending] = useState(false)
+  const [smtpTestResult, setSmtpTestResult] = useState<{ ok: boolean; message: string } | null>(
+    null,
+  )
+
   // ── Initialise ─────────────────────────────────────────────────────────────
 
   useEffect(() => {
@@ -118,9 +140,10 @@ export default function AdminPage() {
 
         setIsAuthenticated(true)
 
-        const [branding, moderation] = await Promise.all([
+        const [branding, moderation, smtpSettings] = await Promise.all([
           getAdminBranding(slug),
           getAdminModeration(slug),
+          getAdminSmtp(),
         ])
 
         if (cancelled) return
@@ -130,6 +153,13 @@ export default function AdminPage() {
         setLogoUrl(branding.logo_url ?? '')
         setModEnabled(moderation.moderation_enabled)
         setWords(moderation.words)
+        setSmtpHost(smtpSettings.host)
+        setSmtpPort(smtpSettings.port)
+        setSmtpUser(smtpSettings.user)
+        setSmtpEncryption(smtpSettings.encryption)
+        setSmtpFromEmail(smtpSettings.from_email)
+        setSmtpFromName(smtpSettings.from_name)
+        setSmtpPasswordSet(smtpSettings.password_set)
         setPageState({ phase: 'ready', boardName: branding.board_name })
       } catch (err) {
         if (cancelled) return
@@ -274,6 +304,86 @@ export default function AdminPage() {
       // Silent fail — word may already be gone; list stays as-is.
     } finally {
       setModSaving(false)
+    }
+  }
+
+  // Preset-Auswahl: befüllt host/port/encryption
+  const handlePresetChange = (preset: 'outlook' | 'gmail' | 'custom') => {
+    setSmtpPreset(preset)
+    if (preset === 'outlook') {
+      setSmtpHost('smtp-mail.outlook.com')
+      setSmtpPort(587)
+      setSmtpEncryption('tls')
+    } else if (preset === 'gmail') {
+      setSmtpHost('smtp.gmail.com')
+      setSmtpPort(587)
+      setSmtpEncryption('tls')
+    }
+    // 'custom' → Felder bleiben wie sie sind
+  }
+
+  const handleSmtpSave = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (smtpSaving) return
+
+    setSmtpSaving(true)
+    setSmtpErrors({})
+    setSmtpGeneralError(null)
+    setSmtpSuccess(false)
+    setSmtpTestResult(null)
+
+    try {
+      await saveAdminSmtp({
+        host: smtpHost,
+        port: smtpPort,
+        user: smtpUser,
+        encryption: smtpEncryption,
+        from_email: smtpFromEmail,
+        from_name: smtpFromName,
+        password: smtpPassword,
+      })
+      setSmtpSuccess(true)
+      setSmtpPassword('') // Passwort-Feld leeren nach Speichern
+      if (smtpPassword !== '') setSmtpPasswordSet(true)
+    } catch (err) {
+      const apiErr = err as ApiError
+      const fields = apiErr?.payload?.fields ?? {}
+      if (Object.keys(fields).length > 0) {
+        setSmtpErrors(fields)
+      } else {
+        setSmtpGeneralError(
+          apiErr?.payload?.message ?? 'Speichern fehlgeschlagen. Bitte versuche es erneut.',
+        )
+      }
+    } finally {
+      setSmtpSaving(false)
+    }
+  }
+
+  const handleSmtpTest = async () => {
+    if (smtpTestSending) return
+    setSmtpTestSending(true)
+    setSmtpTestResult(null)
+
+    try {
+      const result = await testAdminSmtp({
+        host: smtpHost,
+        port: smtpPort,
+        user: smtpUser,
+        encryption: smtpEncryption,
+        from_email: smtpFromEmail,
+        from_name: smtpFromName,
+        password: smtpPassword || undefined,
+      })
+      setSmtpTestResult({ ok: true, message: `Test-E-Mail gesendet an ${result.recipient}.` })
+    } catch (err) {
+      const apiErr = err as ApiError
+      setSmtpTestResult({
+        ok: false,
+        message: apiErr?.payload?.message ?? 'Test fehlgeschlagen.',
+      })
+    } finally {
+      setSmtpTestSending(false)
     }
   }
 
@@ -569,6 +679,202 @@ export default function AdminPage() {
           </AnimatePresence>
 
           {modSuccess !== null && <SuccessBanner visible message={modSuccess} />}
+        </section>
+
+        {/* ── SMTP ──────────────────────────────────────────────────────── */}
+        <section
+          aria-labelledby="smtp-heading"
+          className="bg-vp-surface-frost border border-vp-border-subtle rounded-vp-lg p-6 md:p-8"
+        >
+          <h2 id="smtp-heading" className="font-archivo font-semibold text-[18px] text-vp-ink mb-1">
+            SMTP-Konfiguration
+          </h2>
+          <p className="text-[13px] font-inter text-vp-text-muted mb-6">
+            E-Mail-Versand für Magic-Links. Outlook und Gmail erfordern ein{' '}
+            <strong>App-Kennwort</strong> (2-Faktor-Auth erforderlich). Die Absender-Adresse muss
+            mit dem Konto-Benutzernamen übereinstimmen.
+          </p>
+
+          <form onSubmit={handleSmtpSave} noValidate className="flex flex-col gap-5">
+            {/* Preset-Dropdown */}
+            <div>
+              <label
+                htmlFor="smtp-preset"
+                className="block text-[13px] font-inter font-medium text-vp-ink mb-1"
+              >
+                Provider-Voreinstellung
+              </label>
+              <select
+                id="smtp-preset"
+                value={smtpPreset}
+                onChange={(e) =>
+                  handlePresetChange(e.target.value as 'outlook' | 'gmail' | 'custom')
+                }
+                className="w-full sm:w-64 rounded-vp-md border border-vp-border-subtle bg-vp-surface px-3 py-2 text-[14px] font-inter text-vp-ink focus:outline-none focus:ring-2 focus:ring-vp-accent/40"
+              >
+                <option value="custom">Eigener Server</option>
+                <option value="outlook">Outlook / Microsoft 365</option>
+                <option value="gmail">Gmail</option>
+              </select>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+              <div className="sm:col-span-2">
+                <TextInput
+                  label="SMTP-Host"
+                  name="smtp_host"
+                  id="smtp-host"
+                  value={smtpHost}
+                  onChange={setSmtpHost}
+                  placeholder="smtp.example.com"
+                  error={smtpErrors.host}
+                  disabled={smtpSaving}
+                  autoComplete="off"
+                />
+              </div>
+              <TextInput
+                label="Port"
+                name="smtp_port"
+                id="smtp-port"
+                value={String(smtpPort)}
+                onChange={(v) => setSmtpPort(Number(v))}
+                placeholder="587"
+                error={smtpErrors.port}
+                disabled={smtpSaving}
+                autoComplete="off"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+              <TextInput
+                label="Benutzername"
+                name="smtp_user"
+                id="smtp-user"
+                value={smtpUser}
+                onChange={setSmtpUser}
+                placeholder="nutzer@example.com"
+                error={smtpErrors.user}
+                disabled={smtpSaving}
+                autoComplete="username"
+              />
+              <div>
+                <label
+                  htmlFor="smtp-encryption"
+                  className="block text-[13px] font-inter font-medium text-vp-ink mb-1"
+                >
+                  Verschlüsselung
+                </label>
+                <select
+                  id="smtp-encryption"
+                  value={smtpEncryption}
+                  onChange={(e) => setSmtpEncryption(e.target.value as 'tls' | 'ssl' | '')}
+                  disabled={smtpSaving}
+                  className="w-full rounded-vp-md border border-vp-border-subtle bg-vp-surface px-3 py-2 text-[14px] font-inter text-vp-ink focus:outline-none focus:ring-2 focus:ring-vp-accent/40 disabled:opacity-50"
+                >
+                  <option value="tls">STARTTLS (empfohlen, Port 587)</option>
+                  <option value="ssl">SSL/TLS (Port 465)</option>
+                  <option value="">Keine</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+              <TextInput
+                label="Absender-E-Mail"
+                name="smtp_from_email"
+                id="smtp-from-email"
+                value={smtpFromEmail}
+                onChange={setSmtpFromEmail}
+                placeholder="noreply@example.com"
+                error={smtpErrors.from_email}
+                hint={
+                  smtpErrors.from_email !== undefined
+                    ? undefined
+                    : 'Bei Outlook/Gmail = Benutzername'
+                }
+                disabled={smtpSaving}
+                autoComplete="email"
+              />
+              <TextInput
+                label="Absender-Name"
+                name="smtp_from_name"
+                id="smtp-from-name"
+                value={smtpFromName}
+                onChange={setSmtpFromName}
+                placeholder="Votepit"
+                error={smtpErrors.from_name}
+                disabled={smtpSaving}
+                autoComplete="off"
+              />
+            </div>
+
+            <TextInput
+              label={smtpPasswordSet ? 'Passwort (leer lassen = unverändert)' : 'Passwort'}
+              name="smtp_password"
+              id="smtp-password"
+              value={smtpPassword}
+              onChange={setSmtpPassword}
+              placeholder={smtpPasswordSet ? '••••••••' : 'App-Kennwort eingeben'}
+              error={smtpErrors.password}
+              hint={
+                smtpErrors.password !== undefined
+                  ? undefined
+                  : 'Outlook/Gmail: App-Kennwort aus den Konto-Einstellungen verwenden'
+              }
+              disabled={smtpSaving}
+              autoComplete="new-password"
+            />
+
+            <AnimatePresence>
+              {smtpGeneralError !== null && (
+                <motion.p
+                  key="smtp-error"
+                  role="alert"
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.18 }}
+                  className="text-[13px] font-inter text-vp-vote-down"
+                >
+                  {smtpGeneralError}
+                </motion.p>
+              )}
+            </AnimatePresence>
+
+            <SuccessBanner visible={smtpSuccess} message="SMTP-Einstellungen gespeichert." />
+
+            {smtpTestResult !== null && (
+              <motion.p
+                key="smtp-test-result"
+                role="status"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className={`text-[13px] font-inter ${smtpTestResult.ok ? 'text-vp-status-done' : 'text-vp-vote-down'}`}
+              >
+                {smtpTestResult.message}
+              </motion.p>
+            )}
+
+            <div className="flex flex-wrap gap-3">
+              <Button
+                type="submit"
+                variant="primary"
+                disabled={smtpSaving || smtpTestSending}
+                aria-busy={smtpSaving}
+              >
+                {smtpSaving ? 'Wird gespeichert…' : 'SMTP speichern'}
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => void handleSmtpTest()}
+                disabled={smtpSaving || smtpTestSending}
+                aria-busy={smtpTestSending}
+              >
+                {smtpTestSending ? 'Sende…' : 'Test senden'}
+              </Button>
+            </div>
+          </form>
         </section>
       </div>
     </PageShell>

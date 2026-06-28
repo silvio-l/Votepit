@@ -30,10 +30,12 @@ use Votepit\Persistence\BoardRepository;
 use Votepit\Persistence\IdeaRepository;
 use Votepit\Persistence\LoginTokenRepository;
 use Votepit\Persistence\ModerationConfigRepository;
+use Votepit\Persistence\SmtpSettingsRepository;
 use Votepit\Persistence\UserRepository;
 use Votepit\Persistence\VoteRepository;
 use Votepit\Security\BrandingValidator;
 use Votepit\Security\CsrfService;
+use Votepit\Security\EncryptionService;
 use Votepit\Security\RateLimiter;
 use Votepit\Security\ReturnToValidator;
 use Votepit\Security\SessionService;
@@ -138,7 +140,10 @@ final class AppFactory
             $tokenRepo = new LoginTokenRepository($conn);
             $boardRepo = new BoardRepository($conn);
             $vault     = new TokenVault();
-            $resolvedMailer = $mailer ?? new SymfonyMailerAdapter($config->smtp);
+            $smtpSettingsRepo = new SmtpSettingsRepository($conn);
+            $encryptionSvc    = new EncryptionService($config->appKey);
+            $smtpFromDb       = $smtpSettingsRepo->findAsSmtpConfig($encryptionSvc);
+            $resolvedMailer   = $mailer ?? new SymfonyMailerAdapter($smtpFromDb ?? $config->smtp);
 
             // Per-Action-Rate-Limits für Magic-Link-Anfragen (Issue 06).
             $emailRateLimit = $config->rateLimit('magiclink:email');
@@ -714,6 +719,166 @@ final class AppFactory
                 $response->getBody()->write((string) json_encode(['ok' => true]));
                 return $response->withStatus(200)->withHeader('Content-Type', 'application/json');
             })->add(AuthZMiddleware::admin($responseFactory));
+
+            // GET /admin/smtp — liest SMTP-Settings (AuthZ: admin). Passwort NICHT zurückgeben.
+            $app->get('/admin/smtp', function (
+                ServerRequestInterface $request,
+                ResponseInterface $response,
+            ) use ($smtpSettingsRepo): ResponseInterface {
+                $settings = $smtpSettingsRepo->find();
+
+                $response->getBody()->write((string) json_encode([
+                    'host'         => $settings['smtp.host'] ?? '',
+                    'port'         => (int) ($settings['smtp.port'] ?? 587),
+                    'user'         => $settings['smtp.user'] ?? '',
+                    'encryption'   => $settings['smtp.encryption'] ?? 'tls',
+                    'from_email'   => $settings['smtp.from_email'] ?? '',
+                    'from_name'    => $settings['smtp.from_name'] ?? '',
+                    'password_set' => isset($settings['smtp.pass']) && $settings['smtp.pass'] !== '',
+                ]));
+                return $response->withStatus(200)->withHeader('Content-Type', 'application/json');
+            })->add(AuthZMiddleware::admin($responseFactory));
+
+            // PUT /admin/smtp — speichert SMTP-Settings (AuthZ: admin, CSRF erzwungen).
+            // Leeres password-Feld = unverändert lassen (keep existing).
+            $app->put('/admin/smtp', function (
+                ServerRequestInterface $request,
+                ResponseInterface $response,
+            ) use ($smtpSettingsRepo, $encryptionSvc, $audit): ResponseInterface {
+                $rawBody = $request->getParsedBody();
+                $fields  = is_array($rawBody) ? $rawBody : [];
+
+                $host       = trim((string) ($fields['host'] ?? ''));
+                $port       = (int) ($fields['port'] ?? 587);
+                $user       = trim((string) ($fields['user'] ?? ''));
+                $encryption = (string) ($fields['encryption'] ?? 'tls');
+                $fromEmail  = trim((string) ($fields['from_email'] ?? ''));
+                $fromName   = trim((string) ($fields['from_name'] ?? 'Votepit'));
+                $password   = (string) ($fields['password'] ?? '');
+
+                // Validation.
+                $errors = [];
+                if ($host === '') {
+                    $errors['host'] = 'Host darf nicht leer sein.';
+                }
+                if ($port < 1 || $port > 65535) {
+                    $errors['port'] = 'Port muss zwischen 1 und 65535 liegen.';
+                }
+                if (!in_array($encryption, ['tls', 'ssl', ''], true)) {
+                    $errors['encryption'] = 'Verschlüsselung muss "tls", "ssl" oder "" sein.';
+                }
+                if ($fromEmail === '' || filter_var($fromEmail, FILTER_VALIDATE_EMAIL) === false) {
+                    $errors['from_email'] = 'Absender-E-Mail fehlt oder ist ungültig.';
+                }
+
+                if ($errors !== []) {
+                    $response->getBody()->write((string) json_encode([
+                        'error' => [
+                            'key'     => 'validation_error',
+                            'message' => 'Validation failed.',
+                            'fields'  => $errors,
+                        ],
+                    ]));
+                    return $response->withStatus(422)->withHeader('Content-Type', 'application/json');
+                }
+
+                $encryptedPass = $password !== '' ? $encryptionSvc->encrypt($password) : null;
+
+                $smtpSettingsRepo->save($host, $port, $user, $encryption, $fromEmail, $fromName, $encryptedPass);
+                $audit->log('smtp.settings_updated', []);
+
+                $response->getBody()->write((string) json_encode(['ok' => true]));
+                return $response->withStatus(200)->withHeader('Content-Type', 'application/json');
+            })->add(AuthZMiddleware::admin($responseFactory));
+
+            // POST /admin/smtp/test — sendet eine Test-Mail mit den übergebenen ODER gespeicherten
+            // Settings (AuthZ: admin, CSRF erzwungen, Rate-Limit).
+            $smtpTestLimit = $config->rateLimit('smtp:test');
+            $app->post('/admin/smtp/test', function (
+                ServerRequestInterface $request,
+                ResponseInterface $response,
+            ) use ($smtpSettingsRepo, $encryptionSvc, $config): ResponseInterface {
+                $rawBody = $request->getParsedBody();
+                $fields  = is_array($rawBody) ? $rawBody : [];
+
+                // Admin-E-Mail aus Session-User.
+                $user    = $request->getAttribute(AuthNMiddleware::ATTR_USER);
+                $toEmail = is_array($user) ? (string) ($user['email'] ?? '') : '';
+
+                if ($toEmail === '') {
+                    $response->getBody()->write((string) json_encode([
+                        'error' => ['key' => 'no_recipient', 'message' => 'Kein Empfänger ermittelbar.'],
+                    ]));
+                    return $response->withStatus(422)->withHeader('Content-Type', 'application/json');
+                }
+
+                // Übergebene Settings vs. gespeicherte Settings.
+                $host      = trim((string) ($fields['host'] ?? ''));
+                $useInline = $host !== '';
+
+                if ($useInline) {
+                    $port       = (int) ($fields['port'] ?? 587);
+                    $user2      = trim((string) ($fields['user'] ?? ''));
+                    $encryption = (string) ($fields['encryption'] ?? 'tls');
+                    $fromEmail  = trim((string) ($fields['from_email'] ?? ''));
+                    $fromName   = trim((string) ($fields['from_name'] ?? 'Votepit'));
+                    $password   = (string) ($fields['password'] ?? '');
+
+                    // Falls password leer → aus DB nachladen.
+                    if ($password === '') {
+                        $stored = $smtpSettingsRepo->find();
+                        $encPw  = $stored['smtp.pass'] ?? '';
+                        $password = ($encPw !== '') ? ($encryptionSvc->decrypt($encPw) ?? '') : '';
+                    }
+
+                    try {
+                        $smtpConfig = \Votepit\SmtpConfig::fromArray([
+                            'host'       => $host,
+                            'port'       => $port,
+                            'user'       => $user2,
+                            'pass'       => $password,
+                            'encryption' => $encryption,
+                            'from_email' => $fromEmail !== '' ? $fromEmail : 'noreply@example.com',
+                            'from_name'  => $fromName,
+                        ]);
+                    } catch (\Votepit\ConfigException $e) {
+                        $response->getBody()->write((string) json_encode([
+                            'error' => ['key' => 'config_error', 'message' => $e->getMessage()],
+                        ]));
+                        return $response->withStatus(422)->withHeader('Content-Type', 'application/json');
+                    }
+                } else {
+                    // Gespeicherte DB-Settings.
+                    $smtpConfig = $smtpSettingsRepo->findAsSmtpConfig($encryptionSvc) ?? $config->smtp;
+                }
+
+                try {
+                    $testMailer = new \Votepit\Mail\SymfonyMailerAdapter($smtpConfig);
+                    $testMailer->send(
+                        $toEmail,
+                        'Votepit SMTP-Test',
+                        "Dies ist eine Votepit-Test-E-Mail.\n\nWenn du diese Nachricht siehst, funktioniert deine SMTP-Konfiguration.\n",
+                    );
+                } catch (\Throwable $e) {
+                    $response->getBody()->write((string) json_encode([
+                        'error' => ['key' => 'send_failed', 'message' => $e->getMessage()],
+                    ]));
+                    return $response->withStatus(502)->withHeader('Content-Type', 'application/json');
+                }
+
+                $response->getBody()->write((string) json_encode(['ok' => true, 'recipient' => $toEmail]));
+                return $response->withStatus(200)->withHeader('Content-Type', 'application/json');
+            })->add(RateLimitMiddleware::perAction(
+                new RateLimiter($conn),
+                $responseFactory,
+                'smtp:test',
+                $smtpTestLimit['limit'],
+                $smtpTestLimit['window'],
+                static function (ServerRequestInterface $r): ?string {
+                    $u = $r->getAttribute(AuthNMiddleware::ATTR_USER);
+                    return is_array($u) ? (string) ($u['id'] ?? '') : null;
+                },
+            ))->add(AuthZMiddleware::admin($responseFactory));
         }
 
         return $app;
