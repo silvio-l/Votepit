@@ -1,0 +1,12 @@
+{
+  "codeConnect": {
+    "parser": "react",
+    "include": ["src/components/**/*.figma.ts"],
+    "paths": {
+      "@votepit/components": ["./src/components"]
+    },
+    "importPaths": {
+      "src/components/*": "@votepit/components"
+    }
+  }
+}

@@ -1,0 +1,51 @@
+@import "tailwindcss";
+
+@theme {
+  --font-archivo: "Archivo", sans-serif;
+  --font-inter: "Inter", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+
+  --color-vp-ink: #15161A;
+  --color-vp-text-secondary: #565A62;
+  --color-vp-text-muted: #979BA3;
+  --color-vp-bg: #F6F6F3;
+  --color-vp-surface: rgba(255, 255, 255, 0.72);
+  --color-vp-surface-frost: rgba(255, 255, 255, 0.66);
+  --color-vp-border-subtle: #e6e6e0;
+  --color-vp-accent: #1FA890;
+  --color-vp-vote-up: #0E9466;
+  --color-vp-vote-down: #D8503C;
+  --color-vp-amber: #F5A623;
+  --color-vp-status-open: #1FA890;
+  --color-vp-status-planned: #5B8DEF;
+  --color-vp-status-progress: #F5A623;
+  --color-vp-status-done: #0E9466;
+  --color-vp-status-declined: #D8503C;
+
+  --radius-vp-sm: 8px;
+  --radius-vp-md: 11px;
+  --radius-vp-lg: 16px;
+  --radius-vp-xl: 20px;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--font-inter);
+  color: var(--color-vp-ink);
+  background: var(--color-vp-bg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

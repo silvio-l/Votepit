@@ -1,0 +1,24 @@
+# llms.txt
+# Machine-readable site summary for AI agents.
+# Spec: https://llmstxt.org/
+
+> Votepit — PHP/MySQL Voting Platform
+
+## About Votepit
+
+Votepit is an open-source (MIT) self-hosted up/down voting platform for PHP 8.2+ with
+MySQL. Multi-board, passwordless via magic links, agent-ready PSR-4 architecture.
+Deploy on any shared hosting — zero dependencies beyond PHP + MySQL + mod_rewrite.
+
+## Key pages
+
+- /: Landing page with interactive vote demo
+- /docs: Technical documentation and usage guide
+- /privacy: Privacy policy (cookieless by default)
+- /de/: German landing page
+- /de/docs: German documentation
+- /de/datenschutz: German privacy policy (DSGVO)
+
+## Repository
+
+- https://github.com/silvio-l/votepit
