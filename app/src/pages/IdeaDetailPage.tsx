@@ -87,20 +87,23 @@ function IdeaDetailContent({
         />
       }
     >
-      <a
-        href={`/${board.slug}`}
-        className="inline-flex items-center gap-1 text-[13px] text-vp-text-secondary hover:text-vp-ink transition-colors mb-6"
-      >
-        ← {board.name}
-      </a>
+      <div className="max-w-[820px] mx-auto">
+        <a
+          href={`/${board.slug}`}
+          className="inline-flex items-center gap-1 text-[13px] text-vp-text-secondary hover:text-vp-ink transition-colors mb-6"
+        >
+          ← {board.name}
+        </a>
+      </div>
 
       <article
-        className="bg-vp-surface backdrop-blur-xl rounded-vp-xl border border-vp-border-subtle p-6 md:p-8"
+        className="bg-vp-surface backdrop-blur-xl rounded-vp-xl border border-vp-border-subtle shadow max-w-[820px] mx-auto p-6 md:p-8"
         aria-label={idea.title}
       >
-        <div className="flex gap-5 items-start">
+        <div className="flex gap-6 items-start">
           <div className="shrink-0 pt-0.5">
             <VoteWidget
+              tone="leading"
               score={score}
               userVote={myVote}
               onVoteUp={onVoteUp}
@@ -110,7 +113,7 @@ function IdeaDetailContent({
 
           <div className="flex-1 min-w-0">
             <div className="flex flex-wrap items-start gap-2 mb-3">
-              <h1 className="font-archivo font-extrabold text-[22px] text-vp-ink leading-[1.2] flex-1 min-w-0">
+              <h1 className="font-archivo font-extrabold text-[26px] text-vp-ink leading-[1.18] flex-1 min-w-0">
                 {idea.title}
               </h1>
               <StatusBadge status={componentStatus} />
