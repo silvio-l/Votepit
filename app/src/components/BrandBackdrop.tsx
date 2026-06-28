@@ -1,6 +1,6 @@
-// CANONICAL SOURCE — also copied to app/src/components/BrandBackdrop.tsx — keep in sync.
-// app/ and web/ are separate Vite projects (no shared workspace). When changing the
-// animation or SVG paths, update both files.
+// SOURCE OF TRUTH: web/src/components/BrandBackdrop.tsx — keep in sync.
+// app/ and web/ are separate Vite projects (no shared workspace), so this is
+// a deliberate copy. When changing the animation or SVG paths, update both files.
 
 const TOP  = "M 165.0 0.0 L 165.0 -44.0 Q 165.0 -72.0 141.6 -87.3 L 23.4 -164.7 Q 0.0 -180.0 -23.4 -164.7 L -141.6 -87.3 Q -165.0 -72.0 -165.0 -44.0 L -165.0 0.0 Z"
 const BOT  = "M -165.0 0.0 L -165.0 44.0 Q -165.0 72.0 -141.6 87.3 L -23.4 164.7 Q 0.0 180.0 23.4 164.7 L 141.6 87.3 Q 165.0 72.0 165.0 44.0 L 165.0 0.0 Z"

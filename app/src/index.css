@@ -1,34 +1,143 @@
 @import "tailwindcss";
 
-@theme {
-  --font-archivo: "Archivo", sans-serif;
-  --font-inter: "Inter", sans-serif;
-  --font-mono: "JetBrains Mono", monospace;
+/* ============================================================
+   @font-face — self-hosted fonts (Figma type stack)
+   Files copied from fontsource packages, served from /assets/fonts/
+   No external font requests at runtime.
+   ============================================================ */
 
-  --color-vp-ink: #15161A;
-  --color-vp-text-secondary: #565A62;
-  --color-vp-text-muted: #979BA3;
-  --color-vp-bg: #F6F6F3;
-  --color-vp-surface: rgba(255, 255, 255, 0.72);
-  --color-vp-surface-frost: rgba(255, 255, 255, 0.66);
-  --color-vp-border-subtle: #e6e6e0;
-  --color-vp-accent: #1FA890;
-  --color-vp-vote-up: #0E9466;
-  --color-vp-vote-down: #D8503C;
-  --color-vp-amber: #F5A623;
-  --color-vp-status-open: #1FA890;
-  --color-vp-status-planned: #5B8DEF;
-  --color-vp-status-progress: #F5A623;
-  --color-vp-status-done: #0E9466;
-  --color-vp-status-declined: #D8503C;
-
-  --radius-vp-sm: 8px;
-  --radius-vp-md: 11px;
-  --radius-vp-lg: 16px;
-  --radius-vp-xl: 20px;
+@font-face {
+  font-family: 'Archivo';
+  src: url('/assets/fonts/archivo-latin-600-normal.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Archivo';
+  src: url('/assets/fonts/archivo-latin-700-normal.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Archivo';
+  src: url('/assets/fonts/archivo-latin-800-normal.woff2') format('woff2');
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Inter';
+  src: url('/assets/fonts/inter-latin-400-normal.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Inter';
+  src: url('/assets/fonts/inter-latin-500-normal.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Inter';
+  src: url('/assets/fonts/inter-latin-600-normal.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'JetBrains Mono';
+  src: url('/assets/fonts/jetbrains-mono-latin-600-normal.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'JetBrains Mono';
+  src: url('/assets/fonts/jetbrains-mono-latin-700-normal.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
 }
 
-* {
+/* ============================================================
+   Per-board branding hooks
+   These CSS vars are the ONLY things that should change per board.
+   A board can inject: <style>:root { --vp-primary: #... }</style>
+   Semantic tokens (vote/status colours) are intentionally NOT here —
+   they must stay stable so Up/Down meaning is always readable.
+   ============================================================ */
+:root {
+  --vp-primary: #1fa890;  /* board accent — default teal */
+  --vp-ink:     #15161a;  /* brand ink (logo, primary CTAs) */
+  --vp-on-ink:  #ffffff;  /* text on ink/primary buttons */
+  --vp-bg:      #f6f6f3;  /* page background */
+  --vp-radius:  20px;     /* base card radius (--radius-vp-xl) */
+}
+
+/* ============================================================
+   Tailwind v4 @theme — design tokens mapped to Tailwind utilities.
+   Values from Figma (MCP-verified 2026-06-28, see CONTEXT.md).
+
+   SEPARATION RULE:
+     Brand tokens  → reference --vp-* hooks → board-overridable
+     Semantic tokens → hardcoded values     → NEVER overridable per board
+   ============================================================ */
+@theme {
+  /* Fonts */
+  --font-archivo: "Archivo", sans-serif;
+  --font-inter:   "Inter", sans-serif;
+  --font-mono:    "JetBrains Mono", monospace;
+
+  /* ── Brand tokens (board-overridable via --vp-* hooks above) ────── */
+  --color-vp-ink:    var(--vp-ink);     /* brand ink / primary CTA bg */
+  --color-vp-accent: var(--vp-primary); /* board accent (CTAs, focus rings) */
+  --color-vp-on-ink: var(--vp-on-ink);  /* text on ink/brand buttons */
+
+  /* ── Semantic: surfaces ──────────────────────────────────────────── */
+  --color-vp-bg:           #f6f6f3;
+  --color-vp-surface:      rgba(255, 255, 255, 0.72);  /* Frosted-glass card */
+  --color-vp-surface-frost: rgba(255, 255, 255, 0.66); /* Lighter frost */
+
+  /* ── Semantic: text & border ─────────────────────────────────────── */
+  --color-vp-text-secondary: #565a62;
+  --color-vp-text-muted:     #979ba3;
+  --color-vp-border-subtle:  #e6e6e0;
+
+  /* ── Semantic: voting & consensus — board branding MUST NOT touch ──
+     These encode meaning (green = Up, vermillion = Down).
+     --color-vp-vote-down is defined separately from status-declined
+     even though they share the same hex value (#d8503c), to keep the
+     concepts distinct (voting ≠ status). */
+  --color-vp-vote-up:          #0e9466;
+  --color-vp-vote-down:        #d8503c;
+  --color-vp-consensus-strong: #0e9466;
+
+  /* ── Semantic: status ────────────────────────────────────────────── */
+  --color-vp-status-open:        #979ba3;
+  --color-vp-status-planned:     #2e73d6;
+  --color-vp-status-in-progress: #c0821a;
+  --color-vp-status-done:        #0e9466;
+  --color-vp-status-declined:    #d8503c;
+
+  /* ── Radius (Figma-verified values) ─────────────────────────────── */
+  --radius-vp-sm:   8px;
+  --radius-vp-md:   11px;
+  --radius-vp-lg:   16px;
+  --radius-vp-xl:   20px;
+  --radius-vp-full: 9999px;
+}
+
+/* ============================================================
+   Base styles
+   ============================================================ */
+
+*,
+*::before,
+*::after {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
@@ -37,13 +146,52 @@
 body {
   font-family: var(--font-inter);
   color: var(--color-vp-ink);
-  background: var(--color-vp-bg);
+  /* Background: two radial glows (green top-right, amber bottom-left) +
+     flat warm-neutral canvas. Identical to web/ Landing for visual continuity. */
+  background:
+    radial-gradient(1250px 660px at 64% -14%, rgba(14, 148, 102, 0.18), rgba(14, 148, 102, 0) 62%),
+    radial-gradient(1050px 780px at 1% 80%, rgba(196, 150, 82, 0.08), rgba(196, 150, 82, 0) 60%),
+    var(--color-vp-bg);
+  background-attachment: fixed;
+  line-height: 1.5;
+  overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* a11y: visible focus indicator — consistent across all interactive elements */
+:focus-visible {
+  outline: 2px solid var(--color-vp-ink);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Mono numbers utility: wrap score/count values with this class */
+.font-mono-num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* Fluid centered content container with clamp() gutter.
+   Usage: <div className="vp-container"> or in a CSS layer.
+   Header is full-bleed; apply this wrapper only to page content. */
+.vp-container {
+  width: 100%;
+  max-width: 1180px;
+  margin-inline: auto;
+  padding-inline: clamp(1rem, 4vw, 2.5rem);
+}
+
+/* ============================================================
+   prefers-reduced-motion: disable all transitions/animations
+   BrandBackdrop animations are additionally gated via
+   @media (prefers-reduced-motion: no-preference) in the component.
+   ============================================================ */
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
+  *,
+  *::before,
+  *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
