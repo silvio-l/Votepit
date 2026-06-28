@@ -6,8 +6,10 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import BoardPage from '../pages/BoardPage'
+import * as api from '../lib/api'
 
 // ── Mock helpers ──────────────────────────────────────────────────────────────
 
@@ -40,7 +42,10 @@ function makeIdea(overrides: Partial<{
   }
 }
 
-function makeBoardResponse(ideas: ReturnType<typeof makeIdea>[] = []) {
+function makeBoardResponse(
+  ideas: ReturnType<typeof makeIdea>[] = [],
+  overrides: { is_authenticated?: boolean } = {},
+) {
   return {
     board: { id: 1, slug: 'demo', name: 'Demo Board', intro: 'Willkommen!' },
     ideas,
@@ -48,7 +53,7 @@ function makeBoardResponse(ideas: ReturnType<typeof makeIdea>[] = []) {
     active_sort: 'newest',
     page: 1,
     total_pages: 1,
-    is_authenticated: false,
+    is_authenticated: overrides.is_authenticated ?? false,
   }
 }
 
@@ -181,6 +186,30 @@ describe('BoardPage', () => {
 
     await waitFor(() =>
       expect(screen.getByText('Board nicht gefunden')).toBeInTheDocument(),
+    )
+  })
+
+  it('logs out: clicking "Abmelden" calls logout and navigates to /login', async () => {
+    // Authenticated board response → Header renders the "Abmelden" button.
+    mockFetch(makeBoardResponse([makeIdea()], { is_authenticated: true }))
+    const logoutSpy = vi.spyOn(api, 'logout').mockResolvedValue({ ok: true })
+
+    render(
+      <MemoryRouter initialEntries={['/demo']}>
+        <Routes>
+          <Route path="/:boardSlug" element={<BoardPage />} />
+          <Route path="/login" element={<div>Login-Seite</div>} />
+        </Routes>
+      </MemoryRouter>,
+    )
+
+    const logoutButton = await screen.findByRole('button', { name: 'Abmelden' })
+    await userEvent.click(logoutButton)
+
+    // Observable behaviour: logout request fired AND navigation landed on /login.
+    expect(logoutSpy).toHaveBeenCalledTimes(1)
+    await waitFor(() =>
+      expect(screen.getByText('Login-Seite')).toBeInTheDocument(),
     )
   })
 

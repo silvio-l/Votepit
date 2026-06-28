@@ -170,3 +170,45 @@ export const api = {
   put: <T>(path: string, body?: unknown) => request<T>('PUT', `${API_BASE}${path}`, body),
   delete: <T>(path: string) => request<T>('DELETE', `${API_BASE}${path}`),
 }
+
+// ── Auth ──────────────────────────────────────────────────────────────────────
+
+/**
+ * POST /login — requests a magic-link email.
+ * Body fields: email (required), r (optional return-to path).
+ * Always returns 200 {ok: true} regardless of whether the email is valid
+ * (anti-enumeration; AC3/4 in LoginActionTest).
+ * Requires CSRF token — call bootstrap() before this.
+ */
+export async function requestMagicLink(
+  email: string,
+  returnTo?: string,
+): Promise<{ ok: boolean }> {
+  const body: Record<string, string> = { email }
+  if (returnTo) body.r = returnTo
+  return request<{ ok: boolean }>('POST', '/login', body)
+}
+
+/**
+ * GET /login/verify?token=<plaintext>[&r=<returnTo>] — verifies a magic-link token.
+ * On success: 200 {ok: true, redirect: string} (session cookie set by server).
+ * On failure: throws ApiError(400) with key=invalid_token.
+ * GET is CSRF-exempt (single-use capability token is its own proof).
+ */
+export async function verifyToken(
+  token: string,
+  returnTo?: string,
+): Promise<{ ok: boolean; redirect: string }> {
+  const params = new URLSearchParams({ token })
+  if (returnTo) params.set('r', returnTo)
+  return request<{ ok: boolean; redirect: string }>('GET', `/login/verify?${params.toString()}`)
+}
+
+/**
+ * POST /logout — invalidates the current session (bumps token_version).
+ * Requires auth (AuthZ: user → 401 if anonymous) and a valid CSRF token.
+ * Call bootstrap() before this to ensure cachedCsrfToken is populated.
+ */
+export async function logout(): Promise<{ ok: boolean }> {
+  return request<{ ok: boolean }>('POST', '/logout', {})
+}

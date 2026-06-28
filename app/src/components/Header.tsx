@@ -11,6 +11,10 @@ interface HeaderProps {
   boardName?: string
   loginLabel?: string
   onLoginClick?: () => void
+  /** When true, shows an "Abmelden" button instead of the login CTA. */
+  isAuthenticated?: boolean
+  /** Called when the user clicks the logout button (only shown when isAuthenticated). */
+  onLogoutClick?: () => void
 }
 
 function VotepitLogo({ href = '/' }: { href?: string }) {
@@ -46,6 +50,8 @@ export function Header({
   logoHref = '/',
   loginLabel = 'Anmelden',
   onLoginClick,
+  isAuthenticated = false,
+  onLogoutClick,
 }: HeaderProps) {
   return (
     <header className="sticky top-0 z-50 w-full bg-vp-surface-frost backdrop-blur-xl border-b border-vp-border-subtle">
@@ -61,9 +67,15 @@ export function Header({
           >
             Roadmap
           </a>
-          <Button variant="primary" onClick={onLoginClick}>
-            {loginLabel}
-          </Button>
+          {isAuthenticated && onLogoutClick ? (
+            <Button variant="secondary" onClick={onLogoutClick}>
+              Abmelden
+            </Button>
+          ) : (
+            <Button variant="primary" onClick={onLoginClick}>
+              {loginLabel}
+            </Button>
+          )}
         </nav>
       </div>
     </header>

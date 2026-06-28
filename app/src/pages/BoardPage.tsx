@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import {
   Header,
   PageShell,
@@ -11,7 +11,7 @@ import {
 } from '../components'
 import type { SortValue } from '../components'
 import type { Status } from '../components/StatusBadge'
-import { bootstrap, getBoard } from '../lib/api'
+import { bootstrap, getBoard, logout } from '../lib/api'
 import type { BoardResponse, Idea, ApiError } from '../lib/api'
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -75,6 +75,7 @@ type LoadState =
 
 export default function BoardPage() {
   const { boardSlug } = useParams<{ boardSlug: string }>()
+  const navigate = useNavigate()
 
   const [loadState, setLoadState] = useState<LoadState>({ phase: 'loading' })
   const [isAuthenticated, setIsAuthenticated] = useState(false)
@@ -125,6 +126,17 @@ export default function BoardPage() {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
+  const handleLogout = () => {
+    logout()
+      .catch(() => {
+        // Even if logout request fails, navigate to login page.
+      })
+      .finally(() => {
+        setIsAuthenticated(false)
+        navigate('/login')
+      })
+  }
+
   // ── Render ──────────────────────────────────────────────────────────────────
 
   const loginLabel = isAuthenticated ? 'Konto' : 'Anmelden'
@@ -136,6 +148,8 @@ export default function BoardPage() {
           <Header
             logoHref="/"
             loginLabel={loginLabel}
+            isAuthenticated={isAuthenticated}
+            onLogoutClick={handleLogout}
           />
         }
       >
@@ -157,6 +171,8 @@ export default function BoardPage() {
           <Header
             logoHref="/"
             loginLabel={loginLabel}
+            isAuthenticated={isAuthenticated}
+            onLogoutClick={handleLogout}
           />
         }
       >
@@ -179,6 +195,8 @@ export default function BoardPage() {
         <Header
           logoHref={`/${board.slug}`}
           loginLabel={loginLabel}
+          isAuthenticated={isAuthenticated}
+          onLogoutClick={handleLogout}
         />
       }
     >
