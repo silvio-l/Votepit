@@ -3,13 +3,10 @@
 // component=ConsensusBar
 import figma from 'figma'
 
-const instance = figma.selectedInstance
-
-const pct = instance.getString('Percentage')
-const low = instance.getBoolean('Is Contested')
-
+// ConsensusBar is a static Figma component with no TEXT/VARIANT properties.
+// The percent prop drives the fill width and label ("Konsens" vs "Umstritten").
 export default {
-  example: figma.code`<ConsensusBar percentage={${pct.split('%')[0]}} isContested={${low}} />`,
+  example: figma.code`<ConsensusBar percent={82} />`,
   imports: ['import { ConsensusBar } from "@votepit/components"'],
   id: 'consensus-bar',
   metadata: { nestable: true },

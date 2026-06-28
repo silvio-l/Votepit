@@ -5,12 +5,16 @@ import figma from 'figma'
 
 const instance = figma.selectedInstance
 
-const placeholder = instance.getString('Placeholder')
 const label = instance.getString('Label')
-const hasError = instance.getBoolean('Has Error')
+const placeholder = instance.getString('Placeholder')
+// Figma VARIANT: State = default | error (maps to optional `error` string prop)
+const isError = instance.getEnum('State', {
+  default: false,
+  error: true,
+})
 
 export default {
-  example: figma.code`<TextInput label="${label}" placeholder="${placeholder}" hasError={${hasError}} />`,
+  example: figma.code`<TextInput label="${label}" placeholder="${placeholder}" value="" onChange={() => {}} ${isError ? 'error="Ungültige Eingabe"' : ''} />`,
   imports: ['import { TextInput } from "@votepit/components"'],
   id: 'text-input',
   metadata: { nestable: true },

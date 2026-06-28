@@ -5,11 +5,16 @@ import figma from 'figma'
 
 const instance = figma.selectedInstance
 
-const placeholder = instance.getString('Placeholder')
 const label = instance.getString('Label')
+const placeholder = instance.getString('Placeholder')
+// Figma VARIANT: State = default | error (maps to optional `error` string prop)
+const isError = instance.getEnum('State', {
+  default: false,
+  error: true,
+})
 
 export default {
-  example: figma.code`<Textarea label="${label}" placeholder="${placeholder}" />`,
+  example: figma.code`<Textarea label="${label}" placeholder="${placeholder}" value="" onChange={() => {}} ${isError ? 'error="Pflichtfeld"' : ''} />`,
   imports: ['import { Textarea } from "@votepit/components"'],
   id: 'textarea',
   metadata: { nestable: true },

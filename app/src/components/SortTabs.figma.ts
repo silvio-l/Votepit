@@ -3,16 +3,10 @@
 // component=SortTabs
 import figma from 'figma'
 
-const instance = figma.selectedInstance
-
-const active = instance.getEnum('Active Tab', {
-  Top: 'top',
-  Newest: 'newest',
-  Controversial: 'controversial',
-})
-
+// SortTabs is a static Figma component with no TEXT/VARIANT properties.
+// Active tab state and handler are shown as a usage example.
 export default {
-  example: figma.code`<SortTabs active="${active}" onChange={(tab) => {}} />`,
+  example: figma.code`<SortTabs value="top" onChange={(v) => {}} />`,
   imports: ['import { SortTabs } from "@votepit/components"'],
   id: 'sort-tabs',
   metadata: { nestable: true },

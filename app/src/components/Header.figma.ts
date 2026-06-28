@@ -3,13 +3,10 @@
 // component=Header
 import figma from 'figma'
 
-const instance = figma.selectedInstance
-
-const boardName = instance.getString('Board Name')
-const isLoggedIn = instance.getBoolean('Is Logged In')
-
+// Header is a static Figma component with no TEXT/VARIANT properties.
+// Real props are shown below as a usage example.
 export default {
-  example: figma.code`<Header boardName="${boardName}" isLoggedIn={${isLoggedIn}} />`,
+  example: figma.code`<Header loginLabel="Anmelden" isAuthenticated={false} onLoginClick={() => {}} />`,
   imports: ['import { Header } from "@votepit/components"'],
   id: 'header',
   metadata: { nestable: false },

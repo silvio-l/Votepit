@@ -5,28 +5,22 @@ import figma from 'figma'
 
 const instance = figma.selectedInstance
 
+// Figma TEXT properties confirmed: Title, Description
 const title = instance.getString('Title')
-const body = instance.getString('Body')
-
-const voteWidget = instance.findInstance('Vote Widget')
-let voteCode
-if (voteWidget && voteWidget.type === 'INSTANCE') {
-  voteCode = voteWidget.executeTemplate().example
-}
-
-const consensusBar = instance.findInstance('Consensus Bar')
-let consensusCode
-if (consensusBar && consensusBar.type === 'INSTANCE') {
-  consensusCode = consensusBar.executeTemplate().example
-}
+const description = instance.getString('Description')
 
 export default {
   example: figma.code`
     <FeaturedIdeaCard
       title="${title}"
-      body="${body}"
-      voteWidget={${voteCode}}
-      consensusBar={${consensusCode}}
+      description="${description}"
+      status="open"
+      score={128}
+      commentCount={24}
+      consensusPercent={82}
+      weeklyVotes={312}
+      weeklyNewIdeas={18}
+      avgConsensusPercent={92}
     />`,
   imports: ['import { FeaturedIdeaCard } from "@votepit/components"'],
   id: 'featured-idea-card',

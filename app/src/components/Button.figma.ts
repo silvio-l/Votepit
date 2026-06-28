@@ -10,7 +10,6 @@ const variant = instance.getEnum('Variant', {
   Primary: 'primary',
   Secondary: 'secondary',
   Ghost: 'ghost',
-  Danger: 'danger',
 })
 
 export default {

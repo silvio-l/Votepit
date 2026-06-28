@@ -5,15 +5,14 @@ import figma from 'figma'
 
 const instance = figma.selectedInstance
 
-const state = instance.getEnum('State', {
-  Neutral: 'neutral',
-  Upvoted: 'up',
-  Downvoted: 'down',
+// Figma variant property: Tone (leading | neutral)
+const tone = instance.getEnum('Tone', {
+  leading: 'leading',
+  neutral: 'neutral',
 })
-const score = instance.getString('Score')
 
 export default {
-  example: figma.code`<VoteWidget state="${state}" score="${score}" onUp={() => {}} onDown={() => {}} />`,
+  example: figma.code`<VoteWidget tone="${tone}" score={42} onVoteUp={() => {}} onVoteDown={() => {}} />`,
   imports: ['import { VoteWidget } from "@votepit/components"'],
   id: 'vote-widget',
   metadata: { nestable: true },

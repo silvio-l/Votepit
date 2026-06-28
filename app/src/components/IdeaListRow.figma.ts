@@ -5,28 +5,21 @@ import figma from 'figma'
 
 const instance = figma.selectedInstance
 
+// Figma TEXT properties confirmed: Title, Excerpt
 const title = instance.getString('Title')
-const commentCount = instance.getString('CommentCount')
-
-const statusBadge = instance.findInstance('Status Badge')
-let statusCode
-if (statusBadge && statusBadge.type === 'INSTANCE') {
-  statusCode = statusBadge.executeTemplate().example
-}
-
-const voteWidget = instance.findInstance('Vote Widget')
-let voteCode
-if (voteWidget && voteWidget.type === 'INSTANCE') {
-  voteCode = voteWidget.executeTemplate().example
-}
+const excerpt = instance.getString('Excerpt')
 
 export default {
   example: figma.code`
     <IdeaListRow
+      id={1}
       title="${title}"
-      commentCount={${commentCount.split(' ')[0]}}
-      statusBadge={${statusCode}}
-      voteWidget={${voteCode}}
+      excerpt="${excerpt}"
+      status="open"
+      score={42}
+      commentCount={12}
+      timeAgo="vor 3 Tagen"
+      consensusPercent={82}
     />`,
   imports: ['import { IdeaListRow } from "@votepit/components"'],
   id: 'idea-list-row',

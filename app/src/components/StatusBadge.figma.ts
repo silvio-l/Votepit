@@ -5,12 +5,14 @@ import figma from 'figma'
 
 const instance = figma.selectedInstance
 
+// Figma variant axis: status — values are lowercase hyphenated.
+// Note: label is baked per variant in Figma (no TEXT property).
 const status = instance.getEnum('Status', {
-  Open: 'open',
-  Planned: 'planned',
-  'In Progress': 'in_progress',
-  Done: 'done',
-  Declined: 'declined',
+  open: 'open',
+  planned: 'planned',
+  'in-progress': 'in-progress',
+  done: 'done',
+  declined: 'declined',
 })
 
 export default {
