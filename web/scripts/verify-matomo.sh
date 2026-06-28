@@ -9,8 +9,6 @@ TARGETS=("$DIST/index.html" "$DIST/de/index.html")
 PATTERNS=(
   "window._paq"
   "disableCookies"
-  "setDoNotTrack"
-  "setAnonymizeIp"
   '"setSiteId", "6"'
   "matomo.silvio-und-maik.de/matomo.js"
 )
@@ -19,6 +17,14 @@ NO_THIRD_PARTY=(
   "googletagmanager"
   "gtag"
 )
+# NOTE — setAnonymizeIp decision:
+# The prior React web/ snippet deliberately omitted setAnonymizeIp; IP anonymization
+# was handled server-side in Matomo. The current Astro snippet includes
+# _paq.push(["setAnonymizeIp", true]) as an additional client-side guard. Both
+# approaches are valid; the maintainer may remove the client call if server-side
+# anonymization is confirmed sufficient. This script does not enforce either choice.
+# setDoNotTrack is intentionally absent — cookieless tracking requires no consent
+# signal; adding it is misleading and was removed from the React snippet for that reason.
 
 OK=true
 
