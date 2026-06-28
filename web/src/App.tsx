@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import BrandBackdrop from './components/BrandBackdrop'
 import LandingEn from './pages/LandingEn'
 

@@ -1,5 +1,5 @@
-import { useState, useCallback, useRef, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { AnimatePresence, motion } from 'framer-motion'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 interface Particle {
   id: number
@@ -25,7 +25,9 @@ function fmt(n: number) {
 function pick(arr: string[], last: string) {
   if (arr.length < 2) return arr[0]
   let m: string
-  do { m = arr[Math.floor(Math.random() * arr.length)] } while (m === last)
+  do {
+    m = arr[Math.floor(Math.random() * arr.length)]
+  } while (m === last)
   return m
 }
 
@@ -69,6 +71,7 @@ export default function SignatureCard({
     return () => clearTimeout(timer)
   }, [interacted])
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: re-run the GC sweep whenever the particle count changes; setParticles is stable.
   useEffect(() => {
     const now = Date.now()
     setParticles((prev) => prev.filter((p) => now - p.createdAt < 1200))
@@ -82,7 +85,8 @@ export default function SignatureCard({
       // Cookieless Matomo engagement event (Matomo-Goal "Demo-Vote ausprobiert",
       // idSite=6). Guarded — fires sobald der Matomo-Snippet _paq bereitstellt.
       const paq = (window as unknown as { _paq?: unknown[][] })._paq
-      if (paq) paq.push(['trackEvent', 'Engagement', 'Demo-Vote ausprobiert', d === 1 ? 'up' : 'down'])
+      if (paq)
+        paq.push(['trackEvent', 'Engagement', 'Demo-Vote ausprobiert', d === 1 ? 'up' : 'down'])
 
       if (d === 1) {
         setUpCount((c) => c + 1)
@@ -108,9 +112,7 @@ export default function SignatureCard({
         setToastMsg(msg)
       }
 
-      const emojis = isJackpot
-        ? ['🎉', '🚀', '🔥', '🏆', '⭐', '💥']
-        : ['🎉', '✨', '👏', '💚']
+      const emojis = isJackpot ? ['🎉', '🚀', '🔥', '🏆', '⭐', '💥'] : ['🎉', '✨', '👏', '💚']
       const n = isJackpot ? 18 : 11
       const color = d === 1 ? '#0E9466' : '#D8503C'
       const big = isJackpot
@@ -138,9 +140,7 @@ export default function SignatureCard({
 
   return (
     <figure className="max-w-[26rem] mx-auto mt-12 sm:mt-16 md:mt-[4.5rem]">
-      <div
-        className="vp-sigcard relative flex items-center gap-[1.1rem] text-left p-[1.1rem_1.35rem] bg-white/72 border border-white/55 rounded-[16px] shadow-[0_0_0_1px_rgba(21,22,26,0.1),0_10px_30px_-12px_rgba(21,22,26,0.12)] backdrop-blur-[14px] saturate-[1.2]"
-      >
+      <div className="vp-sigcard relative flex items-center gap-[1.1rem] text-left p-[1.1rem_1.35rem] bg-white/72 border border-white/55 rounded-[16px] shadow-[0_0_0_1px_rgba(21,22,26,0.1),0_10px_30px_-12px_rgba(21,22,26,0.12)] backdrop-blur-[14px] saturate-[1.2]">
         {/* Vote Controls */}
         <div className="flex flex-col items-center gap-[.4rem] shrink-0">
           <motion.button
@@ -197,15 +197,16 @@ export default function SignatureCard({
               }`}
             >
               <motion.span
-                className={`block h-full rounded-full ${
-                  low ? 'bg-[#D8503C]' : 'bg-[#0E9466]'
-                }`}
+                className={`block h-full rounded-full ${low ? 'bg-[#D8503C]' : 'bg-[#0E9466]'}`}
                 animate={{ width: `${pct}%` }}
                 transition={{ duration: 0.45, ease: [0.2, 0.7, 0.3, 1] }}
               />
             </span>
-            <span className={`shrink-0 text-[.8rem] font-mono ${low ? 'text-[#D8503C]' : 'text-[#0E9466]'}`}>
-              <strong className="font-semibold">{pct}%</strong> {low ? s.consensusLabelLow : s.consensusLabel}
+            <span
+              className={`shrink-0 text-[.8rem] font-mono ${low ? 'text-[#D8503C]' : 'text-[#0E9466]'}`}
+            >
+              <strong className="font-semibold">{pct}%</strong>{' '}
+              {low ? s.consensusLabelLow : s.consensusLabel}
             </span>
           </div>
           {/* Status */}
