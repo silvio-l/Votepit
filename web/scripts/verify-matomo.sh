@@ -5,17 +5,14 @@
 set -euo pipefail
 
 DIST="$(cd "$(dirname "$0")/.." && pwd)/dist"
-TARGETS=("$DIST/index.html")
+TARGETS=("$DIST/index.html" "$DIST/de/index.html")
 PATTERNS=(
   "window._paq"
   "disableCookies"
+  "setDoNotTrack"
+  "setAnonymizeIp"
   '"setSiteId", "6"'
   "matomo.silvio-und-maik.de/matomo.js"
-)
-# Verbotene Muster: ungültige/queue-brechende oder unerwünschte _paq-Methoden.
-FORBIDDEN=(
-  "setAnonymizeIp"
-  "setDoNotTrack"
 )
 NO_THIRD_PARTY=(
   "google-analytics"
@@ -46,15 +43,6 @@ for file in "${TARGETS[@]}"; do
   for pattern in "${NO_THIRD_PARTY[@]}"; do
     if grep -qF "$pattern" "$file"; then
       echo "  FAIL: third-party tracker found: '$pattern'" >&2
-      OK=false
-    else
-      echo "  OK: no '$pattern'"
-    fi
-  done
-
-  for pattern in "${FORBIDDEN[@]}"; do
-    if grep -qF "$pattern" "$file"; then
-      echo "  FAIL: forbidden _paq method found: '$pattern' (would abort the queue / not wanted)" >&2
       OK=false
     else
       echo "  OK: no '$pattern'"

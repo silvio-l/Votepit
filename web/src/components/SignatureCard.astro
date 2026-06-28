@@ -1,0 +1,211 @@
+---
+interface Props {
+  t: any;
+}
+const { t } = Astro.props;
+const s = t.signature;
+---
+<figure class="vp-signature vp-reveal vp-reveal-4">
+  <div class="vp-sigcard" data-votecard>
+    <div class="vp-vote">
+      <button type="button" class="vp-vbtn vp-vbtn--up is-active" data-up aria-label={s.upLabel} title={s.hint}>▲</button>
+      <span class="vp-score" data-score>+128</span>
+      <button type="button" class="vp-vbtn vp-vbtn--down" data-down aria-label={s.downLabel}>▼</button>
+    </div>
+
+    <div class="vp-sigbody">
+      <p class="vp-eyebrow">{s.eyebrow}</p>
+      <p class="vp-sigtitle">{s.idea}</p>
+      <div class="vp-consensus">
+        <span class="vp-bar" data-bar><i style="--vp-fill:92%"></i></span>
+        <span class="vp-pct"><strong data-pct>{s.consensusValue}</strong> <span data-conslabel>{s.consensusLabel}</span></span>
+      </div>
+      <p class="vp-status"><span class="vp-dot vp-dot--progress"></span>{s.status}</p>
+    </div>
+
+    <span class="vp-toast" data-toast aria-hidden="true"></span>
+    <span class="vp-sr" data-sr aria-live="polite"></span>
+  </div>
+  <figcaption class="vp-sigcaption">{s.caption}</figcaption>
+</figure>
+
+<script
+  is:inline
+  define:vars={{
+    upMsgs: s.toastsUp,
+    downMsgs: s.toastsDown,
+    jackpot: s.jackpot,
+    announce: s.announce,
+    consLabel: s.consensusLabel,
+    consLabelLow: s.consensusLabelLow,
+  }}
+>
+  (function () {
+    const card = document.querySelector('[data-votecard]');
+    if (!card) return;
+    const up = card.querySelector('[data-up]');
+    const down = card.querySelector('[data-down]');
+    const scoreEl = card.querySelector('[data-score]');
+    const toastEl = card.querySelector('[data-toast]');
+    const srEl = card.querySelector('[data-sr]');
+    const bar = card.querySelector('[data-bar]');
+    const barFill = card.querySelector('[data-bar] > i');
+    const pctEl = card.querySelector('[data-pct]');
+    const pctWrap = card.querySelector('.vp-pct');
+    const consLabelEl = card.querySelector('[data-conslabel]');
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    // Up/down counts drive the whole card, exactly like the product:
+    // net score = up − down, consensus = up / (up + down).
+    let upCount = 140;
+    let downCount = 12; // 140 − 12 = +128 net, 140/152 ≈ 92% consensus
+    let score = upCount - downCount;
+    let displayed = score;
+    let dir = 1; // last direction — up is green at rest (matches the product card)
+    let jackpotShown = false;
+    let interacted = false;
+    let lastMsg = '';
+    let raf = 0;
+    let lastClickT = -1e9;
+
+    const fmt = (n) => (n > 0 ? '+' : '') + n;
+    function pick(arr) {
+      if (arr.length < 2) return arr[0];
+      let m;
+      do { m = arr[Math.floor(Math.random() * arr.length)]; } while (m === lastMsg);
+      lastMsg = m;
+      return m;
+    }
+
+    function setScore(target, animate) {
+      if (raf) { cancelAnimationFrame(raf); raf = 0; }
+      scoreEl.classList.toggle('vp-score--neg', target < 0);
+      if (reduce || !animate || displayed === target) {
+        // snap instantly — keeps the count perfectly in sync during fast click-streaks
+        displayed = target;
+        scoreEl.textContent = fmt(target);
+        scoreEl.classList.remove('is-ticking');
+        return;
+      }
+      scoreEl.classList.add('is-ticking');
+      const from = displayed;
+      const diff = target - from;
+      const dur = Math.min(300, 120 + 40 * Math.abs(diff));
+      const t0 = performance.now();
+      function step(now) {
+        const p = Math.min(1, (now - t0) / dur);
+        const e = 1 - Math.pow(1 - p, 3);
+        scoreEl.textContent = fmt(Math.round(from + diff * e));
+        if (p < 1) {
+          raf = requestAnimationFrame(step);
+        } else {
+          raf = 0; displayed = target; scoreEl.textContent = fmt(target);
+          scoreEl.classList.remove('is-ticking');
+        }
+      }
+      raf = requestAnimationFrame(step);
+    }
+
+    function applyDir() {
+      up.classList.toggle('is-active', dir === 1);
+      down.classList.toggle('is-active', dir === -1);
+    }
+
+    function updateConsensus() {
+      const total = upCount + downCount;
+      const pct = total > 0 ? Math.round((upCount / total) * 100) : 0;
+      const low = pct < 50; // more down- than up-votes → contested
+      barFill.style.setProperty('--vp-fill', pct + '%');
+      pctEl.textContent = pct + '%';
+      consLabelEl.textContent = low ? consLabelLow : consLabel;
+      bar.classList.toggle('is-low', low);
+      pctWrap.classList.toggle('is-low', low);
+    }
+
+    function toast(msg) {
+      toastEl.textContent = msg;
+      toastEl.classList.remove('is-on');
+      void toastEl.offsetWidth; // restart the toast animation
+      toastEl.classList.add('is-on');
+    }
+
+    function pop(el) {
+      if (reduce || !el.animate) return;
+      el.animate(
+        [{ transform: 'scale(.82)' }, { transform: 'scale(1.14)' }, { transform: 'scale(1)' }],
+        { duration: 300, easing: 'cubic-bezier(.2,.8,.3,1.2)' }
+      );
+    }
+
+    function burst(el, color, big) {
+      if (reduce || !card.animate) return;
+      const r = el.getBoundingClientRect();
+      const cr = card.getBoundingClientRect();
+      const cx = r.left - cr.left + r.width / 2;
+      const cy = r.top - cr.top + r.height / 2;
+      const emojis = big ? ['🎉', '🚀', '🔥', '🏆', '⭐', '💥'] : ['🎉', '✨', '👏', '💚'];
+      const n = big ? 18 : 11;
+      for (let i = 0; i < n; i++) {
+        const p = document.createElement('span');
+        p.className = 'vp-particle';
+        if (Math.random() < (big ? 0.7 : 0.45)) {
+          p.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+        } else {
+          p.style.background = color;
+          p.style.borderRadius = Math.random() < 0.5 ? '50%' : '2px';
+        }
+        p.style.left = cx + 'px';
+        p.style.top = cy + 'px';
+        card.appendChild(p);
+        const dx = (Math.random() * 2 - 1) * (big ? 130 : 90);
+        const dy = -(30 + Math.random() * (big ? 150 : 90));
+        const rot = Math.random() * 360 - 180;
+        p.animate(
+          [
+            { transform: 'translate(0,0) scale(1) rotate(0)', opacity: 1 },
+            { transform: `translate(${dx}px, ${dy}px) scale(.5) rotate(${rot}deg)`, opacity: 0 },
+          ],
+          { duration: 750 + Math.random() * 450, easing: 'cubic-bezier(.15,.7,.3,1)' }
+        ).onfinish = () => p.remove();
+      }
+    }
+
+    function click(d) {
+      if (!interacted) { interacted = true; up.classList.remove('vp-hint'); }
+      const now = performance.now();
+      const rapid = now - lastClickT < 220; // streak → snap; deliberate click → animate
+      lastClickT = now;
+      dir = d;
+      if (d === 1) upCount++; else downCount++; // one vote lands, like in production
+      score = upCount - downCount;
+      applyDir();
+      setScore(score, !rapid);
+      updateConsensus();
+      srEl.textContent = announce + ' ' + score + '.';
+      if (d === 1) {
+        pop(up);
+        if (!jackpotShown && Math.random() < 0.14) {
+          jackpotShown = true;
+          toast(jackpot);
+          burst(up, '#0E9466', true);
+        } else {
+          toast(pick(upMsgs));
+          burst(up, '#0E9466', false);
+        }
+      } else {
+        pop(down);
+        toast(pick(downMsgs));
+        burst(down, '#D8503C', false);
+      }
+    }
+
+    up.addEventListener('click', () => click(1));
+    down.addEventListener('click', () => click(-1));
+    updateConsensus(); // sync consensus/bar with the initial counts
+
+    // gentle one-time invite to interact
+    if (!reduce) {
+      window.setTimeout(() => { if (!interacted) up.classList.add('vp-hint'); }, 1400);
+    }
+  })();
+</script>

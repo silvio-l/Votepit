@@ -1,0 +1,29 @@
+---
+import Base from '../../layouts/Base.astro';
+import Header from '../../components/Header.astro';
+import Footer from '../../components/Footer.astro';
+import { de as t } from '../../i18n/de';
+const repo = 'https://github.com/silvio-l/votepit';
+const d = t.docs;
+---
+<Base title={d.metaTitle} description={d.metaDesc} lang="de" canonicalURL="https://votepit.com/de/docs/" altEn="/docs/" altDe="/de/docs/">
+  <div class="vp-page">
+    <Header lang="de" t={t} repo={repo} enHref="/docs" deHref="/de/docs" />
+
+    <main class="vp-docs">
+      <h1 class="vp-docs-h">{d.title}</h1>
+      <p class="vp-docs-intro">{d.intro}</p>
+
+      {d.sections.map((s: any) => (
+        <section class="vp-docs-sec">
+          <h2>{s.h}</h2>
+          <p>{s.body}</p>
+        </section>
+      ))}
+
+      <a class="vp-cta vp-docs-cta" href={repo} rel="noopener noreferrer">{d.ghCta}</a>
+    </main>
+
+    <Footer t={t} repo={repo} lang="de" />
+  </div>
+</Base>
