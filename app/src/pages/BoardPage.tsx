@@ -255,21 +255,33 @@ export default function BoardPage() {
         />
       }
     >
-      {/* Board header */}
-      <div className="mb-6">
+      {/* Hero: H1 + subtitle + primary CTA — Figma 80:33 hero block (left-aligned) */}
+      <div className="mb-7">
         <h1 className="font-archivo font-extrabold text-[28px] text-vp-ink leading-[1.15]">
           {board.name}
         </h1>
         {board.intro && (
-          <p className="mt-1 text-[15px] text-vp-text-secondary leading-relaxed max-w-xl">
+          <p className="mt-3 text-[15px] text-vp-text-secondary leading-relaxed max-w-2xl">
             {board.intro}
           </p>
         )}
+        <a
+          href={`/${board.slug}/submit`}
+          className="mt-4 inline-flex items-center px-4 py-2.5 bg-vp-ink text-white font-semibold text-[13px] rounded-vp-md hover:opacity-90 transition-opacity focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-vp-ink"
+        >
+          + Neue Idee
+        </a>
       </div>
 
-      {/* Hero: FeaturedIdeaCard for the top idea (non-empty list only) */}
+      {/* Controls: status filter chips, then sort tabs — Figma filter-section (above featured) */}
+      <div className="mb-6 flex flex-col gap-3">
+        <StatusFilter value={status} onChange={handleStatusChange} />
+        <SortTabs value={sort} onChange={handleSortChange} />
+      </div>
+
+      {/* Featured top idea (canonical board-home view) — sits below the controls per Figma */}
       {topIdea && (
-        <div className="mb-8" data-testid="featured-idea">
+        <div className="mb-3" data-testid="featured-idea">
           <FeaturedIdeaCard
             title={topIdea.title}
             description={toExcerpt(topIdea.body, 200)}
@@ -283,22 +295,6 @@ export default function BoardPage() {
           />
         </div>
       )}
-
-      {/* Sort + action bar */}
-      <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
-        <SortTabs value={sort} onChange={handleSortChange} />
-        <a
-          href={`/${board.slug}/submit`}
-          className="px-4 py-2 bg-vp-ink text-white font-semibold text-[13px] rounded-vp-md hover:opacity-90 transition-opacity focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-vp-ink"
-        >
-          + Idee einreichen
-        </a>
-      </div>
-
-      {/* Status filter bar */}
-      <div className="mb-5">
-        <StatusFilter value={status} onChange={handleStatusChange} />
-      </div>
 
       {/* Idea list */}
       {ideas.length === 0 ? (
