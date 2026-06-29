@@ -53,10 +53,6 @@ db/
 # resources/moderation/LICENSE-LDNOOBW.txt)
 resources/
 
-# Öffentliche Landing-/Doku-Website (React/Vite-Quelle; node_modules/dist
-# und Dev-Screenshots sind über web/.gitignore ausgeschlossen)
-web/
-
 # React-SPA-Frontend (Vite/TS/Tailwind) — konsumiert die JSON-API
 # (node_modules/dist sind über app/.gitignore ausgeschlossen)
 app/

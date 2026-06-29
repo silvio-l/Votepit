@@ -2,7 +2,7 @@
   "name": "votepit",
   "private": true,
   "type": "module",
-  "description": "Votepit monorepo — React-SPA app/, Astro landing web/, shared @votepit/ui.",
+  "description": "Votepit — selbst-gehostetes Feature-Voting-Board (PHP/MySQL): React-SPA app/ + shared @votepit/ui.",
   "scripts": {
     "build": "pnpm -r build",
     "lint": "pnpm -r lint",

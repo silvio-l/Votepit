@@ -1,6 +1,5 @@
 packages:
   - app
-  - web
   - packages/*
 
 allowBuilds:
