@@ -437,6 +437,26 @@ export async function saveAdminModeration(
   return request<{ ok: boolean }>('POST', `/admin/boards/${slug}/moderation`, data)
 }
 
+// ── Idea status (admin) ───────────────────────────────────────────────────────
+
+/**
+ * POST /{boardSlug}/ideas/{ideaId}/status — set idea status (admin only).
+ * Requires admin AuthZ + CSRF — call bootstrap() first.
+ * Throws ApiError(403) for non-admin, ApiError(422) for invalid transition.
+ * Returns { ok: true, status: IdeaStatus } on success.
+ */
+export async function setIdeaStatus(
+  boardSlug: string,
+  ideaId: string | number,
+  status: IdeaStatus,
+): Promise<{ ok: boolean; status: IdeaStatus }> {
+  return request<{ ok: boolean; status: IdeaStatus }>(
+    'POST',
+    `/${boardSlug}/ideas/${ideaId}/status`,
+    { status },
+  )
+}
+
 // ── Voting ────────────────────────────────────────────────────────────────────
 
 export interface VoteResponse {

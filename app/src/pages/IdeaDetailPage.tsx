@@ -1,10 +1,29 @@
 import type { Status } from '@votepit/ui'
 import { ConsensusBar, EmptyState, Header, PageShell, StatusBadge, VoteWidget } from '@votepit/ui'
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useVote } from '../hooks/useVote'
-import type { ApiError, IdeaDetailResponse } from '../lib/api'
-import { bootstrap, getIdea, logout, withdrawIdea } from '../lib/api'
+import type { ApiError, IdeaDetailResponse, IdeaStatus } from '../lib/api'
+import { bootstrap, getIdea, logout, setIdeaStatus, withdrawIdea } from '../lib/api'
+
+// ── Status transitions (mirror of StatusService::TRANSITIONS) ─────────────────
+
+const TRANSITIONS: Record<IdeaStatus, IdeaStatus[]> = {
+  open: ['planned', 'in_progress', 'done', 'declined'],
+  planned: ['in_progress', 'done', 'declined', 'open'],
+  in_progress: ['done', 'declined', 'planned'],
+  done: ['in_progress', 'declined'],
+  declined: ['open'],
+}
+
+const STATUS_LABELS: Record<IdeaStatus, string> = {
+  open: 'Offen',
+  planned: 'Geplant',
+  in_progress: 'In Arbeit',
+  done: 'Erledigt',
+  declined: 'Abgelehnt',
+}
 
 function toComponentStatus(raw: string): Status {
   if (raw === 'in_progress') return 'in-progress'
@@ -30,6 +49,7 @@ interface IdeaDetailContentProps {
   data: IdeaDetailResponse
   boardSlug: string
   currentUserId: number | null
+  isAdmin: boolean
   onLogout: () => void
 }
 
@@ -37,14 +57,39 @@ function IdeaDetailContent({
   data,
   boardSlug: _boardSlug,
   currentUserId,
+  isAdmin,
   onLogout,
 }: IdeaDetailContentProps) {
   const { board, idea, is_authenticated } = data
   const navigate = useNavigate()
+  const prefersReducedMotion = useReducedMotion()
+
   const [withdrawing, setWithdrawing] = useState(false)
   const [withdrawError, setWithdrawError] = useState<string | null>(null)
 
+  // Admin status control state
+  const [currentStatus, setCurrentStatus] = useState<IdeaStatus>(idea.status)
+  const [statusPending, setStatusPending] = useState(false)
+  const [statusError, setStatusError] = useState<string | null>(null)
+
   const isOwner = currentUserId !== null && currentUserId === idea.author_id
+
+  const handleStatusChange = async (to: IdeaStatus) => {
+    if (statusPending) return
+    const prev = currentStatus
+    setCurrentStatus(to) // optimistic
+    setStatusError(null)
+    setStatusPending(true)
+    try {
+      await setIdeaStatus(board.slug, idea.id, to)
+    } catch (err) {
+      setCurrentStatus(prev) // rollback on error
+      const apiErr = err as ApiError
+      setStatusError(apiErr?.payload?.message ?? 'Status konnte nicht gesetzt werden.')
+    } finally {
+      setStatusPending(false)
+    }
+  }
 
   const handleWithdraw = async () => {
     if (withdrawing) return
@@ -74,7 +119,7 @@ function IdeaDetailContent({
 
   const { score, myVote, upCount, downCount, onVoteUp, onVoteDown } = voteResult
   const consensusPercent = calcConsensus(upCount, downCount)
-  const componentStatus = toComponentStatus(idea.status)
+  const componentStatus = toComponentStatus(currentStatus)
 
   return (
     <PageShell
@@ -118,8 +163,56 @@ function IdeaDetailContent({
               <h1 className="font-archivo font-extrabold text-[26px] text-vp-ink leading-[1.18] flex-1 min-w-0">
                 {idea.title}
               </h1>
-              <StatusBadge status={componentStatus} />
+              {/* Animated badge — key drives exit/enter on status change */}
+              <AnimatePresence mode="wait" initial={false}>
+                <motion.span
+                  key={currentStatus}
+                  initial={prefersReducedMotion ? false : { opacity: 0, scale: 0.9 }}
+                  animate={prefersReducedMotion ? false : { opacity: 1, scale: 1 }}
+                  exit={prefersReducedMotion ? undefined : { opacity: 0, scale: 0.9 }}
+                  transition={{ duration: 0.15, ease: 'easeOut' }}
+                >
+                  <StatusBadge status={componentStatus} />
+                </motion.span>
+              </AnimatePresence>
             </div>
+            {/* Admin-only status control */}
+            {isAdmin && (
+              <div className="flex flex-wrap items-center gap-2 mb-3">
+                <select
+                  aria-label="Status ändern"
+                  value=""
+                  onChange={(e) => {
+                    void handleStatusChange(e.target.value as IdeaStatus)
+                  }}
+                  disabled={statusPending}
+                  className="text-[12px] font-inter text-vp-text-secondary bg-vp-surface-frost border border-vp-border-subtle rounded-vp-md px-2 py-1 cursor-pointer hover:border-vp-ink/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-vp-ink"
+                >
+                  <option value="" disabled>
+                    Status ändern…
+                  </option>
+                  {TRANSITIONS[currentStatus]?.map((s) => (
+                    <option key={s} value={s}>
+                      {STATUS_LABELS[s]}
+                    </option>
+                  ))}
+                </select>
+                {statusPending && (
+                  <span
+                    className="text-[12px] font-inter text-vp-text-muted"
+                    aria-live="polite"
+                    aria-busy="true"
+                  >
+                    Wird gesetzt…
+                  </span>
+                )}
+                {statusError !== null && (
+                  <p role="alert" className="w-full text-[12px] font-inter text-vp-vote-down">
+                    {statusError}
+                  </p>
+                )}
+              </div>
+            )}
 
             <p className="text-[15px] text-vp-text-secondary leading-relaxed whitespace-pre-wrap">
               {idea.body}
@@ -191,12 +284,14 @@ export default function IdeaDetailPage() {
   const [loadState, setLoadState] = useState<LoadState>({ phase: 'loading' })
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [currentUserId, setCurrentUserId] = useState<number | null>(null)
+  const [isAdmin, setIsAdmin] = useState(false)
 
   useEffect(() => {
     bootstrap()
       .then((b) => {
         setIsAuthenticated(b.user !== null)
         setCurrentUserId(b.user?.id ?? null)
+        setIsAdmin(b.user?.is_admin ?? false)
       })
       .catch(() => {})
   }, [])
@@ -297,6 +392,7 @@ export default function IdeaDetailPage() {
       data={loadState.data}
       boardSlug={boardSlug ?? ''}
       currentUserId={currentUserId}
+      isAdmin={isAdmin}
       onLogout={handleLogout}
     />
   )
