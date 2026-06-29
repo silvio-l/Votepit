@@ -168,6 +168,7 @@ export default function EditPage() {
     <div className="min-h-screen">
       <Header
         logoHref={`/${boardSlug}`}
+        basePath={`/${boardSlug}`}
         boardName={boardName}
         isAuthenticated={isAuthenticated}
         onLogoutClick={handleLogout}

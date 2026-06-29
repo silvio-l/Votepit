@@ -1,0 +1,92 @@
+import { ConsensusBar } from './ConsensusBar'
+import type { Status } from './StatusBadge'
+import { StatusBadge } from './StatusBadge'
+
+/**
+ * RoadmapRow — read-only Roadmap-Zeile (Figma 141:50).
+ *
+ * Kein VoteWidget — Score wird als statische Zahl + Label "Stimmen" angezeigt.
+ * Items verlinken per "›" zur Idea-Detail-View, wo das interaktive VoteWidget lebt.
+ * Token-gebunden, reused StatusBadge + ConsensusBar.
+ */
+interface RoadmapRowProps {
+  id: string | number
+  title: string
+  excerpt?: string
+  status: Status
+  score: number
+  commentCount: number
+  consensusPercent: number
+  /** Link zur Idea-Detail-View (e.g. /{board}/idea/{id}) */
+  href?: string
+}
+
+export function RoadmapRow({
+  title,
+  excerpt,
+  status,
+  score,
+  commentCount,
+  consensusPercent,
+  href,
+}: RoadmapRowProps) {
+  const inner = (
+    <div
+      className={[
+        'flex items-center gap-5',
+        'bg-vp-surface-frost border border-vp-border-frost rounded-vp-lg',
+        'backdrop-blur-[14px] backdrop-saturate-[1.2]',
+        'pl-5 pr-6 py-[18px]',
+        'shadow-vp-soft',
+        href
+          ? 'transition-[transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:shadow-vp-lift'
+          : '',
+      ]
+        .filter(Boolean)
+        .join(' ')}
+    >
+      {/* Left: read-only score display (statt VoteWidget) */}
+      <div className="shrink-0 w-[56px] flex flex-col items-center gap-0.5 h-[80px] justify-center">
+        <span className="font-mono-num font-bold text-[22px] leading-none text-vp-ink">
+          {score}
+        </span>
+        <span className="text-[11px] text-vp-text-muted leading-none">/&nbsp;Stimmen</span>
+      </div>
+
+      {/* Middle: text content */}
+      <div className="flex-1 min-w-0 flex flex-col gap-1.5">
+        <p className="text-[17px] font-semibold font-archivo text-vp-ink leading-[1.22] line-clamp-2">
+          {title}
+        </p>
+        {excerpt && (
+          <p className="text-[14px] text-vp-text-secondary truncate leading-[1.5]">{excerpt}</p>
+        )}
+        {/* Meta row */}
+        <div className="flex items-center gap-2.5 mt-0.5">
+          <StatusBadge status={status} />
+          <span className="text-[12px] text-vp-text-muted">
+            {commentCount} {commentCount === 1 ? 'Kommentar' : 'Kommentare'}
+          </span>
+        </div>
+      </div>
+
+      {/* Right: ConsensusBar */}
+      <div className="w-40 shrink-0">
+        <ConsensusBar percent={consensusPercent} />
+      </div>
+
+      {/* Arrow */}
+      <span className="text-[22px] text-vp-text-muted font-medium shrink-0 leading-none">›</span>
+    </div>
+  )
+
+  if (href) {
+    return (
+      <a href={href} className="block no-underline">
+        {inner}
+      </a>
+    )
+  }
+
+  return inner
+}

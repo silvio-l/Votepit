@@ -295,6 +295,52 @@ final readonly class IdeaRepository
     }
 
     /**
+     * Liefert die board-scoped Roadmap-Ideen gruppiert nach Status
+     * (planned / in_progress / done), je Gruppe absteigend nach score_cache sortiert.
+     *
+     * Kein Voter-PII — keine user-spezifischen Felder (kein my_vote, kein author_id).
+     * Nur öffentliche Aggregate (score_cache, up_count, down_count, comment_count).
+     * Nutzt idx_ideas_board_status (board_id, status).
+     *
+     * open und declined erscheinen nicht (bewusst ausgeschlossen).
+     *
+     * @return array{planned: list<array<string, mixed>>, in_progress: list<array<string, mixed>>, done: list<array<string, mixed>>}
+     * @throws DbalException
+     */
+    public function roadmapByBoard(int $boardId): array
+    {
+        $rows = $this->conn->fetchAllAssociative(
+            'SELECT id, title, body, status, score_cache, created_at,
+                    (SELECT COUNT(*) FROM comments WHERE comments.idea_id = ideas.id) AS comment_count,
+                    (SELECT COUNT(*) FROM votes WHERE votes.idea_id = ideas.id AND votes.value > 0) AS up_count,
+                    (SELECT COUNT(*) FROM votes WHERE votes.idea_id = ideas.id AND votes.value < 0) AS down_count
+             FROM ideas
+             WHERE board_id = :board_id
+               AND status IN (\'planned\', \'in_progress\', \'done\')
+             ORDER BY
+                 CASE status
+                     WHEN \'planned\'     THEN 1
+                     WHEN \'in_progress\' THEN 2
+                     WHEN \'done\'        THEN 3
+                     ELSE 4
+                 END,
+                 score_cache DESC,
+                 id DESC',
+            ['board_id' => $boardId],
+        );
+
+        $grouped = ['planned' => [], 'in_progress' => [], 'done' => []];
+        foreach ($rows as $row) {
+            $status = (string) ($row['status'] ?? '');
+            if (array_key_exists($status, $grouped)) {
+                $grouped[$status][] = $row;
+            }
+        }
+
+        return $grouped;
+    }
+
+    /**
      * Board-weite Kennzahlen für das "Diese Woche"-Panel (board-scoped, Prepared-Statements).
      *
      * - weekly_votes:     Stimmen auf Ideen dieses Boards in den letzten 7 Tagen.

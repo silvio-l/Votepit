@@ -19,6 +19,12 @@ interface HeaderProps {
   isAuthenticated?: boolean
   /** Called when the user clicks the logout button (only shown when isAuthenticated). */
   onLogoutClick?: () => void
+  /**
+   * Board-Kontext-Pfad für nav-interne Links (ADR-11).
+   * CE: "/{board}" (z. B. "/demo"), Cloud: "/{account}/{board}".
+   * Default: "" (kein Board-Kontext, z. B. Login-Seite oder Admin).
+   */
+  basePath?: string
 }
 
 function VotepitLogo({ href = '/' }: { href?: string }) {
@@ -54,6 +60,7 @@ export function Header({
   onLoginClick,
   isAuthenticated = false,
   onLogoutClick,
+  basePath = '',
 }: HeaderProps) {
   return (
     <header className="sticky top-0 z-50 w-full bg-white/25 backdrop-blur-2xl backdrop-saturate-150 border-b border-vp-border-frost">
@@ -64,7 +71,7 @@ export function Header({
         {/* Right: nav + CTA */}
         <nav className="flex items-center gap-6" aria-label="Hauptnavigation">
           <a
-            href="/roadmap"
+            href={`${basePath}/roadmap`}
             className="text-[14px] text-vp-text-secondary hover:text-vp-ink transition-colors"
           >
             Roadmap

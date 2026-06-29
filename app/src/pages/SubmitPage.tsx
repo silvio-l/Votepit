@@ -154,6 +154,7 @@ export default function SubmitPage() {
     <div className="min-h-screen">
       <Header
         logoHref={`/${boardSlug}`}
+        basePath={`/${boardSlug}`}
         boardName={boardName}
         isAuthenticated={user !== null}
         onLogoutClick={handleLogout}

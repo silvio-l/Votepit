@@ -81,6 +81,7 @@ function IdeaDetailContent({
       header={
         <Header
           logoHref={`/${board.slug}`}
+          basePath={`/${board.slug}`}
           loginLabel={is_authenticated ? 'Konto' : 'Anmelden'}
           isAuthenticated={is_authenticated}
           onLoginClick={() => navigate(`/login?r=${encodeURIComponent(`/${board.slug}`)}`)}
@@ -240,6 +241,7 @@ export default function IdeaDetailPage() {
         header={
           <Header
             logoHref={boardSlug ? `/${boardSlug}` : '/'}
+            basePath={boardSlug ? `/${boardSlug}` : ''}
             loginLabel={loginLabel}
             isAuthenticated={isAuthenticated}
             onLogoutClick={handleLogout}
@@ -263,6 +265,7 @@ export default function IdeaDetailPage() {
         header={
           <Header
             logoHref={boardSlug ? `/${boardSlug}` : '/'}
+            basePath={boardSlug ? `/${boardSlug}` : ''}
             loginLabel={loginLabel}
             isAuthenticated={isAuthenticated}
             onLogoutClick={handleLogout}

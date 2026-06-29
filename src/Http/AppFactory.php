@@ -595,6 +595,38 @@ final class AppFactory
                 },
             ));
 
+            // GET /{board}/roadmap — board-scoped Roadmap (Sprint 10, Issue 03).
+            // Trust-Level: anon (öffentliche Roadmap, kein Login erforderlich).
+            // Liefert nur Aggregate (score, Konsens, Kommentarzahl) — kein Voter-PII.
+            // Ideen werden nach Status (planned / in_progress / done) gruppiert zurückgegeben;
+            // open und declined erscheinen nicht. Nutzt idx_ideas_board_status.
+            $app->get('/{board}/roadmap', function (
+                ServerRequestInterface $request,
+                ResponseInterface $response,
+                array $args,
+            ) use ($boardRepo, $ideaRepo): ResponseInterface {
+                $slug  = is_string($args['board'] ?? null) ? $args['board'] : '';
+                $board = $boardRepo->findBySlug($slug);
+                if (!is_array($board)) {
+                    $response->getBody()->write((string) json_encode([
+                        'error' => ['key' => 'not_found', 'message' => 'Board nicht gefunden.'],
+                    ]));
+                    return $response->withStatus(404)->withHeader('Content-Type', 'application/json');
+                }
+
+                $grouped = $ideaRepo->roadmapByBoard((int) $board['id']);
+
+                $response->getBody()->write((string) json_encode([
+                    'board' => [
+                        'id'   => (int) $board['id'],
+                        'slug' => $slug,
+                        'name' => is_string($board['name'] ?? null) ? $board['name'] : $slug,
+                    ],
+                    'groups' => $grouped,
+                ]));
+                return $response->withStatus(200)->withHeader('Content-Type', 'application/json');
+            })->add(AuthZMiddleware::anon($responseFactory));
+
             // GET /admin/boards/{slug}/branding — Branding-Einstellseite (AuthZ: admin).
             // Gibt das (validierte) Branding des Boards als JSON zurück.
             $app->get('/admin/boards/{slug}/branding', function (

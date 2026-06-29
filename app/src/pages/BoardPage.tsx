@@ -198,6 +198,7 @@ export default function BoardPage() {
         header={
           <Header
             logoHref="/"
+            basePath={boardSlug ? `/${boardSlug}` : ''}
             loginLabel={loginLabel}
             isAuthenticated={isAuthenticated}
             onLoginClick={() =>
@@ -224,6 +225,7 @@ export default function BoardPage() {
         header={
           <Header
             logoHref="/"
+            basePath={boardSlug ? `/${boardSlug}` : ''}
             loginLabel={loginLabel}
             isAuthenticated={isAuthenticated}
             onLoginClick={() =>
@@ -256,6 +258,7 @@ export default function BoardPage() {
       header={
         <Header
           logoHref={`/${board.slug}`}
+          basePath={`/${board.slug}`}
           loginLabel={loginLabel}
           isAuthenticated={isAuthenticated}
           onLoginClick={() => navigate(`/login?r=${encodeURIComponent(`/${board.slug}`)}`)}

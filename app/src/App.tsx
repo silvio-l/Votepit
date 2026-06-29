@@ -6,6 +6,7 @@ import EditPage from './pages/EditPage'
 import IdeaDetailPage from './pages/IdeaDetailPage'
 import LoginPage from './pages/LoginPage'
 import NotFoundPage from './pages/NotFoundPage'
+import RoadmapPage from './pages/RoadmapPage'
 import SubmitPage from './pages/SubmitPage'
 import VerifyPage from './pages/VerifyPage'
 
@@ -28,6 +29,7 @@ export default function App() {
           <Route path="/admin/boards/:boardSlug" element={<AdminPage />} />
 
           <Route path="/:boardSlug" element={<BoardPage />} />
+          <Route path="/:boardSlug/roadmap" element={<RoadmapPage />} />
           <Route path="/:boardSlug/idea/:ideaId" element={<IdeaDetailPage />} />
           <Route path="/:boardSlug/idea/:ideaId/edit" element={<EditPage />} />
           <Route path="/:boardSlug/submit" element={<SubmitPage />} />

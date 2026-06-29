@@ -184,6 +184,44 @@ export async function getIdea(
   return request<IdeaDetailResponse>('GET', `/${boardSlug}/ideas/${ideaId}`)
 }
 
+// ── Roadmap ───────────────────────────────────────────────────────────────────
+
+/**
+ * Eine read-only Roadmap-Idee (kein Voter-PII, keine user-spezifischen Felder).
+ * Aggregate: score_cache, up_count, down_count (für Konsens-Berechnung), comment_count.
+ */
+export interface RoadmapIdea {
+  id: number
+  title: string
+  body: string
+  status: IdeaStatus
+  score_cache: number
+  created_at: string
+  comment_count: number
+  up_count: number
+  down_count: number
+}
+
+export interface RoadmapGroups {
+  planned: RoadmapIdea[]
+  in_progress: RoadmapIdea[]
+  done: RoadmapIdea[]
+}
+
+export interface RoadmapResponse {
+  board: BoardData
+  groups: RoadmapGroups
+}
+
+/**
+ * GET /{boardSlug}/roadmap — board-scoped, read-only Roadmap.
+ * Liefert Ideen gruppiert nach planned / in_progress / done (je score_cache DESC).
+ * Kein Voter-PII; anon-zugänglich.
+ */
+export async function getRoadmap(boardSlug: string): Promise<RoadmapResponse> {
+  return request<RoadmapResponse>('GET', `/${boardSlug}/roadmap`)
+}
+
 /** Low-level helpers re-exported for pages that need raw GET/POST/PUT/DELETE. */
 export const api = {
   get: <T>(path: string) => request<T>('GET', `${API_BASE}${path}`),
