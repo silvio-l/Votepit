@@ -11,9 +11,11 @@ use Slim\App;
 use Slim\Psr7\Factory\ResponseFactory;
 use Votepit\Config;
 use Votepit\Domain\ContentModerationService;
+use Votepit\Domain\StatusService;
 use Votepit\Domain\TitleNormalizer;
 use Votepit\Http\Action\IdeaCreateAction;
 use Votepit\Http\Action\IdeaEditAction;
+use Votepit\Http\Action\IdeaStatusAction;
 use Votepit\Http\Action\IdeaWithdrawAction;
 use Votepit\Http\Action\VoteAction;
 use Votepit\Http\Middleware\AuthNMiddleware;
@@ -567,6 +569,26 @@ final class AppFactory
                 'idea:vote',
                 $voteRateLimit['limit'],
                 $voteRateLimit['window'],
+                static function (ServerRequestInterface $r): ?string {
+                    $user = $r->getAttribute(AuthNMiddleware::ATTR_USER);
+                    return is_array($user) ? (string) ($user['id'] ?? '') : null;
+                },
+            ));
+
+            // POST /{board}/ideas/{id}/status — Status setzen (Sprint 10, Issue 01).
+            // AuthZ: admin (anon → 401, non-admin → 403); CSRF + BlockCheck global;
+            // per-Action-RateLimit idea:status. Board-Scoping in der Action via
+            // findInBoard (fremde Idee → 404, keine Mutation).
+            $statusRateLimit = $config->rateLimit('idea:status');
+
+            $app->post('/{board}/ideas/{id:[0-9]+}/status', new IdeaStatusAction($boardRepo, $ideaRepo, new StatusService(), $audit))
+            ->add(AuthZMiddleware::admin($responseFactory))
+            ->add(RateLimitMiddleware::perAction(
+                new RateLimiter($conn),
+                $responseFactory,
+                'idea:status',
+                $statusRateLimit['limit'],
+                $statusRateLimit['window'],
                 static function (ServerRequestInterface $r): ?string {
                     $user = $r->getAttribute(AuthNMiddleware::ATTR_USER);
                     return is_array($user) ? (string) ($user['id'] ?? '') : null;

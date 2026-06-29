@@ -197,6 +197,29 @@ final readonly class IdeaRepository
     }
 
     /**
+     * Setzt den Status einer Idee (board-scoped, admin-Mutation, Prepared-Statement).
+     *
+     * Bindet id UND board_id als Parameter — Cross-Board-Mutation strukturell
+     * ausgeschlossen (Defense in Depth über den Action-Guard hinaus).
+     * Rückgabe: true wenn genau eine Zeile geändert wurde, false sonst.
+     *
+     * @throws DbalException
+     */
+    public function updateStatus(int $boardId, int $id, string $status): bool
+    {
+        $affected = $this->conn->executeStatement(
+            'UPDATE ideas SET status = :status, updated_at = CURRENT_TIMESTAMP WHERE id = :id AND board_id = :board_id',
+            [
+                'status'   => $status,
+                'id'       => $id,
+                'board_id' => $boardId,
+            ],
+        );
+
+        return $affected === 1;
+    }
+
+    /**
      * Paginierte, board-scoped Ideenliste.
      *
      * @param int         $boardId       Board-Scoping — zwingend.
