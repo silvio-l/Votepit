@@ -1,5 +1,0 @@
-@import "tailwindcss";
-@import "@votepit/ui/tokens.css";
-@import "./tokens.css";
-@source "../../../packages/ui/src";
-@source "../";

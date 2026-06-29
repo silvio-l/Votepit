@@ -55,6 +55,11 @@ final class SymfonyMailerAdapter implements Mailer
 
         $dsn = "{$scheme}://{$auth}{$this->smtp->host}:{$this->smtp->port}";
 
+        // Shared-Hoster mit Wildcard-Zert (CN-Mismatch): TLS bleibt, CN-Prüfung aus.
+        if (!$this->smtp->verifyPeer) {
+            $dsn .= '?verify_peer=0';
+        }
+
         return new SymfonyMailer(Transport::fromDsn($dsn));
     }
 }

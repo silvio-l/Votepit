@@ -14,6 +14,11 @@ final readonly class SmtpConfig
         public string $encryption,
         public string $fromEmail,
         public string $fromName,
+        // TLS-Peer-Verifikation. Default an (sicher). Manche Shared-Hoster liefern
+        // ein Wildcard-Zertifikat, das nicht auf den Mail-Hostnamen passt
+        // (CN-Mismatch). Dann verify_peer=false: Verbindung bleibt TLS-verschlüsselt,
+        // nur die Zertifikats-CN-Prüfung entfällt.
+        public bool $verifyPeer = true,
     ) {}
 
     /** @param array<string, mixed> $a */
@@ -32,6 +37,7 @@ final readonly class SmtpConfig
             encryption: in_array($encryption, ['tls', 'ssl', ''], true) ? $encryption : 'tls',
             fromEmail: $fromEmail,
             fromName: (string) ($a['from_name'] ?? 'Votepit'),
+            verifyPeer: (bool) ($a['verify_peer'] ?? true),
         );
     }
 }
