@@ -10,7 +10,7 @@
  */
 
 import type { Status } from '@votepit/ui'
-import { EmptyState, Header, PageShell, RoadmapRow, StatusBadge } from '@votepit/ui'
+import { EmptyState, Header, PageShell, RoadmapCard, RoadmapRow, StatusBadge } from '@votepit/ui'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
@@ -358,7 +358,7 @@ export default function RoadmapPage() {
           </motion.div>
         )}
 
-        {/* Spalten-View (Stub — vollständige Implementierung in Issue 04) */}
+        {/* Spalten-View — Figma 136:456 / RoadmapCard 133:33 */}
         {view === 'columns' && (
           <motion.div
             key="columns"
@@ -378,14 +378,11 @@ export default function RoadmapPage() {
                     ) : (
                       <div className="space-y-3">
                         {ideas.map((idea) => (
-                          <RoadmapRow
+                          <RoadmapCard
                             key={idea.id}
                             id={idea.id}
                             title={idea.title}
-                            excerpt={toExcerpt(idea.body)}
-                            status={toComponentStatus(idea.status)}
                             score={idea.score_cache}
-                            commentCount={idea.comment_count}
                             consensusPercent={calcConsensus(idea.up_count, idea.down_count)}
                             href={`/${board.slug}/idea/${idea.id}`}
                           />
