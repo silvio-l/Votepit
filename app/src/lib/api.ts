@@ -433,6 +433,7 @@ export interface SmtpSettingsData {
   from_email: string
   from_name: string
   password_set: boolean
+  verify_peer: boolean
 }
 
 export interface SmtpTestBody {
@@ -487,6 +488,7 @@ export interface BoardSmtpSettingsData {
   from_name: string
   password_set: boolean
   uses_global_default: boolean
+  verify_peer: boolean
 }
 
 /**

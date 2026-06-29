@@ -225,6 +225,7 @@ abstract class IntegrationTestCase extends TestCase
                 encryption  VARCHAR(8) NOT NULL DEFAULT \'tls\',
                 from_email  VARCHAR(254) NOT NULL DEFAULT \'\',
                 from_name   VARCHAR(128) NOT NULL DEFAULT \'Votepit\',
+                verify_peer INTEGER NOT NULL DEFAULT 1,
                 created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 updated_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 UNIQUE (board_id),

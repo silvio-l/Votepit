@@ -751,6 +751,7 @@ final class AppFactory
                     'from_email'   => $settings['smtp.from_email'] ?? '',
                     'from_name'    => $settings['smtp.from_name'] ?? '',
                     'password_set' => isset($settings['smtp.pass']) && $settings['smtp.pass'] !== '',
+                    'verify_peer'  => ($settings['smtp.verify_peer'] ?? '1') !== '0',
                 ]));
                 return $response->withStatus(200)->withHeader('Content-Type', 'application/json');
             })->add(AuthZMiddleware::admin($responseFactory));
@@ -771,6 +772,7 @@ final class AppFactory
                 $fromEmail  = trim((string) ($fields['from_email'] ?? ''));
                 $fromName   = trim((string) ($fields['from_name'] ?? 'Votepit'));
                 $password   = (string) ($fields['password'] ?? '');
+                $verifyPeer = isset($fields['verify_peer']) ? (bool) $fields['verify_peer'] : true;
 
                 // Validation.
                 $errors = [];
@@ -800,7 +802,7 @@ final class AppFactory
 
                 $encryptedPass = $password !== '' ? $encryptionSvc->encrypt($password) : null;
 
-                $smtpSettingsRepo->save($host, $port, $user, $encryption, $fromEmail, $fromName, $encryptedPass);
+                $smtpSettingsRepo->save($host, $port, $user, $encryption, $fromEmail, $fromName, $encryptedPass, $verifyPeer);
                 $audit->log('smtp.settings_updated', []);
 
                 $response->getBody()->write((string) json_encode(['ok' => true]));
@@ -924,6 +926,7 @@ final class AppFactory
                     'from_name'           => $row !== null ? (string) ($row['from_name'] ?? '') : '',
                     'password_set'        => $row !== null && ($row['pass'] ?? '') !== '',
                     'uses_global_default' => $row === null,
+                    'verify_peer'         => $row !== null ? (bool) ($row['verify_peer'] ?? true) : true,
                 ]));
                 return $response->withStatus(200)->withHeader('Content-Type', 'application/json');
             })->add(AuthZMiddleware::admin($responseFactory));
@@ -962,6 +965,7 @@ final class AppFactory
                 $fromEmail  = trim((string) ($fields['from_email'] ?? ''));
                 $fromName   = trim((string) ($fields['from_name'] ?? 'Votepit'));
                 $password   = (string) ($fields['password'] ?? '');
+                $verifyPeer = isset($fields['verify_peer']) ? (bool) $fields['verify_peer'] : true;
 
                 $errors = [];
                 if ($host === '') {
@@ -990,7 +994,7 @@ final class AppFactory
 
                 $encryptedPass = $password !== '' ? $encryptionSvc->encrypt($password) : null;
 
-                $boardSmtpRepo->save($boardId, $host, $port, $user, $encryption, $fromEmail, $fromName, $encryptedPass);
+                $boardSmtpRepo->save($boardId, $host, $port, $user, $encryption, $fromEmail, $fromName, $encryptedPass, $verifyPeer);
                 $audit->log('board.smtp_updated', ['board_id' => $boardId]);
 
                 $response->getBody()->write((string) json_encode(['ok' => true]));

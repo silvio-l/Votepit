@@ -105,6 +105,7 @@ export default function AdminPage() {
   const [smtpFromName, setSmtpFromName] = useState('')
   const [smtpPassword, setSmtpPassword] = useState('')
   const [smtpPasswordSet, setSmtpPasswordSet] = useState(false)
+  const [smtpVerifyPeer, setSmtpVerifyPeer] = useState(true)
   const [smtpUsesGlobalDefault, setSmtpUsesGlobalDefault] = useState(true)
   const [smtpErrors, setSmtpErrors] = useState<Record<string, string>>({})
   const [smtpGeneralError, setSmtpGeneralError] = useState<string | null>(null)
@@ -162,6 +163,7 @@ export default function AdminPage() {
         setSmtpFromEmail(smtpSettings.from_email)
         setSmtpFromName(smtpSettings.from_name)
         setSmtpPasswordSet(smtpSettings.password_set)
+        setSmtpVerifyPeer(smtpSettings.verify_peer)
         setSmtpUsesGlobalDefault(smtpSettings.uses_global_default)
         setPageState({ phase: 'ready', boardName: branding.board_name })
       } catch (err) {
@@ -344,6 +346,7 @@ export default function AdminPage() {
         from_email: smtpFromEmail,
         from_name: smtpFromName,
         password: smtpPassword,
+        verify_peer: smtpVerifyPeer,
       })
       setSmtpSuccess(true)
       setSmtpUsesGlobalDefault(false)
@@ -382,6 +385,7 @@ export default function AdminPage() {
       setSmtpFromName('')
       setSmtpPasswordSet(false)
       setSmtpPassword('')
+      setSmtpVerifyPeer(true)
       setSmtpSuccess(true)
     } catch (err) {
       const apiErr = err as ApiError
@@ -877,6 +881,31 @@ export default function AdminPage() {
               disabled={smtpSaving}
               autoComplete="new-password"
             />
+
+            <label className="flex items-start gap-3 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                id="smtp-verify-peer"
+                name="smtp_verify_peer"
+                checked={!smtpVerifyPeer}
+                onChange={(e) => setSmtpVerifyPeer(!e.target.checked)}
+                disabled={smtpSaving}
+                className="mt-0.5 h-4 w-4 rounded border border-vp-border-subtle accent-vp-accent focus:outline-none focus:ring-2 focus:ring-vp-accent/40 disabled:opacity-50"
+                aria-describedby="smtp-verify-peer-hint"
+              />
+              <span className="flex flex-col gap-0.5">
+                <span className="text-[14px] font-inter font-medium text-vp-ink">
+                  TLS-Zertifikat nicht prüfen
+                </span>
+                <span
+                  id="smtp-verify-peer-hint"
+                  className="text-[12px] font-inter text-vp-text-muted"
+                >
+                  Nur für Shared-Hoster mit Wildcard-Zertifikat aktivieren. Die Verbindung bleibt
+                  TLS-verschlüsselt — lediglich die Zertifikat-Namens-Prüfung entfällt.
+                </span>
+              </span>
+            </label>
 
             <AnimatePresence>
               {smtpGeneralError !== null && (

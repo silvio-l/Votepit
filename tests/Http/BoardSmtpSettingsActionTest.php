@@ -343,4 +343,67 @@ final class BoardSmtpSettingsActionTest extends IntegrationTestCase
         $data = json_decode((string) $response->getBody(), true);
         self::assertArrayHasKey('port', $data['error']['fields'] ?? []);
     }
+
+    // ── verify_peer Roundtrip ─────────────────────────────────────────────────
+
+    public function test_board_verify_peer_default_true_in_get_response(): void
+    {
+        $this->insertBoard('demo');
+        $adminId = $this->insertUser('admin11@example.com', ['is_admin' => 1]);
+        $app     = $this->createApp();
+
+        $app->handle($this->mutatingRequest('PUT', '/admin/boards/demo/smtp', $adminId, $this->validBoardSmtpBody()));
+        $response = $app->handle($this->getRequest('/admin/boards/demo/smtp', $adminId));
+
+        $data = json_decode((string) $response->getBody(), true);
+        self::assertArrayHasKey('verify_peer', $data);
+        self::assertTrue($data['verify_peer']);
+    }
+
+    public function test_board_verify_peer_false_is_stored_and_returned(): void
+    {
+        $boardId = $this->insertBoard('demo');
+        $adminId = $this->insertUser('admin12@example.com', ['is_admin' => 1]);
+        $app     = $this->createApp();
+
+        $body                = $this->validBoardSmtpBody();
+        $body['verify_peer'] = false;
+        $app->handle($this->mutatingRequest('PUT', '/admin/boards/demo/smtp', $adminId, $body));
+
+        // GET liefert verify_peer=false zurück.
+        $response = $app->handle($this->getRequest('/admin/boards/demo/smtp', $adminId));
+        $data     = json_decode((string) $response->getBody(), true);
+        self::assertFalse($data['verify_peer'] ?? true);
+
+        // Repo liefert SmtpConfig->verifyPeer === false.
+        $enc           = new EncryptionService(str_repeat('a', 64));
+        $boardSmtpRepo = new \Votepit\Persistence\BoardSmtpSettingsRepository($this->conn);
+        $smtpCfg       = $boardSmtpRepo->findAsSmtpConfig($boardId, $enc);
+        self::assertNotNull($smtpCfg);
+        self::assertFalse($smtpCfg->verifyPeer);
+    }
+
+    public function test_resolver_passes_verify_peer_false_through(): void
+    {
+        $boardId = $this->insertBoard('demo');
+        $adminId = $this->insertUser('admin13@example.com', ['is_admin' => 1]);
+        $app     = $this->createApp();
+
+        $body                = $this->validBoardSmtpBody();
+        $body['verify_peer'] = false;
+        $app->handle($this->mutatingRequest('PUT', '/admin/boards/demo/smtp', $adminId, $body));
+
+        $enc           = new EncryptionService(str_repeat('a', 64));
+        $globalRepo    = new \Votepit\Persistence\SmtpSettingsRepository($this->conn);
+        $boardSmtpRepo = new \Votepit\Persistence\BoardSmtpSettingsRepository($this->conn);
+        $resolver      = new \Votepit\Mail\SmtpConfigResolver(
+            $globalRepo,
+            $boardSmtpRepo,
+            $enc,
+            \Votepit\SmtpConfig::fromArray(['host' => 'fallback', 'from_email' => 'fb@example.com']),
+        );
+
+        $resolved = $resolver->resolve($boardId);
+        self::assertFalse($resolved->verifyPeer);
+    }
 }

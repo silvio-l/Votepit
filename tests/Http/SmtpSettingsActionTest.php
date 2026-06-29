@@ -280,4 +280,41 @@ final class SmtpSettingsActionTest extends IntegrationTestCase
         self::assertSame(587, $smtpCfg->port);
         self::assertSame('supersecret', $smtpCfg->pass);
     }
+
+    // ── verify_peer Roundtrip ─────────────────────────────────────────────────
+
+    public function test_verify_peer_default_true_in_get_response(): void
+    {
+        $adminId = $this->seedUser('admin11@example.com', true);
+        $app     = $this->createApp();
+
+        $app->handle($this->mutatingRequest('PUT', '/admin/smtp', $adminId, $this->validSmtpBody()));
+        $response = $app->handle($this->getRequest('/admin/smtp', $adminId));
+
+        $data = json_decode((string) $response->getBody(), true);
+        self::assertArrayHasKey('verify_peer', $data);
+        self::assertTrue($data['verify_peer']);
+    }
+
+    public function test_verify_peer_false_is_stored_and_returned(): void
+    {
+        $adminId = $this->seedUser('admin12@example.com', true);
+        $app     = $this->createApp();
+
+        $body                = $this->validSmtpBody();
+        $body['verify_peer'] = false;
+        $app->handle($this->mutatingRequest('PUT', '/admin/smtp', $adminId, $body));
+
+        // GET liefert verify_peer=false zurück.
+        $response = $app->handle($this->getRequest('/admin/smtp', $adminId));
+        $data     = json_decode((string) $response->getBody(), true);
+        self::assertFalse($data['verify_peer'] ?? true);
+
+        // Repo liefert SmtpConfig->verifyPeer === false.
+        $enc     = new EncryptionService(str_repeat('a', 64));
+        $repo    = new \Votepit\Persistence\SmtpSettingsRepository($this->conn);
+        $smtpCfg = $repo->findAsSmtpConfig($enc);
+        self::assertNotNull($smtpCfg);
+        self::assertFalse($smtpCfg->verifyPeer);
+    }
 }

@@ -29,7 +29,7 @@ final readonly class BoardSmtpSettingsRepository
     public function find(int $boardId): ?array
     {
         $row = $this->conn->fetchAssociative(
-            'SELECT host, port, user, pass, encryption, from_email, from_name
+            'SELECT host, port, user, pass, encryption, from_email, from_name, verify_peer
                FROM board_smtp_settings WHERE board_id = :board_id',
             ['board_id' => $boardId],
         );
@@ -58,13 +58,14 @@ final readonly class BoardSmtpSettingsRepository
 
         try {
             return SmtpConfig::fromArray([
-                'host'       => (string) ($row['host'] ?? ''),
-                'port'       => (int) ($row['port'] ?? 587),
-                'user'       => (string) ($row['user'] ?? ''),
-                'pass'       => $pass,
-                'encryption' => (string) ($row['encryption'] ?? 'tls'),
-                'from_email' => (string) ($row['from_email'] ?? ''),
-                'from_name'  => (string) ($row['from_name'] ?? 'Votepit'),
+                'host'        => (string) ($row['host'] ?? ''),
+                'port'        => (int) ($row['port'] ?? 587),
+                'user'        => (string) ($row['user'] ?? ''),
+                'pass'        => $pass,
+                'encryption'  => (string) ($row['encryption'] ?? 'tls'),
+                'from_email'  => (string) ($row['from_email'] ?? ''),
+                'from_name'   => (string) ($row['from_name'] ?? 'Votepit'),
+                'verify_peer' => (bool) ($row['verify_peer'] ?? true),
             ]);
         } catch (\Votepit\ConfigException) {
             return null;
@@ -85,6 +86,7 @@ final readonly class BoardSmtpSettingsRepository
         string $fromEmail,
         string $fromName,
         ?string $encryptedPass,
+        bool $verifyPeer = true,
     ): void {
         $existing = $this->conn->fetchOne(
             'SELECT id FROM board_smtp_settings WHERE board_id = :board_id',
@@ -94,13 +96,14 @@ final readonly class BoardSmtpSettingsRepository
         if ($existing === false) {
             // INSERT
             $data = [
-                'board_id'   => $boardId,
-                'host'       => $host,
-                'port'       => $port,
-                'user'       => $user,
-                'encryption' => $encryption,
-                'from_email' => $fromEmail,
-                'from_name'  => $fromName,
+                'board_id'    => $boardId,
+                'host'        => $host,
+                'port'        => $port,
+                'user'        => $user,
+                'encryption'  => $encryption,
+                'from_email'  => $fromEmail,
+                'from_name'   => $fromName,
+                'verify_peer' => $verifyPeer ? 1 : 0,
             ];
             if ($encryptedPass !== null) {
                 $data['pass'] = $encryptedPass;
@@ -109,12 +112,13 @@ final readonly class BoardSmtpSettingsRepository
         } else {
             // UPDATE
             $data = [
-                'host'       => $host,
-                'port'       => $port,
-                'user'       => $user,
-                'encryption' => $encryption,
-                'from_email' => $fromEmail,
-                'from_name'  => $fromName,
+                'host'        => $host,
+                'port'        => $port,
+                'user'        => $user,
+                'encryption'  => $encryption,
+                'from_email'  => $fromEmail,
+                'from_name'   => $fromName,
+                'verify_peer' => $verifyPeer ? 1 : 0,
             ];
             if ($encryptedPass !== null) {
                 $data['pass'] = $encryptedPass;

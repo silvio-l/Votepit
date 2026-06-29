@@ -69,13 +69,14 @@ final readonly class SmtpSettingsRepository
 
         try {
             return SmtpConfig::fromArray([
-                'host'       => $settings['smtp.host'] ?? '',
-                'port'       => (int) ($settings['smtp.port'] ?? 587),
-                'user'       => $settings['smtp.user'] ?? '',
-                'pass'       => $pass,
-                'encryption' => $settings['smtp.encryption'] ?? 'tls',
-                'from_email' => $settings['smtp.from_email'] ?? '',
-                'from_name'  => $settings['smtp.from_name'] ?? 'Votepit',
+                'host'        => $settings['smtp.host'] ?? '',
+                'port'        => (int) ($settings['smtp.port'] ?? 587),
+                'user'        => $settings['smtp.user'] ?? '',
+                'pass'        => $pass,
+                'encryption'  => $settings['smtp.encryption'] ?? 'tls',
+                'from_email'  => $settings['smtp.from_email'] ?? '',
+                'from_name'   => $settings['smtp.from_name'] ?? 'Votepit',
+                'verify_peer' => ($settings['smtp.verify_peer'] ?? '1') !== '0',
             ]);
         } catch (\Votepit\ConfigException) {
             return null; // Ungültige from_email in DB → Fallback auf config.php
@@ -95,14 +96,16 @@ final readonly class SmtpSettingsRepository
         string $fromEmail,
         string $fromName,
         ?string $encryptedPass,
+        bool $verifyPeer = true,
     ): void {
         $fields = [
-            'smtp.host'       => $host,
-            'smtp.port'       => (string) $port,
-            'smtp.user'       => $user,
-            'smtp.encryption' => $encryption,
-            'smtp.from_email' => $fromEmail,
-            'smtp.from_name'  => $fromName,
+            'smtp.host'        => $host,
+            'smtp.port'        => (string) $port,
+            'smtp.user'        => $user,
+            'smtp.encryption'  => $encryption,
+            'smtp.from_email'  => $fromEmail,
+            'smtp.from_name'   => $fromName,
+            'smtp.verify_peer' => $verifyPeer ? '1' : '0',
         ];
 
         if ($encryptedPass !== null) {

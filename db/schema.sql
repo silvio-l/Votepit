@@ -162,6 +162,9 @@ CREATE TABLE IF NOT EXISTS board_smtp_settings (
     encryption  VARCHAR(8)      NOT NULL DEFAULT 'tls',
     from_email  VARCHAR(254)    NOT NULL DEFAULT '',
     from_name   VARCHAR(128)    NOT NULL DEFAULT 'Votepit',
+    -- TLS-Peer-Verifikation (Default 1 = an). Bei Shared-Hostern mit Wildcard-Zertifikat
+    -- auf 0 setzen: Verbindung bleibt TLS-verschlüsselt, nur der CN-Check entfällt.
+    verify_peer TINYINT(1)      NOT NULL DEFAULT 1,
     created_at  DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at  DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
