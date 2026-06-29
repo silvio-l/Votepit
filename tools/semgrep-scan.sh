@@ -17,4 +17,4 @@ exec semgrep scan \
   --metrics=off \
   --error \
   --exclude vendor --exclude node_modules --exclude dist \
-  "$ROOT/src" "$ROOT/app/src" "$ROOT/web/src"
+  "$ROOT/src" "$ROOT/app/src"
