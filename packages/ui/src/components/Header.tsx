@@ -71,6 +71,12 @@ export function Header({
         {/* Right: nav + CTA */}
         <nav className="flex items-center gap-6" aria-label="Hauptnavigation">
           <a
+            href={basePath || '/'}
+            className="text-[14px] text-vp-text-secondary hover:text-vp-ink transition-colors"
+          >
+            Board
+          </a>
+          <a
             href={`${basePath}/roadmap`}
             className="text-[14px] text-vp-text-secondary hover:text-vp-ink transition-colors"
           >
