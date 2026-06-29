@@ -56,7 +56,7 @@ export function Header({
   onLogoutClick,
 }: HeaderProps) {
   return (
-    <header className="sticky top-0 z-50 w-full bg-vp-surface-frost backdrop-blur-xl border-b border-vp-border-subtle">
+    <header className="sticky top-0 z-50 w-full bg-white/25 backdrop-blur-2xl backdrop-saturate-150 border-b border-vp-border-frost">
       <div className="vp-container flex items-center justify-between h-[71px]">
         {/* Left: logo */}
         <VotepitLogo href={logoHref} />
