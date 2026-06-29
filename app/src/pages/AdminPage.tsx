@@ -425,7 +425,7 @@ export default function AdminPage() {
       logoHref="/"
       isAuthenticated={isAuthenticated}
       onLogoutClick={handleLogout}
-      onLoginClick={() => navigate('/login')}
+      onLoginClick={() => navigate(`/login?r=${encodeURIComponent(`/${boardSlug}`)}`)}
     />
   )
 

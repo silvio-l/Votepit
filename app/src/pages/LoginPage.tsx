@@ -20,10 +20,24 @@ type PageState =
   | { phase: 'sent' }
   | { phase: 'error'; message: string }
 
+/**
+ * Festes, kontextbezogenes Zurück-Ziel: IMMER die Board-Pinnwand — nie Browser-
+ * History. Aus returnTo den Board-Home ableiten:
+ *   /demo → /demo · /demo/idea/5 → /demo · /admin/boards/demo → /demo
+ */
+function deriveBoardHome(returnTo?: string): string {
+  if (!returnTo) return '/'
+  const parts = returnTo.replace(/^\/+/, '').split('/')
+  if (parts[0] === 'admin' && parts[1] === 'boards' && parts[2]) return `/${parts[2]}`
+  if (parts[0] && parts[0] !== 'login') return `/${parts[0]}`
+  return '/'
+}
+
 export default function LoginPage() {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   const returnTo = searchParams.get('r') ?? undefined
+  const boardHome = deriveBoardHome(returnTo)
 
   const [email, setEmail] = useState('')
   const [state, setState] = useState<PageState>({ phase: 'idle' })
@@ -54,17 +68,14 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen font-inter flex items-center justify-center px-4">
-      <div
-        className="w-full max-w-sm p-8 bg-vp-surface backdrop-blur-xl rounded-vp-xl border border-vp-border-subtle"
-        style={{ boxShadow: '0 8px 32px rgba(0,0,0,0.08)' }}
-      >
-        {/* Back to wherever the user came from (board / main interface) */}
+      <div className="w-full max-w-sm p-8 bg-vp-surface backdrop-blur-xl backdrop-saturate-[1.2] rounded-vp-xl border border-vp-border-frost shadow-vp-soft">
+        {/* Festes Ziel: immer zurück zur Board-Pinnwand (nie Browser-History) */}
         <button
           type="button"
-          onClick={() => (returnTo ? navigate(returnTo) : navigate(-1))}
+          onClick={() => navigate(boardHome)}
           className="inline-flex items-center gap-1 text-[13px] text-vp-text-muted hover:text-vp-ink transition-colors mb-4 cursor-pointer"
         >
-          <span aria-hidden="true">‹</span> Zurück
+          <span aria-hidden="true">‹</span> Zurück zur Pinnwand
         </button>
 
         {/* Logo: hex icon + wordmark (matches Header brand mark) */}

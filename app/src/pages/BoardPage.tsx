@@ -200,7 +200,9 @@ export default function BoardPage() {
             logoHref="/"
             loginLabel={loginLabel}
             isAuthenticated={isAuthenticated}
-            onLoginClick={() => navigate('/login')}
+            onLoginClick={() =>
+              navigate(boardSlug ? `/login?r=${encodeURIComponent(`/${boardSlug}`)}` : '/login')
+            }
             onLogoutClick={handleLogout}
           />
         }
@@ -224,7 +226,9 @@ export default function BoardPage() {
             logoHref="/"
             loginLabel={loginLabel}
             isAuthenticated={isAuthenticated}
-            onLoginClick={() => navigate('/login')}
+            onLoginClick={() =>
+              navigate(boardSlug ? `/login?r=${encodeURIComponent(`/${boardSlug}`)}` : '/login')
+            }
             onLogoutClick={handleLogout}
           />
         }

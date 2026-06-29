@@ -43,10 +43,7 @@ export default function VerifyPage() {
 
   return (
     <div className="min-h-screen font-inter flex items-center justify-center px-4">
-      <div
-        className="w-full max-w-sm p-8 bg-vp-surface backdrop-blur-xl rounded-vp-xl border border-vp-border-subtle text-center"
-        style={{ boxShadow: '0 8px 32px rgba(0,0,0,0.08)' }}
-      >
+      <div className="w-full max-w-sm p-8 bg-vp-surface backdrop-blur-xl backdrop-saturate-[1.2] rounded-vp-xl border border-vp-border-frost shadow-vp-soft text-center">
         {/* Logo / wordmark */}
         <div className="mb-6">
           <span
