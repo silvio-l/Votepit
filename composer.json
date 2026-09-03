@@ -1,0 +1,66 @@
+{
+    "name": "silvio-l/votepit",
+    "description": "Self-hosted feature voting board with up-/down-votes for classic PHP/MySQL shared hosting — no Docker, multi-board, magic-link auth.",
+    "version": "0.1.0",
+    "type": "project",
+    "license": "MIT",
+    "keywords": ["feedback", "feature-voting", "upvote", "downvote", "self-hosted", "php", "mysql"],
+    "require": {
+        "php": ">=8.2",
+        "ext-curl": "*",
+        "ext-gd": "*",
+        "ext-intl": "*",
+        "ext-mbstring": "*",
+        "ext-pdo": "*",
+        "doctrine/dbal": "^4.0",
+        "dompdf/dompdf": "^3.1",
+        "sentry/sentry": "^4.31",
+        "slim/psr7": "^1.6",
+        "slim/slim": "^4.13",
+        "symfony/mailer": "^7.0",
+        "symfony/validator": "^7.0"
+    },
+    "require-dev": {
+        "friendsofphp/php-cs-fixer": "^3.95",
+        "phpstan/extension-installer": "^1.4",
+        "phpstan/phpstan": "^2.2",
+        "phpstan/phpstan-phpunit": "^2.0",
+        "phpstan/phpstan-strict-rules": "^2.0",
+        "phpunit/phpunit": "^11.0",
+        "rector/rector": "^2.5"
+    },
+    "autoload": {
+        "psr-4": {
+            "Votepit\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Votepit\\Tests\\": "tests/"
+        }
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "sort-packages": true,
+        "platform": {
+            "php": "8.2"
+        },
+        "allow-plugins": {
+            "phpstan/extension-installer": true
+        }
+    },
+    "scripts": {
+        "test": "phpunit",
+        "stan": "phpstan analyse --memory-limit=512M",
+        "cs": "php-cs-fixer fix --dry-run --diff",
+        "cs:fix": "php-cs-fixer fix",
+        "rector": "rector process --dry-run",
+        "rector:fix": "rector process",
+        "qa": [
+            "@cs",
+            "@stan",
+            "@rector",
+            "@test"
+        ]
+    }
+}

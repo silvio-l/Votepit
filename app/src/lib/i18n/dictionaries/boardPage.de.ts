@@ -1,0 +1,31 @@
+export default {
+  timeAgoJustNow: 'gerade eben',
+  timeAgoMinutes: 'vor {count} Min.',
+  timeAgoHours: 'vor {count} Std.',
+  timeAgoDaySingular: 'vor {count} Tag',
+  timeAgoDayPlural: 'vor {count} Tagen',
+  timeAgoMonthSingular: 'vor {count} Monat',
+  timeAgoMonthPlural: 'vor {count} Monaten',
+  timeAgoYearSingular: 'vor {count} Jahr',
+  timeAgoYearPlural: 'vor {count} Jahren',
+  noBoardTitle: 'Noch kein Board eingerichtet',
+  noBoardConfigured:
+    'Sobald das erste Board angelegt ist, erscheinen hier die Ideen und ihre Stimmen.',
+  loadError: 'Wir konnten die Ideen gerade nicht laden. Bitte versuche es noch einmal.',
+  boardNotFound: 'Dieses Board gibt es nicht — vielleicht wurde es umbenannt oder entfernt.',
+  backHome: 'Zur Startseite',
+  loading: 'Wird geladen…',
+  boardNotFoundTitle: 'Board nicht gefunden',
+  loadErrorTitle: 'Ideen konnten nicht geladen werden',
+  newIdea: 'Neue Idee',
+  noIdeasForStatusTitle: 'Keine Ideen mit diesem Status',
+  noIdeasForStatusDescription:
+    'Für diesen Filter gibt es gerade nichts. Wähle einen anderen Status oder zeig alle Ideen.',
+  resetFilter: 'Alle Ideen zeigen',
+  noIdeasTitle: 'Noch keine Ideen',
+  noIdeasDescription:
+    'Hier ist noch nichts eingereicht. Mach den Anfang — die erste Idee bringt das Board in Gang.',
+  submitFirstIdea: 'Erste Idee einreichen',
+  ideasAriaLabel: 'Ideen',
+  poweredBy: 'Powered by Votepit',
+}

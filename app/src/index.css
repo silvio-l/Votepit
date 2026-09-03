@@ -1,0 +1,35 @@
+@import "tailwindcss";
+@import "@votepit/ui/tokens.css";
+
+/* Scan the shared component library for utility classes, too. */
+@source "../../packages/ui/src";
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    margin: 0;
+    /* The desk: a flat, pale ground. Sheets are white on top of it. */
+    background: var(--color-vp-bg);
+    color: var(--color-vp-ink);
+    font-family: var(--font-inter);
+    font-size: var(--text-vp-base);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* In-text links: the tenant accent, always underlined (never colour alone). */
+  a {
+    color: inherit;
+  }
+}
+
+/* Body copy submitted by users renders as plain text with preserved line
+   breaks — never as markup (tenant isolation, see CLAUDE.md). */
+.vp-prose {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

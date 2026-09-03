@@ -1,0 +1,352 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Votepit\Tests\Http;
+
+use Slim\Psr7\Factory\ServerRequestFactory;
+use Votepit\Mail\InMemoryMailer;
+use Votepit\Security\CsrfService;
+use Votepit\Security\IdentityHasher;
+use Votepit\Tests\Support\IntegrationTestCase;
+
+/**
+ * Integration tests for GET /login + POST /login.
+ *
+ * Boots via AppFactory::create($config, $conn, $mailer, $audit) with
+ * SQLite in-memory (IntegrationTestCase) and InMemoryMailer. No real
+ * SMTP sending, no MySQL process.
+ *
+ * CSRF token: the CsrfService instance is built with the same app_key
+ * as AppFactory internally — so tests can produce valid cookie+field pairs.
+ */
+final class LoginActionTest extends IntegrationTestCase
+{
+    private function csrf(): CsrfService
+    {
+        return new CsrfService(str_repeat('a', 64), 3600, false);
+    }
+
+    private function emailHmac(string $email): string
+    {
+        return (new IdentityHasher(self::identityServerKey()))->hash($email);
+    }
+
+    /** Builds a POST request with a valid CSRF cookie and field. */
+    private function postLogin(string $email, ?string $returnTo = null): \Psr\Http\Message\ServerRequestInterface
+    {
+        $csrf   = $this->csrf();
+        $token  = $csrf->generate();
+        $signed = $csrf->sign($token);
+
+        $body = ['email' => $email, '_csrf' => $token];
+        if ($returnTo !== null) {
+            $body['r'] = $returnTo;
+        }
+
+        return (new ServerRequestFactory())->createServerRequest('POST', '/login')
+            ->withCookieParams([$csrf->cookieName() => $signed])
+            ->withParsedBody($body);
+    }
+
+    // -------------------------------------------------------------------------
+    // AC1: GET /login → 200 + form with CSRF token
+    // -------------------------------------------------------------------------
+
+    public function test_get_login_returns_200_with_form_and_csrf_field(): void
+    {
+        $app      = $this->createApp();
+        $request  = (new ServerRequestFactory())->createServerRequest('GET', '/login');
+        $response = $app->handle($request);
+
+        self::assertSame(200, $response->getStatusCode());
+        self::assertStringContainsString('application/json', $response->getHeaderLine('Content-Type'));
+
+        // JSON API: the SPA fetches the CSRF token via /api/bootstrap; GET /login only returns ok + return_to
+        $data = json_decode((string) $response->getBody(), true);
+        self::assertIsArray($data);
+        self::assertTrue($data['ok'] ?? false);
+    }
+
+    // -------------------------------------------------------------------------
+    // AC2: POST /login with a valid email → 1 user + 1 hashed token + 1 mail
+    // -------------------------------------------------------------------------
+
+    public function test_post_login_creates_user_token_and_sends_mail(): void
+    {
+        $mailer = new InMemoryMailer();
+        $app    = $this->createApp($mailer);
+        $email  = 'new@example.com';
+
+        $response = $app->handle($this->postLogin($email));
+
+        self::assertSame(200, $response->getStatusCode());
+
+        // 1 user in DB
+        $user = $this->conn->fetchAssociative(
+            'SELECT * FROM users WHERE email_hmac = :email_hmac',
+            ['email_hmac' => $this->emailHmac($email)],
+        );
+        self::assertIsArray($user);
+        self::assertSame($this->emailHmac($email), $user['email_hmac']);
+
+        // 1 token record
+        $tokens = $this->conn->fetchAllAssociative(
+            'SELECT * FROM login_tokens WHERE user_id = :id',
+            ['id' => $user['id']],
+        );
+        self::assertCount(1, $tokens);
+        self::assertNull($tokens[0]['used_at']);
+
+        // Exactly 1 mail — multipart: plaintext + branded HTML, both with the verify link
+        self::assertCount(1, $mailer->sent);
+        self::assertSame($email, $mailer->sent[0]['to']);
+        self::assertStringContainsString('/login/verify?token=', $mailer->sent[0]['body']);
+        self::assertIsString($mailer->sent[0]['html']);
+        self::assertStringContainsString('/login/verify?token=', $mailer->sent[0]['html']);
+        self::assertStringContainsString('The link is valid for 15 minutes.', $mailer->sent[0]['html']);
+    }
+
+    // -------------------------------------------------------------------------
+    // AC3: unknown + known address → identical response (anti-enumeration)
+    // -------------------------------------------------------------------------
+
+    public function test_unknown_and_known_address_produce_identical_response(): void
+    {
+        $mailer = new InMemoryMailer();
+        $app    = $this->createApp($mailer);
+
+        $responseUnknown = $app->handle($this->postLogin('unknown@example.com'));
+        $responseKnown   = $app->handle($this->postLogin('unknown@example.com')); // 2nd call = known
+
+        // Both 200
+        self::assertSame(200, $responseUnknown->getStatusCode());
+        self::assertSame(200, $responseKnown->getStatusCode());
+
+        // Identical body (same neutral confirmation page)
+        self::assertSame(
+            (string) $responseUnknown->getBody(),
+            (string) $responseKnown->getBody(),
+        );
+    }
+
+    // -------------------------------------------------------------------------
+    // AC4: invalid email syntax → no mail sent, neutral 200
+    // -------------------------------------------------------------------------
+
+    public function test_invalid_email_syntax_sends_no_mail_and_returns_200(): void
+    {
+        $mailer = new InMemoryMailer();
+        $app    = $this->createApp($mailer);
+
+        $response = $app->handle($this->postLogin('not-an-email'));
+
+        self::assertSame(200, $response->getStatusCode());
+        self::assertCount(0, $mailer->sent);
+
+        // No user created
+        $count = $this->conn->fetchOne('SELECT COUNT(*) FROM users');
+        self::assertSame(0, (int) $count);
+    }
+
+    // -------------------------------------------------------------------------
+    // AC5: repeated request from the same user → previous open tokens get deleted
+    // -------------------------------------------------------------------------
+
+    public function test_repeated_request_invalidates_previous_open_tokens(): void
+    {
+        $mailer = new InMemoryMailer();
+        $app    = $this->createApp($mailer);
+        $email  = 'repeat@example.com';
+
+        // First request
+        $app->handle($this->postLogin($email));
+
+        $user = $this->conn->fetchAssociative(
+            'SELECT id FROM users WHERE email_hmac = :email_hmac',
+            ['email_hmac' => $this->emailHmac($email)],
+        );
+        self::assertIsArray($user);
+
+        $countAfterFirst = (int) $this->conn->fetchOne(
+            'SELECT COUNT(*) FROM login_tokens WHERE user_id = :id AND used_at IS NULL',
+            ['id' => $user['id']],
+        );
+        self::assertSame(1, $countAfterFirst);
+
+        // Second request — must delete the previous token
+        $app->handle($this->postLogin($email));
+
+        $countAfterSecond = (int) $this->conn->fetchOne(
+            'SELECT COUNT(*) FROM login_tokens WHERE user_id = :id AND used_at IS NULL',
+            ['id' => $user['id']],
+        );
+        self::assertSame(1, $countAfterSecond); // still exactly 1, not 2
+    }
+
+    // -------------------------------------------------------------------------
+    // AC6: POST without a valid CSRF token → 403
+    // -------------------------------------------------------------------------
+
+    public function test_post_without_csrf_token_returns_403(): void
+    {
+        $app      = $this->createApp();
+        $request  = (new ServerRequestFactory())->createServerRequest('POST', '/login')
+            ->withParsedBody(['email' => 'foo@example.com']);
+
+        $response = $app->handle($request);
+
+        self::assertSame(403, $response->getStatusCode());
+    }
+
+    // -------------------------------------------------------------------------
+    // AC7: only a hash in the DB; no plaintext token in the log; no plaintext email in the log
+    // -------------------------------------------------------------------------
+
+    public function test_db_stores_hash_not_plaintext_and_log_is_clean(): void
+    {
+        $mailer = new InMemoryMailer();
+        $app    = $this->createApp($mailer);
+        $email  = 'audit@example.com';
+
+        $app->handle($this->postLogin($email));
+
+        // Extract the plaintext token from the sent link
+        $mail = $mailer->lastSent();
+        self::assertNotNull($mail);
+        self::assertStringContainsString('/login/verify?token=', $mail['body']);
+
+        preg_match('/token=([a-f0-9]{64})/', $mail['body'], $m);
+        self::assertArrayHasKey(1, $m, 'No token found in the mail body');
+        $plaintext = $m[1];
+
+        // DB: token_hash = sha256(plaintext), NOT the plaintext itself
+        $user = $this->conn->fetchAssociative(
+            'SELECT id FROM users WHERE email_hmac = :email_hmac',
+            ['email_hmac' => $this->emailHmac($email)],
+        );
+        self::assertIsArray($user);
+
+        $tokenRow = $this->conn->fetchAssociative(
+            'SELECT token_hash FROM login_tokens WHERE user_id = :id',
+            ['id' => $user['id']],
+        );
+        self::assertIsArray($tokenRow);
+
+        $expectedHash = hash('sha256', $plaintext);
+        self::assertSame($expectedHash, $tokenRow['token_hash']);
+        self::assertNotSame($plaintext, $tokenRow['token_hash']); // hash != plaintext
+
+        // Audit log: no plaintext token, no plaintext email — only the
+        // pseudonymized email_hmac (ADR 0002).
+        $logContent = $this->readAuditLog();
+        self::assertStringNotContainsString($plaintext, $logContent);
+        self::assertStringContainsString('magic_link.requested', $logContent);
+        self::assertStringNotContainsString($email, $logContent);
+        self::assertStringContainsString($this->emailHmac($email), $logContent);
+    }
+
+    // -------------------------------------------------------------------------
+    // AC8: mailer is injectable (InMemoryMailer, no real SMTP)
+    // -------------------------------------------------------------------------
+
+    public function test_mailer_is_injectable_no_real_smtp(): void
+    {
+        $mailer = new InMemoryMailer();
+        $app    = $this->createApp($mailer);
+
+        $app->handle($this->postLogin('inject@example.com'));
+
+        // InMemoryMailer received the mail (no network call)
+        self::assertCount(1, $mailer->sent);
+        self::assertStringContainsString('inject@example.com', $mailer->sent[0]['to']);
+    }
+
+    // -------------------------------------------------------------------------
+    // Return-To (open-redirect-safe deep linking)
+    // -------------------------------------------------------------------------
+
+    public function test_valid_return_to_is_embedded_in_magic_link(): void
+    {
+        $mailer = new InMemoryMailer();
+        $app    = $this->createApp($mailer);
+
+        $app->handle($this->postLogin('deeplink@example.com', '/some/board/path'));
+
+        $mail = $mailer->lastSent();
+        self::assertNotNull($mail);
+        // The link must contain the URL-encoded return-to path.
+        self::assertStringContainsString('&r=', $mail['body']);
+        self::assertStringContainsString(rawurlencode('/some/board/path'), $mail['body']);
+    }
+
+    public function test_protocol_relative_return_to_is_not_embedded(): void
+    {
+        $mailer = new InMemoryMailer();
+        $app    = $this->createApp($mailer);
+
+        $app->handle($this->postLogin('evil@example.com', '//evil.com'));
+
+        $mail = $mailer->lastSent();
+        self::assertNotNull($mail);
+        // Invalid return-to must NOT appear in the link.
+        self::assertStringNotContainsString('evil.com', $mail['body']);
+        self::assertStringNotContainsString('&r=', $mail['body']);
+    }
+
+    public function test_absolute_url_return_to_is_not_embedded(): void
+    {
+        $mailer = new InMemoryMailer();
+        $app    = $this->createApp($mailer);
+
+        $app->handle($this->postLogin('abs@example.com', 'https://evil.com'));
+
+        $mail = $mailer->lastSent();
+        self::assertNotNull($mail);
+        self::assertStringNotContainsString('evil.com', $mail['body']);
+        self::assertStringNotContainsString('&r=', $mail['body']);
+    }
+
+    public function test_missing_return_to_produces_no_r_param_in_link(): void
+    {
+        $mailer = new InMemoryMailer();
+        $app    = $this->createApp($mailer);
+
+        $app->handle($this->postLogin('nort@example.com'));
+
+        $mail = $mailer->lastSent();
+        self::assertNotNull($mail);
+        self::assertStringNotContainsString('&r=', $mail['body']);
+    }
+
+    public function test_get_login_with_valid_r_renders_hidden_field(): void
+    {
+        $app     = $this->createApp();
+        $request = (new ServerRequestFactory())->createServerRequest('GET', '/login')
+            ->withQueryParams(['r' => '/some/board/path']);
+
+        $response = $app->handle($request);
+
+        self::assertSame(200, $response->getStatusCode());
+        // Validated return_to path is returned in the JSON (SPA reads it out)
+        $data = json_decode((string) $response->getBody(), true);
+        self::assertIsArray($data);
+        self::assertSame('/some/board/path', $data['return_to'] ?? null);
+    }
+
+    public function test_get_login_with_invalid_r_does_not_render_hidden_field(): void
+    {
+        $app     = $this->createApp();
+        $request = (new ServerRequestFactory())->createServerRequest('GET', '/login')
+            ->withQueryParams(['r' => '//evil.com']);
+
+        $response = $app->handle($request);
+
+        self::assertSame(200, $response->getStatusCode());
+        // Invalid return-to must NOT appear in the JSON
+        $data = json_decode((string) $response->getBody(), true);
+        self::assertIsArray($data);
+        self::assertSame('', $data['return_to'] ?? null);
+        self::assertStringNotContainsString('evil.com', (string) $response->getBody());
+    }
+}

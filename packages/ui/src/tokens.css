@@ -1,0 +1,650 @@
+/* @votepit/ui shared design tokens — single source for app/ + web/.
+
+   DIRECTION CONTRACT (core/app, Operate mode)
+   THESIS: A Votepit board is a returning officer's result sheet — every idea
+   is a ballot line with a FOR box and an AGAINST box, and the tally is
+   declared in the margin. The 2026 app evolves that sheet into a working
+   desk: layered paper (desk → sheet → raised card → overlay), one ink
+   colour for structure, one tenant accent for direction, and the two
+   ballot marks (green check = for, coral cross = against) as the only
+   saturated colour the product itself owns.
+   OWN-WORLD: warm-grey desk, paper-white sheets with a hairline ring and a
+   whisper of shadow, ink text with tight tracking on headings, Inter for
+   everything, Archivo only for display titles, tabular JetBrains Mono for
+   every count. Motion is purposeful: things arrive (rise/fade), stamp
+   (marks, tallies) or settle (hover lift) — nothing loops, nothing glows.
+   STORY: open the desk, find the sheet in the sidebar, read the count,
+   mark the box, see the tally move.
+   FORM: app shell (sidebar + top bar) for operate mode, single sheet for
+   auth, ruled list-as-result-sheet for the public board.
+
+   web/ depends on: the @font-face blocks, the :root hooks, and the
+   --color-vp-vote-… and --color-vp-status-… token NAMES. Those are stable. */
+
+/* ============================================================
+   @font-face — self-hosted fonts
+   Files copied from fontsource packages, served from /assets/fonts/
+   No external font requests at runtime.
+   ============================================================ */
+
+@font-face {
+  font-family: "Archivo";
+  src: url("/assets/fonts/archivo-latin-600-normal.woff2") format("woff2");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Archivo";
+  src: url("/assets/fonts/archivo-latin-700-normal.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Archivo";
+  src: url("/assets/fonts/archivo-latin-800-normal.woff2") format("woff2");
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Inter";
+  src: url("/assets/fonts/inter-latin-400-normal.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Inter";
+  src: url("/assets/fonts/inter-latin-500-normal.woff2") format("woff2");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Inter";
+  src: url("/assets/fonts/inter-latin-600-normal.woff2") format("woff2");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "JetBrains Mono";
+  src: url("/assets/fonts/jetbrains-mono-latin-600-normal.woff2") format("woff2");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "JetBrains Mono";
+  src: url("/assets/fonts/jetbrains-mono-latin-700-normal.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ============================================================
+   Per-board branding hooks
+   These CSS vars are the ONLY things that may change per board.
+   A board can inject: <style>:root { --vp-primary: #... }</style>
+   Semantic tokens (vote/status colours) are intentionally NOT here —
+   they must stay stable so For/Against meaning is always readable.
+   ============================================================ */
+:root {
+  --vp-primary: #1fa890; /* board accent — default teal */
+  --vp-ink: #15161a; /* brand ink (logo, primary CTAs) */
+  --vp-on-ink: #ffffff; /* text on ink/primary buttons */
+  --vp-bg: #f6f6f3; /* page background (web/ overrides) */
+  --vp-radius: 8px; /* sheet radius (--radius-vp-lg) */
+}
+
+/* ============================================================
+   Tailwind v4 @theme — design tokens mapped to Tailwind utilities.
+
+   SEPARATION RULE:
+     Brand tokens    → reference --vp-* hooks → board-overridable
+     Semantic tokens → hardcoded values       → NEVER overridable per board
+   ============================================================ */
+@theme {
+  /* Fonts — Inter is the workhorse, Archivo only for display titles,
+     JetBrains Mono only for counts (tabular). */
+  --font-archivo: "Archivo", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-inter: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  /* Fixed rem type scale, ratio ≈ 1.2 (11 / 12 / 13 / 14 / 15 / 17 / 20 / 24 / 30 / 36) */
+  --text-vp-2xs: 0.6875rem;
+  --text-vp-2xs--line-height: 0.875rem;
+  --text-vp-xs: 0.75rem;
+  --text-vp-xs--line-height: 1rem;
+  --text-vp-sm: 0.8125rem;
+  --text-vp-sm--line-height: 1.25rem;
+  --text-vp-base: 0.875rem;
+  --text-vp-base--line-height: 1.375rem;
+  --text-vp-md: 0.9375rem;
+  --text-vp-md--line-height: 1.5rem;
+  --text-vp-lg: 1.0625rem;
+  --text-vp-lg--line-height: 1.5rem;
+  --text-vp-xl: 1.25rem;
+  --text-vp-xl--line-height: 1.625rem;
+  --text-vp-2xl: 1.5rem;
+  --text-vp-2xl--line-height: 1.875rem;
+  --text-vp-3xl: 1.875rem;
+  --text-vp-3xl--line-height: 2.25rem;
+  --text-vp-4xl: 2.25rem;
+  --text-vp-4xl--line-height: 2.5rem;
+
+  /* ── Brand tokens (board-overridable via --vp-* hooks above) ────── */
+  --color-vp-ink: var(--vp-ink); /* brand ink / primary CTA bg */
+  --color-vp-ink-2: #2b2d33; /* ink hover */
+  --color-vp-ink-3: #3d4048; /* ink pressed / secondary dark surface */
+  --color-vp-ink-soft: rgba(21, 22, 26, 0.06); /* ink tint: active nav, pressed chips */
+  --color-vp-ink-softer: rgba(21, 22, 26, 0.035); /* ink tint: row hover */
+  --color-vp-accent: var(--vp-primary); /* board accent (coloured sheet edge) */
+  /* Text-safe accent: --vp-primary darkened 30% towards black so accent-
+     coloured TEXT (links) meets WCAG 1.4.3 ≥ 4.5:1 on the light surfaces.
+     Default teal resolves to #167665 (5.2:1 on --vp-bg, 5.6:1 on white). */
+  --color-vp-accent-strong: color-mix(in srgb, var(--vp-primary) 70%, #000000);
+  /* Accent tints — for focus rings, selected states and the one accent
+     "pill" the sidebar's active item may carry. Never a full CTA fill. */
+  --color-vp-accent-soft: color-mix(in srgb, var(--vp-primary) 12%, #ffffff);
+  --color-vp-accent-ring: color-mix(in srgb, var(--vp-primary) 35%, transparent);
+  --color-vp-on-ink: var(--vp-on-ink); /* text on ink/brand buttons */
+  --color-vp-on-ink-muted: rgba(255, 255, 255, 0.68); /* secondary text on ink */
+  --color-vp-rule-on-ink: rgba(255, 255, 255, 0.14); /* hairline on ink */
+  /* Edition mark (Cloud vs. Community wordmark suffix, Header.tsx) — fixed
+     like the vote colours below, NEVER board-overridable: it identifies the
+     Votepit edition itself, not a tenant's brand. Same hex as web/'s
+     --vp-cloud-ink (text-safe teal, ≥ 4.5:1 on white). */
+  --color-vp-cloud-ink: #107765;
+
+  /* ── Semantic: surfaces — desk ground, paper sheets, raised cards,
+     overlays and one sunken layer ──────────────────────────────────── */
+  --color-vp-bg: #f4f4f1; /* desk */
+  --color-vp-surface: #ffffff; /* sheet */
+  --color-vp-surface-raised: #ffffff; /* card that lifts (with --shadow-vp-xs) */
+  --color-vp-surface-overlay: #ffffff; /* menus, dialogs, toasts */
+  --color-vp-surface-frost: #f8f8f6; /* sunken: table heads, code, nav strip */
+  --color-vp-surface-sunken: #eeeeea; /* pressed / skeleton */
+  --color-vp-surface-ink: #15161a; /* dark panel (auth aside, empty-state art) */
+
+  /* ── Semantic: text & rules ──────────────────────────────────────── */
+  --color-vp-text-secondary: #565a62; /* 6.4:1 on --vp-bg (AA) */
+  --color-vp-text-muted: #6b707c; /* 4.6:1 on --vp-bg (AA) */
+  --color-vp-text-tertiary: #8b909b; /* large/decorative text only (3.1:1) */
+  --color-vp-border-subtle: #e6e6e1; /* hairline rule */
+  --color-vp-border-frost: #e6e6e1; /* legacy alias — same hairline */
+  --color-vp-border-strong: #cfd0ca; /* control borders at rest */
+  --color-vp-rule: rgba(21, 22, 26, 0.12); /* hairline on any ground */
+  --color-vp-rule-strong: var(--vp-ink); /* 2px sheet-head rule */
+
+  /* ── Semantic: voting & consensus — board branding MUST NOT touch ──
+     These encode meaning (green = for, vermillion = against).
+     --color-vp-vote-down is defined separately from status-declined
+     even though they share the same hex value (#d8503c), to keep the
+     concepts distinct (voting ≠ status). */
+  --color-vp-vote-up: #0e9466;
+  --color-vp-vote-down: #d8503c;
+  --color-vp-consensus-strong: #0e9466;
+  /* Text-safe vote colours — the base hexes above stay reserved for
+     graphics (logo, marks, consensus fill) where WCAG 1.4.11 (≥ 3:1) is
+     met. As normal-size TEXT they fail 1.4.3, so any vote-/status-coloured
+     text uses these darker same-hue variants (≥ 4.6:1 on --vp-bg). */
+  --color-vp-vote-up-strong: #0d7f57;
+  --color-vp-vote-down-strong: #c43e2b;
+  /* Tints for marked ballot boxes, alerts and badges (text on them uses the
+     -strong variants above). */
+  --color-vp-vote-up-soft: #e4f3ec;
+  --color-vp-vote-down-soft: #fbe8e4;
+  --color-vp-info: #2e73d6;
+  --color-vp-info-strong: #1f5cb3;
+  --color-vp-info-soft: #e7eefb;
+  --color-vp-warn: #c0821a;
+  --color-vp-warn-strong: #8a5a0e;
+  --color-vp-warn-soft: #fbf0dc;
+
+  /* ── Semantic: status ────────────────────────────────────────────── */
+  --color-vp-status-open: #979ba3;
+  --color-vp-status-planned: #2e73d6;
+  --color-vp-status-in-progress: #c0821a;
+  --color-vp-status-done: #0e9466;
+  --color-vp-status-declined: #d8503c;
+  --color-vp-status-done-strong: #0d7f57;
+
+  /* ── Radius — paper-crisp, one step rounder for raised cards ────── */
+  --radius-vp-xs: 3px;
+  --radius-vp-sm: 5px;
+  --radius-vp-md: 7px;
+  --radius-vp-lg: 10px;
+  --radius-vp-xl: 14px;
+  --radius-vp-2xl: 20px;
+  --radius-vp-full: 9999px;
+
+  /* ── Elevation — sheets carry a hairline ring and a whisper of shadow;
+     raised cards lift on hover; only overlays (toast, menus, dialogs)
+     truly float. ─────────────────────────────────────────────────── */
+  --shadow-vp-ring: 0 0 0 1px rgba(21, 22, 26, 0.08);
+  --shadow-vp-xs: 0 1px 2px rgba(21, 22, 26, 0.05), 0 0 0 1px rgba(21, 22, 26, 0.06);
+  --shadow-vp-sm: 0 1px 2px rgba(21, 22, 26, 0.06), 0 2px 6px -1px rgba(21, 22, 26, 0.08), 0 0 0 1px rgba(21, 22, 26, 0.06);
+  --shadow-vp-md: 0 2px 4px rgba(21, 22, 26, 0.05), 0 8px 20px -6px rgba(21, 22, 26, 0.16), 0 0 0 1px rgba(21, 22, 26, 0.06);
+  --shadow-vp-lg: 0 4px 8px rgba(21, 22, 26, 0.05), 0 24px 48px -16px rgba(21, 22, 26, 0.28), 0 0 0 1px rgba(21, 22, 26, 0.06);
+  --shadow-vp-soft: 0 0 0 1px rgba(21, 22, 26, 0.08), 0 1px 2px rgba(21, 22, 26, 0.04);
+  --shadow-vp-lift: 0 0 0 1px rgba(21, 22, 26, 0.1), 0 12px 32px -12px rgba(21, 22, 26, 0.28);
+  --shadow-vp-focus: 0 0 0 3px var(--color-vp-accent-ring);
+  --shadow-vp-inset: inset 0 1px 2px rgba(21, 22, 26, 0.12);
+
+  /* ── Spacing — shell geometry ───────────────────────────────────── */
+  --spacing-vp-topbar: 3.5rem;
+  --spacing-vp-sidebar: 15.5rem;
+  --spacing-vp-sidebar-rail: 4rem;
+
+  /* ── Motion — state changes only, 150–300ms ─────────────────────── */
+  --ease-vp-out: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --ease-vp-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  /* Expo-out for things that settle (dialogs, switch thumb) — no overshoot;
+     the one deliberate overshoot lives inside the vp-stamp keyframes. */
+  --ease-vp-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --animate-vp-fade-in: vp-fade-in 180ms var(--ease-vp-out) both;
+  --animate-vp-rise: vp-rise 220ms var(--ease-vp-out) both;
+  --animate-vp-stamp: vp-stamp 200ms var(--ease-vp-out) both;
+  --animate-vp-scale-in: vp-scale-in 220ms var(--ease-vp-expo) both;
+  --animate-vp-slide-in-right: vp-slide-in-right 260ms var(--ease-vp-out) both;
+  --animate-vp-slide-in-left: vp-slide-in-left 260ms var(--ease-vp-out) both;
+  --animate-vp-shimmer: vp-shimmer 1.4s linear infinite;
+  --animate-vp-pulse-dot: vp-pulse-dot 2s var(--ease-vp-in-out) infinite;
+  --animate-vp-progress: vp-progress linear both;
+}
+
+/* Keyframes referenced by the --animate-vp-* tokens above (top-level so the
+   plain-CSS .vp-skeleton rule can use them too). */
+@keyframes vp-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes vp-rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes vp-stamp {
+  from {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.12);
+    opacity: 1;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+@keyframes vp-scale-in {
+  from {
+    transform: scale(0.96);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+@keyframes vp-slide-in-right {
+  from {
+    transform: translateX(12px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+@keyframes vp-slide-in-left {
+  from {
+    transform: translateX(-12px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+@keyframes vp-shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+@keyframes vp-pulse-dot {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, currentColor 40%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 4px transparent;
+  }
+}
+@keyframes vp-progress {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+
+/* a11y: visible focus indicator — consistent across all interactive elements.
+   Ink outline with an offset for buttons/links; controls use the accent ring
+   (see .vp-control) so the focused field is unmistakable inside dense forms. */
+:focus-visible {
+  outline: 2px solid var(--color-vp-ink);
+  outline-offset: 2px;
+}
+
+/* Mono numbers utility: wrap score/count values with this class */
+.font-mono-num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* Fluid centered content container with clamp() gutter.
+   Header is full-bleed; apply this wrapper only to page content. */
+.vp-container {
+  width: 100%;
+  max-width: 1280px;
+  margin-inline: auto;
+  padding-inline: clamp(1rem, 4vw, 2rem);
+}
+/* Width presets. Declared here (not as `max-w-[…]` utilities) because this
+   unlayered rule would otherwise beat any layered utility on the same element. */
+.vp-container--narrow {
+  max-width: 44rem;
+}
+.vp-container--wide {
+  max-width: 1440px;
+}
+
+/* Same gutter as .vp-container, but no max-width — for full-bleed bars
+   (the app header) whose content should use the whole viewport width. */
+.vp-container-fluid {
+  width: 100%;
+  padding-inline: clamp(1rem, 4vw, 2rem);
+}
+
+/* ============================================================
+   Surfaces
+   ============================================================ */
+
+/* Sheet: a white paper plane on the desk — hairline ring, whisper shadow. */
+.vp-sheet {
+  background: var(--color-vp-surface);
+  border: 1px solid var(--color-vp-border-subtle);
+  border-radius: var(--radius-vp-lg);
+  box-shadow: 0 1px 2px rgba(21, 22, 26, 0.04);
+}
+/* The one heavy rule a result sheet carries at its head. */
+.vp-sheet--ruled {
+  border-top: 2px solid var(--color-vp-rule-strong);
+  border-top-left-radius: 3px;
+  border-top-right-radius: 3px;
+}
+/* Tenant accent as a thin coloured edge (never a fill). */
+.vp-sheet--accent {
+  border-top: 3px solid var(--color-vp-accent);
+  border-top-left-radius: 3px;
+  border-top-right-radius: 3px;
+}
+
+/* Card: a raised sheet — for dashboards, stat tiles and option pickers. */
+.vp-card {
+  background: var(--color-vp-surface-raised);
+  border-radius: var(--radius-vp-lg);
+  box-shadow: var(--shadow-vp-xs);
+}
+/* Interactive card: lifts on hover, settles on press. */
+.vp-card--interactive {
+  transition:
+    box-shadow 180ms var(--ease-vp-out),
+    transform 180ms var(--ease-vp-out),
+    border-color 180ms var(--ease-vp-out);
+}
+.vp-card--interactive:hover {
+  box-shadow: var(--shadow-vp-md);
+  transform: translateY(-1px);
+}
+.vp-card--interactive:active {
+  transform: translateY(0);
+  box-shadow: var(--shadow-vp-xs);
+}
+
+/* Overlay: menus, popovers, dialogs, toasts — the only surfaces that float. */
+.vp-overlay {
+  background: var(--color-vp-surface-overlay);
+  border-radius: var(--radius-vp-lg);
+  box-shadow: var(--shadow-vp-lg);
+}
+
+/* Glass bar: sticky app chrome that lets the desk show through faintly. */
+.vp-glass {
+  background: color-mix(in srgb, var(--color-vp-surface) 84%, transparent);
+  -webkit-backdrop-filter: saturate(160%) blur(12px);
+  backdrop-filter: saturate(160%) blur(12px);
+}
+@supports not (backdrop-filter: blur(1px)) {
+  .vp-glass {
+    background: var(--color-vp-surface);
+  }
+}
+
+/* Ink panel: the dark aside of the auth shell. Plain ink with two soft
+   colour washes in the ballot colours — structure comes from the content
+   drawn on it (the ballot-line art in AuthShell), never from a pattern. */
+.vp-ink-panel {
+  position: relative;
+  background: var(--color-vp-surface-ink);
+  color: var(--color-vp-on-ink);
+  isolation: isolate;
+}
+.vp-ink-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(70% 60% at 20% 10%, color-mix(in srgb, var(--color-vp-vote-up) 22%, transparent), transparent 70%),
+    radial-gradient(60% 60% at 90% 100%, color-mix(in srgb, var(--color-vp-vote-down) 20%, transparent), transparent 70%);
+}
+
+/* Desk: the app ground with a faint vignette so sheets feel placed, not
+   floating in a flat colour. */
+.vp-desk {
+  background-color: var(--color-vp-bg);
+  background-image: radial-gradient(
+    120% 70% at 50% -20%,
+    rgba(255, 255, 255, 0.9),
+    transparent 60%
+  );
+}
+
+/* Control frame: shared field look (input, textarea, select) — accent ring
+   on focus so the active field is unmistakable in a dense form. */
+.vp-control {
+  background: var(--color-vp-surface);
+  border: 1px solid var(--color-vp-border-strong);
+  border-radius: var(--radius-vp-md);
+  box-shadow: 0 1px 1px rgba(21, 22, 26, 0.03);
+  transition:
+    border-color 150ms var(--ease-vp-out),
+    box-shadow 150ms var(--ease-vp-out),
+    background-color 150ms var(--ease-vp-out);
+}
+.vp-control:hover:not(:disabled) {
+  border-color: var(--color-vp-text-muted);
+}
+.vp-control:focus,
+.vp-control:focus-visible {
+  outline: none;
+  border-color: var(--color-vp-accent-strong);
+  box-shadow: var(--shadow-vp-focus);
+}
+.vp-control[aria-invalid="true"] {
+  border-color: var(--color-vp-vote-down);
+}
+.vp-control[aria-invalid="true"]:focus {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-vp-vote-down) 30%, transparent);
+}
+.vp-control:disabled {
+  background: var(--color-vp-surface-frost);
+  color: var(--color-vp-text-muted);
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* Keyboard key cap — for shortcut hints (⌘K, Esc). */
+.vp-kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.375rem;
+  height: 1.25rem;
+  padding-inline: 0.3rem;
+  font-family: var(--font-inter);
+  font-size: var(--text-vp-2xs);
+  font-weight: 500;
+  line-height: 1;
+  color: var(--color-vp-text-secondary);
+  background: var(--color-vp-surface-frost);
+  border: 1px solid var(--color-vp-border-subtle);
+  border-bottom-width: 2px;
+  border-radius: var(--radius-vp-xs);
+}
+
+/* Sidebar navigation item — the app shell's primary wayfinding. */
+.vp-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  height: 2.25rem;
+  padding-inline: 0.625rem;
+  border-radius: var(--radius-vp-md);
+  font-size: var(--text-vp-base);
+  font-weight: 500;
+  color: var(--color-vp-text-secondary);
+  text-decoration: none;
+  transition:
+    background-color 150ms var(--ease-vp-out),
+    color 150ms var(--ease-vp-out);
+}
+.vp-nav-item:hover {
+  background: var(--color-vp-ink-soft);
+  color: var(--color-vp-ink);
+}
+.vp-nav-item[aria-current="page"],
+.vp-nav-item[data-current="true"] {
+  background: var(--color-vp-surface);
+  color: var(--color-vp-ink);
+  font-weight: 600;
+  box-shadow: var(--shadow-vp-xs);
+}
+.vp-nav-item[aria-current="page"] .vp-nav-icon,
+.vp-nav-item[data-current="true"] .vp-nav-icon {
+  color: var(--color-vp-accent-strong);
+}
+.vp-nav-icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  color: var(--color-vp-text-muted);
+  transition: color 150ms var(--ease-vp-out);
+}
+
+/* Live dot: a small status marker that breathes once every 2s (unread,
+   online, in-progress). Uses currentColor so any tone works. */
+.vp-live-dot {
+  display: inline-block;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 9999px;
+  background: currentColor;
+  animation: var(--animate-vp-pulse-dot);
+}
+
+/* Skeleton shimmer (loading placeholders) */
+.vp-skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--color-vp-surface-sunken) 0%,
+    var(--color-vp-surface-frost) 50%,
+    var(--color-vp-surface-sunken) 100%
+  );
+  background-size: 200% 100%;
+  animation: var(--animate-vp-shimmer);
+  border-radius: var(--radius-vp-sm);
+}
+
+/* Section eyebrow: small caps label above a title or a sidebar group. */
+.vp-eyebrow {
+  font-size: var(--text-vp-2xs);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-vp-text-muted);
+}
+
+/* Interactive press feedback — buttons, chips, vote boxes. */
+.vp-press {
+  transition:
+    transform 120ms var(--ease-vp-out),
+    background-color 150ms var(--ease-vp-out),
+    border-color 150ms var(--ease-vp-out),
+    color 150ms var(--ease-vp-out),
+    box-shadow 150ms var(--ease-vp-out);
+}
+.vp-press:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+/* Stagger helper: children of a list arrive one after another. */
+.vp-stagger > * {
+  animation: var(--animate-vp-rise);
+}
+.vp-stagger > *:nth-child(1) { animation-delay: 0ms; }
+.vp-stagger > *:nth-child(2) { animation-delay: 30ms; }
+.vp-stagger > *:nth-child(3) { animation-delay: 60ms; }
+.vp-stagger > *:nth-child(4) { animation-delay: 90ms; }
+.vp-stagger > *:nth-child(5) { animation-delay: 120ms; }
+.vp-stagger > *:nth-child(6) { animation-delay: 150ms; }
+.vp-stagger > *:nth-child(7) { animation-delay: 180ms; }
+.vp-stagger > *:nth-child(8) { animation-delay: 210ms; }
+.vp-stagger > *:nth-child(n + 9) { animation-delay: 240ms; }
+
+/* ============================================================
+   prefers-reduced-motion: disable all transitions/animations
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    animation-delay: 0ms !important;
+    transition-duration: 0.01ms !important;
+  }
+  .vp-card--interactive:hover,
+  .vp-press:active:not(:disabled) {
+    transform: none;
+  }
+}

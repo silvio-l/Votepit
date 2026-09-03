@@ -1,0 +1,59 @@
+# Votepit — Apache configuration for the webroot (public/).
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Route every non-existent path to the front controller.
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^ index.php [L]
+</IfModule>
+
+# Never serve hidden files (e.g. .htaccess itself).
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>
+
+# Security headers for the static SPA assets (index.html, JS/CSS bundles).
+# These files NEVER pass through index.php/Slim — SecurityHeaderMiddleware
+# only applies to API JSON responses (see its class doc). Without this
+# block the page actually rendered by the browser (where XSS/clickjacking
+# matter in the first place) would have none of these protections — the
+# focus so far was exclusively on the API side.
+<IfModule mod_headers.c>
+    Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set Referrer-Policy "no-referrer"
+    Header always set X-Frame-Options "DENY"
+    Header always set Cross-Origin-Opener-Policy "same-origin-allow-popups"
+    Header always set Cross-Origin-Resource-Policy "same-origin"
+    Header always set Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()"
+    # script-src/style-src: no inline scripts anywhere in the built SPA (both
+    # tags in index.html are external file src); the one inline <style> is
+    # the static noscript-fallback block, hence style-src needs unsafe-inline
+    # (attribute + that one block) but script-src stays 'self' only. A
+    # self-hosted installation talks to no third-party origin at all — every
+    # source list is 'self'. An operator who plugs in an extension that needs
+    # an external origin (e.g. a payment provider's checkout script) widens
+    # the policy in their own deployment (a later `Header always set
+    # Content-Security-Policy` in this file replaces this one), never here.
+    Header always set Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; frame-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; object-src 'none'"
+</IfModule>
+
+# Caching: index.html references Vite's content-hashed chunk filenames
+# (assets/Foo-<hash>.js) — after a deploy, the old hashed files are gone.
+# Without an explicit Cache-Control, browsers may keep serving a stale
+# index.html that points at now-deleted chunks, so a lazy route (e.g.
+# /profile) silently fails to load (dynamic import() 404s, no visible
+# error). index.html/root: always revalidate. Hashed assets: filename
+# changes on every build, so they're safe to cache forever.
+<IfModule mod_headers.c>
+    <FilesMatch "^index\.html$">
+        Header always set Cache-Control "no-cache, must-revalidate"
+    </FilesMatch>
+</IfModule>
+<IfModule mod_headers.c>
+    <If "%{REQUEST_URI} =~ m#^/assets/#">
+        Header always set Cache-Control "public, max-age=31536000, immutable"
+    </If>
+</IfModule>

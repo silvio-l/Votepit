@@ -1,0 +1,38 @@
+import type de from './membersPage.de'
+
+const en = {
+  loading: 'Loading…',
+  accessDeniedTitle: 'No access',
+  accessDeniedBody: 'This page is only accessible to members of this account.',
+  loadError: 'Page could not be loaded.',
+  title: 'Members',
+  subtitle: 'Who has access to this account, and pending invitations.',
+  inviteFailed: 'Invite failed. Please try again.',
+  removeFailed: 'Remove failed.',
+  confirmRemove: 'Really remove this member? Access is revoked immediately.',
+  roleChangeFailed: 'Role change failed.',
+  revokeFailed: 'Revoke failed.',
+  membersHeading: 'Members ({count})',
+  membersAriaLabel: 'Members',
+  userLabel: 'User #{id}',
+  roleOwner: 'Owner',
+  roleModerator: 'Moderator',
+  roleSelectAriaLabel: 'Role for user #{id}',
+  roleColumn: 'Role',
+  removeAriaLabel: 'Remove user #{id}',
+  remove: 'Remove',
+  inviteHeading: 'Invite a member',
+  inviteBody: 'New members are always invited as moderator.',
+  emailField: 'Email address',
+  emailPlaceholder: 'member@example.com',
+  inviteSending: 'Sending…',
+  inviteSubmit: 'Invite',
+  inviteSuccess: 'Invitation sent.',
+  pendingInvitesHeading: 'Pending invitations ({count})',
+  pendingInvitesAriaLabel: 'Pending invitations',
+  invitedUserExpiry: 'expires on {date}',
+  revokeInviteAriaLabel: 'Revoke invitation for user #{id}',
+  revoke: 'Revoke',
+} satisfies typeof de
+
+export default en

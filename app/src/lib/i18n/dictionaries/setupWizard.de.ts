@@ -1,0 +1,28 @@
+export default {
+  regionAriaLabel: 'Erste Einrichtung',
+  welcomeTitle: 'Willkommen bei Votepit',
+  welcomeBody:
+    'Sammle Feedback von deinen Nutzern, lass sie darüber abstimmen und zeige, woran du als Nächstes arbeitest. Richte in ein paar Sekunden dein erstes Board ein.',
+  getStarted: "Los geht's",
+  setUpLater: 'Später einrichten',
+  boardTitle: 'Dein erstes Board',
+  boardBody:
+    'Ein Board ist die öffentliche Seite, auf der Nutzer Vorschläge einreichen und abstimmen. Du kannst jederzeit weitere Boards anlegen.',
+  nameLabel: 'Name',
+  namePlaceholder: 'z. B. Produkt-Feedback',
+  slugLabel: 'Slug',
+  slugPlaceholder: 'z. B. produkt-feedback',
+  slugHint: 'Erscheint in der öffentlichen URL und kann frei bearbeitet werden.',
+  createSubmitting: 'Wird angelegt…',
+  createSubmit: 'Board anlegen',
+  readyTitle: '„{name}" ist startklar',
+  readyBody: 'Teile diesen Link, damit Nutzer Vorschläge einreichen und abstimmen können.',
+  copied: 'Kopiert!',
+  copy: 'Kopieren',
+  goToDashboard: 'Zum Board-Dashboard',
+  stepsAriaLabel: 'Einrichtungsschritte',
+  stepWelcome: 'Willkommen',
+  stepBoard: 'Board',
+  stepReady: 'Fertig',
+  publicLinkLabel: 'Öffentlicher Link',
+}
