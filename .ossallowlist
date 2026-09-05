@@ -1,0 +1,79 @@
+# Votepit — OSS-Allowlist (öffentliche Pfade)
+#
+# Was hier NICHT steht, wird vom pre-commit- und pre-push-Hook blockiert
+# (.githooks/). Interne Doku/Planung gehört nach .scratch/ (gitignored).
+#
+# Erlaubt sind: exakte Dateipfade ODER Verzeichnis-Präfixe (mit "/").
+
+# Root-Markdown + Lizenz + Disclosure
+README.md
+SECURITY.md
+CONTRIBUTING.md
+LICENSE
+CHANGELOG.md
+
+# Issue-Templates (Bug-Report-Formular + Contact-Links auf Discussions statt
+# Blank-Issues — Feature-Feedback läuft über Discussions/Ideas, nicht Issues)
+.github/
+
+# Technische Referenzdokumentation (Installation, Konfiguration, Architektur,
+# API/MCP-Referenz, Betrieb, Entwicklung, Troubleshooting). Heißt bewusst
+# "documentation/" statt "docs/" — Letzteres blockt core/.gitignore als
+# Defense-in-Depth gegen versehentlich committete interne Planungsdoku.
+documentation/
+
+# Build-/Paket-Metadaten
+composer.json
+composer.lock
+.gitignore
+.ossallowlist
+phpunit.xml
+
+# Monorepo-Workspace (pnpm): Root-Manifest, Workspace-Definition, Lockfile,
+# geteilte Pakete (z. B. @votepit/ui — React-Komponenten-Bibliothek)
+package.json
+pnpm-workspace.yaml
+pnpm-lock.yaml
+packages/
+
+# Agent Skills (e.g. votepit-cli — wraps @votepit/cli for Claude Code)
+skills/
+
+# Quality-Tooling-Konfiguration (PHPStan/PHP-CS-Fixer/Rector)
+phpstan.neon
+.php-cs-fixer.dist.php
+rector.php
+
+# Quality-Tooling: Semgrep-Regelsatz (lokal) + Runner-/Aggregat-Skripte
+.semgrep/
+tools/
+
+# Hook-Schutz (muss committet sein, um für Klonende zu gelten; öffentlich ok)
+.githooks/
+
+# Konfigurations-VORLAGE (keine Secrets)
+config/config.example.php
+config/smtp-test.env.example
+
+# Dev-/Ops-CLI-Skripte (z. B. SMTP-Smoke-Test) — keine Secrets
+bin/
+
+# Öffentliche Code-/Schema-Verzeichnisse
+public/
+src/
+tests/
+db/
+migrations/
+
+# Moderations-Ressourcen (LDNOOBW-Wortlisten, CC-BY-4.0 — Attribution in
+# resources/moderation/LICENSE-LDNOOBW.txt)
+resources/
+
+# Landing-Website (web/) — in ein separates Repo umgezogen; hier nur noch in der
+# Git-HISTORIE vorhanden (war immer öffentliche OSS-Landing). Allowlisted, damit
+# Alt-Commits pushbar bleiben; am Tip nicht mehr präsent.
+web/
+
+# React-SPA-Frontend (Vite/TS/Tailwind) — konsumiert die JSON-API
+# (node_modules/dist sind über app/.gitignore ausgeschlossen)
+app/

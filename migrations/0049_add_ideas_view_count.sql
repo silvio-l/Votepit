@@ -1,0 +1,15 @@
+-- 0049_add_ideas_view_count — view counter for the idea detail page (an
+-- X/Twitter-style "impressions" signal). Maintained app-side the same way
+-- score_cache is (VoteRepository: `UPDATE ideas SET score_cache = score_cache
+-- + :delta`), NOT via a COUNT-subquery like comment_count/up_count/down_count
+-- — detail-page reads happen far more often than votes/comments, so a cached
+-- counter avoids turning every page view into an aggregate query.
+--
+-- Incremented by Votepit\Security\IdeaViewTracker, at most once per
+-- IP+User-Agent+idea per 24h window — deduplication reuses the existing
+-- rate_limits table/RateLimiter (bucket "idea-view:<id>:<hmac>"), so no new
+-- table and no new cleanup cron are needed; bin/cleanup-rate-limits.php
+-- already prunes expired buckets. No cookies, no plaintext IP/UA ever
+-- persisted — only an HMAC-SHA256(ip|user-agent, identity_server_key) tagged
+-- bucket, keyed by a server-side secret that never enters the DB.
+ALTER TABLE ideas ADD COLUMN view_count INT UNSIGNED NOT NULL DEFAULT 0 AFTER score_cache;

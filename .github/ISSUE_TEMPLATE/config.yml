@@ -1,0 +1,14 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Feature idea or feedback
+    url: https://app.votepit.com/silvio-und-maik/votepit-feedback # export-ok: * (our own public production app, meant to be linked)
+    about: Vote on or submit a feature request on our own Votepit feedback board.
+  - name: Feature idea or feedback (GitHub Discussions)
+    url: https://github.com/silvio-l/Votepit/discussions/categories/ideas
+    about: Same as above, but as a GitHub Discussion — gets its own upvote button too.
+  - name: Question or general chat
+    url: https://github.com/silvio-l/Votepit/discussions/categories/general
+    about: Ask a question or discuss self-hosting Votepit.
+  - name: Security vulnerability
+    url: https://github.com/silvio-l/Votepit/security/advisories/new
+    about: Please report vulnerabilities privately, not as a public issue.

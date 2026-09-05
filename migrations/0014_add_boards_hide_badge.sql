@@ -1,0 +1,21 @@
+-- 0014_add_boards_hide_badge — Sprint 23: Branding tiers.
+--
+-- boards.hide_badge: Pro-only "Powered by Votepit" badge-hide switch (staged
+-- field-level branding gating — PlanLimits::isBrandingFieldAllowed()). NULL-
+-- free BOOLEAN-ish TINYINT(1), default 0 (badge shown) — matches current
+-- behaviour exactly, additive. Setting this to 1 is plan-gated in
+-- BoardBrandingAction (only 'pro'/'self-host' may set it); this DDL only
+-- adds the column, it does not encode the gate. Whether the badge is
+-- actually hidden on the public board page ALSO re-checks the account's
+-- CURRENT plan at read time (BoardHomeAction), not just this stored flag —
+-- see that action's doc comment for the downgrade rationale.
+--
+-- ASSUMPTION: the "intro" plaintext field reuses the EXISTING
+-- boards.intro column (migrations/0000_baseline.sql / db/schema.sql) rather
+-- than adding a duplicate intro_text column. That column already existed in
+-- the schema (already selected by BoardRepository, already rendered as
+-- plaintext by BoardHomeAction/BoardPage.tsx) but was never validated via
+-- BrandingValidator nor reachable through BoardBrandingAction's GET/POST —
+-- this sprint wires it up (BrandingValidator::introText(), plan-gated set)
+-- instead of introducing a second, redundant text column.
+ALTER TABLE boards ADD COLUMN hide_badge TINYINT(1) NOT NULL DEFAULT 0 AFTER intro;

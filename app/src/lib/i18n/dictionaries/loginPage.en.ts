@@ -1,0 +1,38 @@
+import type de from './loginPage.de'
+
+const en = {
+  backToBoard: 'Back to board',
+  heading: 'Log in',
+  subtitle: "We'll send you a magic link by email.",
+  subtitlePassword: 'Log in with your email address and password.',
+  emailLabel: 'Email address',
+  emailPlaceholder: 'you@email.com',
+  submit: 'Send magic link',
+  submitting: 'Sending…',
+  sentTitle: 'Link sent',
+  sentBefore: 'We sent a magic link to',
+  sentAfter: 'Check your inbox.',
+  noLinkQuestion: "Didn't receive a link?",
+  retryLink: 'Try again',
+  methodMagicLink: 'Magic link',
+  methodPassword: 'Password',
+  methodTabsLabel: 'Login method',
+  passwordLabel: 'Password',
+  passwordSubmit: 'Log in',
+  passwordSubmitting: 'Logging in…',
+  forgotPasswordLink: 'Forgot password?',
+  twoFactorHeading: 'Two-factor verification',
+  twoFactorCodeSubtitle: 'Enter the 6-digit code from your authenticator app.',
+  twoFactorBackupSubtitle: 'Enter one of your backup codes.',
+  totpCodeLabel: 'Code',
+  totpCodePlaceholder: '123456',
+  backupCodeLabel: 'Backup code',
+  backupCodePlaceholder: 'XXXX-XXXX',
+  useBackupCodeInstead: 'Use a backup code instead',
+  useCodeInstead: 'Use the authenticator code instead',
+  twoFactorSubmit: 'Verify',
+  twoFactorSubmitting: 'Verifying…',
+  twoFactorError: 'The code is invalid.',
+} satisfies typeof de
+
+export default en

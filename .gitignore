@@ -1,0 +1,57 @@
+# macOS
+.DS_Store
+
+# Node / pnpm workspace — dependencies & build output (any depth)
+node_modules/
+dist/
+.astro/
+.wrangler/
+*.tsbuildinfo
+
+# Lokale Konfiguration mit Secrets — NIE einchecken
+/config/config.php
+.env
+/config/*.env
+!/config/*.env.example
+
+# Composer-Abhängigkeiten (lokal gebaut, per FTPES als Build-Artefakt deployt)
+/vendor/
+
+# composer.lock WIRD committet (Reproduzierbarkeit + Integrität der Builds, siehe SECURITY A06).
+
+# Lokales Tracking (Issues, Roadmap, interne Planungs-Doku — nicht für die Öffentlichkeit)
+/.scratch/
+
+# Interne Planungs-/Architektur-Doku — nie öffentlich. Defense-in-Depth:
+# falls jemand etwas unterhalb von docs/ anlegt, wird es hier blockiert.
+/docs/
+
+# Agent-/Claude-Konfiguration — lokal für KI-Tooling, gehört nicht auf GitHub.
+/CLAUDE.md
+/CONTEXT.md
+
+# Audit-Logs (PII-arm, aber nicht für die Öffentlichkeit)
+/logs/
+
+# Hochgeladene, re-encodete Avatare (profile-avatar-social) — Laufzeit-Daten,
+# nie im Repo. Verzeichnis wird bei Bedarf von AccountProfileAction angelegt.
+/storage/
+
+# Twig-Cache & Runtime-Variablen
+/var/
+
+# PHPUnit
+/.phpunit.cache/
+/.phpunit.result.cache
+/coverage/
+
+# Quality-Tooling-Caches (PHPStan/PHP-CS-Fixer/Rector)
+/.php-cs-fixer.cache
+/.phpstan.cache/
+
+# IDE
+/.idea/
+/.vscode/
+
+# Doc-Gate: lokale, projektspezifische Internas-Blockliste (nie committen)
+/.githooks/leak-blocklist.local

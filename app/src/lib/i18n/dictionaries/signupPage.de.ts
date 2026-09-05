@@ -1,0 +1,15 @@
+export default {
+  heading: 'Kostenlos starten',
+  subheading: 'Wir senden dir einen Magic-Link per E-Mail — danach richtest du deinen Account ein.',
+  emailLabel: 'E-Mail-Adresse',
+  emailPlaceholder: 'deine@email.de',
+  submitSubmitting: 'Wird gesendet…',
+  submit: 'Magic-Link senden',
+  haveAccount: 'Schon einen Account?',
+  login: 'Anmelden',
+  sentHeading: 'Link gesendet',
+  sentBodyBeforeEmail: 'Wir haben einen Magic-Link an',
+  sentBodyAfterEmail: 'gesendet. Schau in dein Postfach.',
+  noLinkArrived: 'Kein Link angekommen?',
+  retry: 'Erneut versuchen',
+}

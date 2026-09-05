@@ -1,0 +1,12 @@
+-- 0039_add_user_is_support_column — a tier BELOW is_operator (see
+-- AuthZMiddleware::support() and the class doc there), for a trusted
+-- helper who handles customer support (tickets, FAQ) but must NOT reach
+-- anything operator-only (account/board lock/unlock/delete, abuse
+-- reports, platform announcements, usage). Unlike is_operator, more than
+-- one user may hold this — it is not the platform's single top authority.
+--
+-- Same "no HTTP promotion path" posture as is_operator (see UserRepository
+-- class doc and migrations/0013_add_operator_panel.sql): only a direct DB
+-- UPDATE (or a future bin/grant-support.php CLI script, mirroring
+-- bin/grant-operator.php) sets this.
+ALTER TABLE users ADD COLUMN is_support TINYINT(1) NOT NULL DEFAULT 0 AFTER is_operator;

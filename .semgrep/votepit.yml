@@ -1,0 +1,60 @@
+# Votepit — project-specific Semgrep rules (local, offline, no account/telemetry).
+#
+# Formalizes the security invariants documented in CLAUDE.md as an enforceable
+# gate. Run: tools/semgrep-scan.sh (or
+#   semgrep scan --config .semgrep/votepit.yml --metrics=off src app/src web/src).
+#
+# Deliberately kept local (no registry packs p/...): deterministic, offline,
+# no login, no quota — fits the free-tier discipline. For deeper scans,
+# registry packs can be added ad hoc (--config p/php p/typescript).
+
+rules:
+  # ── Grep gate: dangerous PHP functions (code execution / deserialization) ──
+  - id: votepit-php-forbidden-functions
+    languages: [php]
+    severity: ERROR
+    message: >-
+      Forbidden PHP function (code execution / unsafe deserialization).
+      Forbidden per the CLAUDE.md grep gate: exec|shell_exec|system|passthru|eval|
+      unserialize|proc_open|popen|create_function. Use a safe alternative
+      (e.g. json_decode instead of unserialize, no shell call on shared hosting).
+    pattern-either:
+      - pattern: exec(...)
+      - pattern: shell_exec(...)
+      - pattern: system(...)
+      - pattern: passthru(...)
+      - pattern: proc_open(...)
+      - pattern: popen(...)
+      - pattern: eval(...)
+      - pattern: unserialize(...)
+      - pattern: create_function(...)
+
+  # ── Prepared-statements-only: no SQL string concatenation in DB calls ──
+  - id: votepit-php-sql-string-concatenation
+    languages: [php]
+    severity: ERROR
+    message: >-
+      SQL passed as a string concatenation to a DB call. Invariant
+      (CLAUDE.md): prepared-statements-only — no variables in the query string,
+      only ?/:name placeholders + bind via Doctrine DBAL.
+    pattern-either:
+      - pattern: $C->executeStatement("..." . $X, ...)
+      - pattern: $C->executeStatement($X . "...", ...)
+      - pattern: $C->executeQuery("..." . $X, ...)
+      - pattern: $C->executeQuery($X . "...", ...)
+      - pattern: $C->query("..." . $X)
+      - pattern: $C->query($X . "...")
+      - pattern: $C->prepare("..." . $X)
+      - pattern: $C->prepare($X . "...")
+
+  # ── React: dangerouslySetInnerHTML only after review (plaintext invariant) ──
+  - id: votepit-react-dangerously-set-inner-html
+    languages: [typescript]
+    severity: WARNING
+    message: >-
+      dangerouslySetInnerHTML found. Invariant (CLAUDE.md): only after review
+      and only for trusted, non-user-controlled values. Idea body, comment,
+      board name/intro are plaintext — never render HTML/Markdown.
+    pattern-either:
+      - pattern: <$EL dangerouslySetInnerHTML={...} />
+      - pattern: <$EL dangerouslySetInnerHTML={...}>...</$EL>

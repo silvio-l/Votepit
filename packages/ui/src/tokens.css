@@ -1,0 +1,860 @@
+/* @votepit/ui shared design tokens — single source for app/ + web/.
+
+   DIRECTION CONTRACT (core/app + web/, one visual language)
+   THESIS: A Votepit board is a returning officer's result sheet — every idea
+   is a ballot line with a FOR box and an AGAINST box, and the tally is
+   declared in the margin. The app and the landing share ONE grammar, the
+   landing's "plane" language: flat planes of paper and ink laid on a warm
+   paper ground, square corners everywhere (radius 0 — the only circles
+   are vote controls, status dots, spinners and avatars), no drop shadows,
+   no glass, no gradients. Emphasis comes from WEIGHT — a 2px ink head
+   rule, a 2px ink edge on the one surface that floats, a solid ink fill
+   for the primary action — never from a glow or a halo.
+   OWN-WORLD: paper ground (#f3f3ee), white planes separated by hairlines,
+   ink text with tight negative tracking on Archivo headings, Inter for
+   everything else, tabular JetBrains Mono for every count. The two ballot
+   marks (green check = for, coral cross = against) are the only saturated
+   colour the product itself owns; the tenant accent is a thin edge, never
+   a fill. Motion is purposeful and expo-eased: things arrive (rise/fade),
+   stamp (marks, tallies) or lift 2px on hover — nothing loops, nothing
+   glows.
+   STORY: open the paper, find the sheet, read the count, mark the box, see
+   the tally move.
+   FORM: app shell (sidebar + top bar) for operate mode, single plane for
+   auth, one ruled result sheet for the public board — the same sheet the
+   landing's ExampleBoard renders.
+
+   web/ depends on: the @font-face blocks, the :root hooks, and the
+   --color-vp-vote-… and --color-vp-status-… token NAMES. Those are stable. */
+
+/* ============================================================
+   @font-face — self-hosted fonts
+   Files copied from fontsource packages, served from /assets/fonts/
+   No external font requests at runtime.
+   ============================================================ */
+
+@font-face {
+  font-family: "Archivo";
+  src: url("/assets/fonts/archivo-latin-600-normal.woff2") format("woff2");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Archivo";
+  src: url("/assets/fonts/archivo-latin-700-normal.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Archivo";
+  src: url("/assets/fonts/archivo-latin-800-normal.woff2") format("woff2");
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Inter";
+  src: url("/assets/fonts/inter-latin-400-normal.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Inter";
+  src: url("/assets/fonts/inter-latin-500-normal.woff2") format("woff2");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Inter";
+  src: url("/assets/fonts/inter-latin-600-normal.woff2") format("woff2");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "JetBrains Mono";
+  src: url("/assets/fonts/jetbrains-mono-latin-600-normal.woff2") format("woff2");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "JetBrains Mono";
+  src: url("/assets/fonts/jetbrains-mono-latin-700-normal.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ============================================================
+   Per-board branding hooks
+   These CSS vars are the ONLY things that may change per board.
+   A board can inject: <style>:root { --vp-primary: #... }</style>
+   Semantic tokens (vote/status colours) are intentionally NOT here —
+   they must stay stable so For/Against meaning is always readable.
+   ============================================================ */
+:root {
+  --vp-primary: #1fa890; /* board accent — default teal */
+  --vp-ink: #15161a; /* brand ink (logo, primary CTAs) */
+  --vp-on-ink: #ffffff; /* text on ink/primary buttons */
+  --vp-bg: #f3f3ee; /* paper ground — same value web/ sets */
+  --vp-radius: 0px; /* plane corners — same value web/ sets */
+}
+
+/* ============================================================
+   Tailwind v4 @theme — design tokens mapped to Tailwind utilities.
+
+   SEPARATION RULE:
+     Brand tokens    → reference --vp-* hooks → board-overridable
+     Semantic tokens → hardcoded values       → NEVER overridable per board
+   ============================================================ */
+@theme {
+  /* Fonts — Inter is the workhorse, Archivo only for display titles,
+     JetBrains Mono only for counts (tabular). */
+  --font-archivo: "Archivo", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-inter: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  /* Fixed rem type scale, ratio ≈ 1.2 (11 / 12 / 13 / 14 / 15 / 17 / 20 / 24 / 30 / 36) */
+  --text-vp-2xs: 0.6875rem;
+  --text-vp-2xs--line-height: 0.875rem;
+  --text-vp-xs: 0.75rem;
+  --text-vp-xs--line-height: 1rem;
+  --text-vp-sm: 0.8125rem;
+  --text-vp-sm--line-height: 1.25rem;
+  --text-vp-base: 0.875rem;
+  --text-vp-base--line-height: 1.375rem;
+  --text-vp-md: 0.9375rem;
+  --text-vp-md--line-height: 1.5rem;
+  --text-vp-lg: 1.0625rem;
+  --text-vp-lg--line-height: 1.5rem;
+  --text-vp-xl: 1.25rem;
+  --text-vp-xl--line-height: 1.625rem;
+  --text-vp-2xl: 1.5rem;
+  --text-vp-2xl--line-height: 1.875rem;
+  --text-vp-3xl: 1.875rem;
+  --text-vp-3xl--line-height: 2.25rem;
+  --text-vp-4xl: 2.25rem;
+  --text-vp-4xl--line-height: 2.5rem;
+
+  /* ── Brand tokens (board-overridable via --vp-* hooks above) ────── */
+  --color-vp-ink: var(--vp-ink); /* brand ink / primary CTA bg */
+  --color-vp-ink-2: #2b2d33; /* ink hover */
+  --color-vp-ink-3: #3d4048; /* ink pressed / secondary dark surface */
+  --color-vp-ink-soft: rgba(21, 22, 26, 0.06); /* ink tint: active nav, pressed chips */
+  --color-vp-ink-softer: rgba(21, 22, 26, 0.035); /* ink tint: row hover */
+  --color-vp-accent: var(--vp-primary); /* board accent (coloured sheet edge) */
+  /* Text-safe accent: --vp-primary darkened 30% towards black so accent-
+     coloured TEXT (links) meets WCAG 1.4.3 ≥ 4.5:1 on the light surfaces.
+     Default teal resolves to #167665 (5.2:1 on --vp-bg, 5.6:1 on white). */
+  --color-vp-accent-strong: color-mix(in srgb, var(--vp-primary) 70%, #000000);
+  /* Accent tints — for focus rings, selected states and the one accent
+     "pill" the sidebar's active item may carry. Never a full CTA fill. */
+  --color-vp-accent-soft: color-mix(in srgb, var(--vp-primary) 12%, #ffffff);
+  --color-vp-accent-ring: color-mix(in srgb, var(--vp-primary) 35%, transparent);
+  --color-vp-on-ink: var(--vp-on-ink); /* text on ink/brand buttons */
+  --color-vp-on-ink-muted: rgba(255, 255, 255, 0.68); /* secondary text on ink */
+  --color-vp-rule-on-ink: rgba(255, 255, 255, 0.14); /* hairline on ink */
+  /* Edition mark (Cloud vs. Community wordmark suffix, Header.tsx) — fixed
+     like the vote colours below, NEVER board-overridable: it identifies the
+     Votepit edition itself, not a tenant's brand. Same hex as web/'s
+     --vp-cloud-ink (text-safe teal, ≥ 4.5:1 on white). */
+  --color-vp-cloud-ink: #107765;
+
+  /* ── Semantic: surfaces — paper ground, white planes, one sunken
+     layer and the ink plane ────────────────────────────────────────── */
+  --color-vp-bg: #f3f3ee; /* paper ground */
+  --color-vp-surface: #ffffff; /* plane */
+  --color-vp-surface-raised: #ffffff; /* same plane — kept as an alias for callers */
+  --color-vp-surface-overlay: #ffffff; /* menus, dialogs, toasts (get a 2px ink edge) */
+  --color-vp-surface-frost: #f8f8f6; /* sunken: table heads, code, nav strip */
+  --color-vp-surface-sunken: #eeeeea; /* pressed / skeleton */
+  --color-vp-surface-ink: #15161a; /* dark panel (auth aside, empty-state art) */
+
+  /* ── Semantic: text & rules ──────────────────────────────────────── */
+  --color-vp-text-secondary: #565a62; /* 6.4:1 on --vp-bg (AA) */
+  --color-vp-text-muted: #6b707c; /* 4.6:1 on --vp-bg (AA) */
+  --color-vp-text-tertiary: #8b909b; /* large/decorative text only (3.1:1) */
+  /* There is exactly ONE hairline in the plane language: --color-vp-rule.
+     The two older names stay as aliases so callers keep compiling and no
+     surface can accidentally draw a second, slightly different hairline. */
+  --color-vp-rule: rgba(21, 22, 26, 0.14); /* hairline on any ground (web/ --vp-rule) */
+  --color-vp-border-subtle: var(--color-vp-rule); /* legacy alias */
+  --color-vp-border-frost: var(--color-vp-rule); /* legacy alias */
+  --color-vp-border-strong: #cfd0ca; /* control borders at rest */
+  --color-vp-rule-strong: var(--vp-ink); /* 2px sheet-head rule */
+  --color-vp-underline: rgba(21, 22, 26, 0.4); /* resting text-link underline (web/ --vp-underline) */
+
+  /* ── Semantic: voting & consensus — board branding MUST NOT touch ──
+     These encode meaning (green = for, vermillion = against).
+     --color-vp-vote-down is defined separately from status-declined
+     even though they share the same hex value (#d8503c), to keep the
+     concepts distinct (voting ≠ status). */
+  --color-vp-vote-up: #0e9466;
+  --color-vp-vote-down: #d8503c;
+  --color-vp-consensus-strong: #0e9466;
+  /* Text-safe vote colours — the base hexes above stay reserved for
+     graphics (logo, marks, consensus fill) where WCAG 1.4.11 (≥ 3:1) is
+     met. As normal-size TEXT they fail 1.4.3, so any vote-/status-coloured
+     text uses these darker same-hue variants (≥ 4.6:1 on --vp-bg). */
+  --color-vp-vote-up-strong: #0d7f57;
+  --color-vp-vote-down-strong: #c43e2b;
+  /* Tints for marked ballot boxes, alerts and badges (text on them uses the
+     -strong variants above). */
+  --color-vp-vote-up-soft: #e4f3ec;
+  --color-vp-vote-down-soft: #fbe8e4;
+  --color-vp-info: #2e73d6;
+  --color-vp-info-strong: #1f5cb3;
+  --color-vp-info-soft: #e7eefb;
+  --color-vp-warn: #c0821a;
+  --color-vp-warn-strong: #8a5a0e;
+  --color-vp-warn-soft: #fbf0dc;
+
+  /* ── Semantic: status ────────────────────────────────────────────── */
+  --color-vp-status-open: #979ba3;
+  --color-vp-status-planned: #2e73d6;
+  --color-vp-status-in-progress: #c0821a;
+  --color-vp-status-done: #0e9466;
+  --color-vp-status-declined: #d8503c;
+  --color-vp-status-done-strong: #0d7f57;
+
+  /* ── Radius — the plane language: every corner is square. The scale is
+     kept (token NAMES are stable) but resolves to the shared --vp-radius
+     hook, so a self-hoster who wants softer corners changes ONE value.
+     Only -full stays round: vote controls, status dots, spinners, avatars. */
+  --radius-vp-xs: var(--vp-radius);
+  --radius-vp-sm: var(--vp-radius);
+  --radius-vp-md: var(--vp-radius);
+  --radius-vp-lg: var(--vp-radius);
+  --radius-vp-xl: var(--vp-radius);
+  --radius-vp-2xl: var(--vp-radius);
+  --radius-vp-full: 9999px;
+
+  /* ── Elevation — there is none. Planes sit on the paper and are told
+     apart by hairlines and weight; the one surface that floats (menus,
+     dialogs, toasts) carries a 2px ink EDGE instead of a shadow. The
+     shadow token names stay so callers keep compiling; most resolve to
+     "none" and the rest to hairline / ink edges. ─────────────────── */
+  --shadow-vp-ring: 0 0 0 1px var(--color-vp-rule);
+  --shadow-vp-xs: none;
+  --shadow-vp-sm: none;
+  --shadow-vp-md: 0 0 0 2px var(--color-vp-ink);
+  --shadow-vp-lg: 0 0 0 2px var(--color-vp-ink);
+  --shadow-vp-soft: 0 0 0 1px var(--color-vp-rule);
+  --shadow-vp-lift: 0 0 0 2px var(--color-vp-ink);
+  --shadow-vp-focus: 0 0 0 1px var(--color-vp-ink);
+  --shadow-vp-inset: none;
+
+  /* ── Spacing — shell geometry ───────────────────────────────────── */
+  --spacing-vp-topbar: 3.5rem;
+  --spacing-vp-sidebar: 15.5rem;
+  --spacing-vp-sidebar-rail: 4rem;
+
+  /* ── Motion — state changes only, 150–300ms. One curve for everything
+     that arrives or settles: the landing's expo-out (web/ --vp-ease-out).
+     The one deliberate overshoot lives inside the vp-stamp keyframes. ── */
+  --ease-vp-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-vp-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-vp-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --animate-vp-fade-in: vp-fade-in 200ms var(--ease-vp-out) both;
+  --animate-vp-rise: vp-rise 280ms var(--ease-vp-out) both;
+  --animate-vp-stamp: vp-stamp 200ms var(--ease-vp-out) both;
+  --animate-vp-scale-in: vp-scale-in 220ms var(--ease-vp-expo) both;
+  --animate-vp-slide-in-right: vp-slide-in-right 260ms var(--ease-vp-out) both;
+  --animate-vp-slide-in-left: vp-slide-in-left 260ms var(--ease-vp-out) both;
+  --animate-vp-shimmer: vp-shimmer 1.4s linear infinite;
+  --animate-vp-pulse-dot: vp-pulse-dot 2s var(--ease-vp-in-out) infinite;
+  --animate-vp-progress: vp-progress linear both;
+  /* Vote feedback: flat shapes only, no glow/blur — see VoteWidget's own
+     "nothing floats above the sheet, nothing glows" direction. */
+  /* `linear` at the animation level is deliberate for the two vote-particle
+     effects: each of their keyframe segments carries its OWN
+     animation-timing-function (throw, hang, fall), and a curve declared here
+     would only be the fallback for segments that have none. */
+  --animate-vp-particle-burst: vp-particle-burst 620ms linear both;
+  /* The milestone burst is the SAME arc, just given more time to travel —
+     one keyframe set, so the routine and the milestone burst can never drift
+     into two differently-shaped animations. */
+  --animate-vp-confetti-piece: vp-particle-burst 900ms linear both;
+  --animate-vp-ink-settle: vp-ink-settle 450ms var(--ease-vp-out) both;
+  --animate-vp-down-drop: vp-down-drop 520ms linear both;
+  /* The upvote box itself, not just its particles: a quick overshoot bounce
+     so casting an upvote feels like a satisfying press, not just a colour
+     change plus some particles happening nearby. */
+  --animate-vp-vote-pop: vp-vote-pop 320ms var(--ease-vp-out);
+  /* Celebration overlay (Celebration.tsx): its own shapes/motion, deliberately
+     distinct from the vote-burst family above AND from each other — a rain
+     for the referral reward, a twinkle for board milestones. */
+  --animate-vp-confetti-fall: vp-confetti-fall 1000ms linear both;
+  --animate-vp-sparkle-pop: vp-sparkle-pop 700ms var(--ease-vp-out) both;
+}
+
+/* Keyframes referenced by the --animate-vp-* tokens above (top-level so the
+   plain-CSS .vp-skeleton rule can use them too). */
+@keyframes vp-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes vp-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes vp-stamp {
+  from {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.12);
+    opacity: 1;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+@keyframes vp-particle-burst {
+  /* A ballistic arc, not a straight radial line: --vp-dy is the APEX (it is
+     negative — the fan is thrown upward), reached at 55% while the horizontal
+     travel is still only three-quarters done; the last stretch completes the
+     horizontal travel while --vp-fall pulls the piece back down. That single
+     change is what separates "confetti thrown into the air" from "dots
+     sliding outward on rails".
+
+     Opacity starts at 0 and only reaches 1 at 10%: with `both` fill that also
+     makes each piece invisible for the whole of its own start delay, so a
+     staggered burst never shows its pieces piled up on the spawn point first.
+     It then holds at 1 until the fall, because fading from frame one left a
+     piece nearly gone by the time it had cleared the (same-family coloured)
+     button it just left.
+
+     Each segment carries its own curve, and the LAST one accelerates
+     (gravity) rather than decelerating: an ease-out on the closing segment
+     brakes the piece to a visible standstill while it is still faintly
+     opaque, which reads as the animation getting stuck a frame before it
+     ends. Fading out while speeding up never does. */
+  from {
+    transform: translate(0, 0) scale(0.4);
+    opacity: 0;
+    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  10% {
+    transform: translate(calc(var(--vp-dx) * 0.12), calc(var(--vp-dy) * 0.12)) scale(1.1);
+    opacity: 1;
+    animation-timing-function: cubic-bezier(0.12, 0.7, 0.35, 1);
+  }
+  55% {
+    transform: translate(calc(var(--vp-dx) * 0.72), var(--vp-dy)) scale(1);
+    opacity: 1;
+    animation-timing-function: cubic-bezier(0.5, 0, 0.85, 0.4);
+  }
+  to {
+    transform: translate(var(--vp-dx), calc(var(--vp-dy) + var(--vp-fall, 14px))) scale(0.45);
+    opacity: 0;
+  }
+}
+@keyframes vp-ink-settle {
+  from {
+    transform: scale(0.5);
+    opacity: 0.9;
+  }
+  to {
+    transform: scale(1.9);
+    opacity: 0;
+  }
+}
+@keyframes vp-down-drop {
+  /* Rotation is fixed at --vp-rot (already aligned to the piece's own
+     translate direction, see VoteDownDrop) for the whole animation — only
+     translate/scale/opacity move, so the chevron never spins away from the
+     direction it's actually travelling in.
+
+     Opacity starts at 0 and reaches 1 at 14%: with `both` fill that keeps
+     each chevron invisible for the whole of its own start delay, so the
+     cascade never begins as a single blob of chevrons piled on the spawn
+     point (which is what read as a smudge instead of as arrows).
+
+     After the pop-in the fall is ONE accelerating segment all the way to
+     opacity 0 — a falling thing speeds up, and the previous ease-in-out
+     ending braked each chevron to a visible standstill while it was still
+     faintly opaque, which is exactly what reads as the animation getting
+     stuck just before it ends. */
+  from {
+    transform: translate(0, 0) rotate(var(--vp-rot, 0deg)) scale(0.55);
+    opacity: 0;
+    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  14% {
+    transform: translate(calc(var(--vp-dx) * 0.1), calc(var(--vp-dy) * 0.1)) rotate(var(--vp-rot, 0deg)) scale(1);
+    opacity: 1;
+    animation-timing-function: cubic-bezier(0.25, 0.2, 0.9, 0.7);
+  }
+  to {
+    transform: translate(var(--vp-dx), var(--vp-dy)) rotate(var(--vp-rot, 0deg)) scale(0.82);
+    opacity: 0;
+  }
+}
+@keyframes vp-vote-pop {
+  0% {
+    transform: scale(1);
+  }
+  35% {
+    transform: scale(1.22);
+  }
+  60% {
+    transform: scale(0.94);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+@keyframes vp-confetti-fall {
+  /* Straight down, tumbling at a fixed rate to its own --vp-rot end angle,
+     with a little sideways --vp-sway — the opposite shape of the vote
+     burst's outward arc from a point: this rains DOWN the whole banner,
+     never radiates from one spot, so the two never read as the same effect
+     at different sizes. Opacity holds at 1 through the fall and only drops
+     in the last stretch, so it never looks like it's fading mid-air. */
+  from {
+    transform: translate(0, -12px) rotate(0deg);
+    opacity: 0;
+  }
+  12% {
+    opacity: 1;
+  }
+  80% {
+    opacity: 1;
+  }
+  to {
+    transform: translate(var(--vp-sway), 92px) rotate(var(--vp-rot));
+    opacity: 0;
+  }
+}
+@keyframes vp-sparkle-pop {
+  /* A quick outward pop to --vp-sx/--vp-sy then settle — a twinkle, not a
+     fall: deliberately the opposite motion of the confetti rain above, so a
+     milestone never reads as "the reward celebration, but smaller". */
+  from {
+    transform: translate(0, 0) scale(0.3) rotate(45deg);
+    opacity: 0;
+  }
+  40% {
+    transform: translate(calc(var(--vp-sx) * 0.75), calc(var(--vp-sy) * 0.75)) scale(1.2) rotate(45deg);
+    opacity: 1;
+  }
+  to {
+    transform: translate(var(--vp-sx), var(--vp-sy)) scale(0.5) rotate(45deg);
+    opacity: 0;
+  }
+}
+@keyframes vp-scale-in {
+  from {
+    transform: scale(0.96);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+@keyframes vp-slide-in-right {
+  from {
+    transform: translateX(12px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+@keyframes vp-slide-in-left {
+  from {
+    transform: translateX(-12px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+@keyframes vp-shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+@keyframes vp-pulse-dot {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, currentColor 40%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 4px transparent;
+  }
+}
+@keyframes vp-progress {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+
+/* a11y: visible focus indicator — consistent across all interactive elements
+   and identical to web/'s: a 2px ink outline, offset 3px, square. Controls
+   draw the same ink as a doubled border instead (see .vp-control). */
+:focus-visible {
+  outline: 2px solid var(--color-vp-ink);
+  outline-offset: 3px;
+}
+
+/* Text link — the landing's `.vp-link`: ink text, a 2px underline in the
+   resting underline tint that turns ink on hover. Applied by Button's
+   `link` variant and by the few bare anchors that sit in running copy. */
+.vp-link {
+  color: var(--color-vp-ink);
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 0.2em;
+  text-decoration-color: var(--color-vp-underline);
+  transition: text-decoration-color 150ms var(--ease-vp-out);
+}
+.vp-link:hover {
+  text-decoration-color: currentColor;
+}
+
+/* Mono numbers utility: wrap score/count values with this class */
+.font-mono-num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* Fluid centered content container with clamp() gutter.
+   Header is full-bleed; apply this wrapper only to page content. */
+.vp-container {
+  width: 100%;
+  max-width: 1280px;
+  margin-inline: auto;
+  padding-inline: clamp(1rem, 4vw, 2rem);
+}
+/* Width presets. Declared here (not as `max-w-[…]` utilities) because this
+   unlayered rule would otherwise beat any layered utility on the same element. */
+.vp-container--narrow {
+  max-width: 44rem;
+}
+.vp-container--wide {
+  max-width: 1440px;
+}
+
+/* Same gutter as .vp-container, but no max-width — for full-bleed bars
+   (the app header) whose content should use the whole viewport width. */
+.vp-container-fluid {
+  width: 100%;
+  padding-inline: clamp(1rem, 4vw, 2rem);
+}
+
+/* ============================================================
+   Surfaces
+   ============================================================ */
+
+/* Sheet: a white plane on the paper ground. Square, flat, no shadow — it is
+   told apart from the ground by its colour and a hairline. Shared with
+   web/'s ExampleBoard, so the landing mockup and the real board are the
+   same surface. */
+.vp-sheet {
+  background: var(--color-vp-surface);
+  border: 1px solid var(--color-vp-rule);
+  border-radius: var(--radius-vp-lg);
+}
+/* The one heavy rule a result sheet carries at its head. */
+.vp-sheet--ruled {
+  border-top: 2px solid var(--color-vp-rule-strong);
+}
+/* Tenant accent as a thin coloured edge (never a fill). */
+.vp-sheet--accent {
+  border-top: 3px solid var(--color-vp-accent);
+}
+
+/* Card: the same plane, for dashboards, stat tiles and option pickers.
+   There is no "raised" tier any more — weight, not elevation. */
+.vp-card {
+  background: var(--color-vp-surface);
+  border: 1px solid var(--color-vp-rule);
+  border-radius: var(--radius-vp-lg);
+}
+/* Interactive card: lifts 2px on hover and takes an ink edge (the landing's
+   button hover), settles on press. */
+.vp-card--interactive {
+  transition:
+    box-shadow 180ms var(--ease-vp-out),
+    transform 180ms var(--ease-vp-out),
+    border-color 180ms var(--ease-vp-out);
+}
+.vp-card--interactive:hover {
+  border-color: var(--color-vp-ink);
+  box-shadow: inset 0 0 0 1px var(--color-vp-ink);
+  transform: translateY(-2px);
+}
+.vp-card--interactive:active {
+  transform: translateY(0);
+}
+
+/* Overlay: menus, popovers, dialogs, toasts — the only surfaces that
+   float, and they say so with a 2px ink edge instead of a shadow. */
+.vp-overlay {
+  background: var(--color-vp-surface-overlay);
+  border-radius: var(--radius-vp-lg);
+  box-shadow: 0 0 0 2px var(--color-vp-ink);
+}
+
+/* Sticky app chrome. Formerly frosted glass; now the plane itself — a solid
+   paper bar with a hairline, exactly like the landing's header. The class
+   name stays so callers keep working. */
+.vp-glass {
+  background: var(--color-vp-bg);
+}
+
+/* Ink panel: the dark plane (auth aside, board stats, footer) — plain ink
+   like the landing's dark sections. Structure comes from the
+   content drawn on it, never from a wash or a pattern. */
+.vp-ink-panel {
+  position: relative;
+  background: var(--color-vp-surface-ink);
+  color: var(--color-vp-on-ink);
+}
+
+/* Desk: the app ground — the flat paper the landing uses, no vignette. */
+.vp-desk {
+  background-color: var(--color-vp-bg);
+}
+
+/* Control frame: shared field look (input, textarea, select) — a square
+   white plane with a grey border that turns into a doubled ink border on
+   focus, so the active field is unmistakable without a coloured glow. */
+.vp-control {
+  background: var(--color-vp-surface);
+  border: 1px solid var(--color-vp-border-strong);
+  border-radius: var(--radius-vp-md);
+  transition:
+    border-color 150ms var(--ease-vp-out),
+    box-shadow 150ms var(--ease-vp-out),
+    background-color 150ms var(--ease-vp-out);
+}
+.vp-control:hover:not(:disabled) {
+  border-color: var(--color-vp-text-muted);
+}
+.vp-control:focus,
+.vp-control:focus-visible {
+  outline: none;
+  border-color: var(--color-vp-ink);
+  box-shadow: inset 0 0 0 1px var(--color-vp-ink);
+}
+.vp-control[aria-invalid="true"] {
+  border-color: var(--color-vp-vote-down);
+}
+.vp-control[aria-invalid="true"]:focus {
+  box-shadow: inset 0 0 0 1px var(--color-vp-vote-down);
+}
+.vp-control:disabled {
+  background: var(--color-vp-surface-frost);
+  color: var(--color-vp-text-muted);
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* Keyboard key cap — for shortcut hints (⌘K, Esc). */
+.vp-kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.375rem;
+  height: 1.25rem;
+  padding-inline: 0.3rem;
+  font-family: var(--font-inter);
+  font-size: var(--text-vp-2xs);
+  font-weight: 500;
+  line-height: 1;
+  color: var(--color-vp-text-secondary);
+  background: var(--color-vp-surface-frost);
+  border: 1px solid var(--color-vp-border-subtle);
+  border-bottom-width: 2px;
+  border-radius: var(--radius-vp-xs);
+}
+
+/* Sidebar navigation item — the app shell's primary wayfinding. The current
+   item is marked the way the landing marks its current nav link: with a
+   solid 2px ink rule (here on the leading edge) and weight, not a pill. */
+.vp-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  height: 2.25rem;
+  padding-inline: 0.625rem;
+  border-radius: var(--radius-vp-md);
+  box-shadow: inset 0 0 0 0 var(--color-vp-ink);
+  font-size: var(--text-vp-base);
+  font-weight: 500;
+  color: var(--color-vp-text-secondary);
+  text-decoration: none;
+  transition:
+    background-color 150ms var(--ease-vp-out),
+    box-shadow 150ms var(--ease-vp-out),
+    color 150ms var(--ease-vp-out);
+}
+.vp-nav-item:hover {
+  background: var(--color-vp-ink-soft);
+  color: var(--color-vp-ink);
+}
+.vp-nav-item[aria-current="page"],
+.vp-nav-item[data-current="true"] {
+  background: var(--color-vp-surface);
+  color: var(--color-vp-ink);
+  font-weight: 600;
+  box-shadow: inset 2px 0 0 0 var(--color-vp-ink);
+}
+.vp-nav-item[aria-current="page"] .vp-nav-icon,
+.vp-nav-item[data-current="true"] .vp-nav-icon {
+  color: var(--color-vp-ink);
+}
+.vp-nav-icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  color: var(--color-vp-text-muted);
+  transition: color 150ms var(--ease-vp-out);
+}
+
+/* Live dot: a small status marker that breathes once every 2s (unread,
+   online, in-progress). Uses currentColor so any tone works. */
+.vp-live-dot {
+  display: inline-block;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 9999px;
+  background: currentColor;
+  animation: var(--animate-vp-pulse-dot);
+}
+
+/* Skeleton shimmer (loading placeholders) */
+.vp-skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--color-vp-surface-sunken) 0%,
+    var(--color-vp-surface-frost) 50%,
+    var(--color-vp-surface-sunken) 100%
+  );
+  background-size: 200% 100%;
+  animation: var(--animate-vp-shimmer);
+  border-radius: var(--radius-vp-sm);
+}
+
+/* Section eyebrow: small caps label above a title or a sidebar group. */
+.vp-eyebrow {
+  font-size: var(--text-vp-2xs);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-vp-text-muted);
+}
+
+/* Hover lift — the landing's button hover: the plane rises 2px. Pairs with
+   .vp-press for the settle. */
+.vp-lift {
+  transition: transform 150ms var(--ease-vp-out);
+}
+.vp-lift:hover:not(:disabled) {
+  transform: translateY(-2px);
+}
+.vp-lift:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+/* Vote column: the ballot marks sit above the row's stretched title link
+   (z-10) — and, while a vote effect is playing, above the NEIGHBOURING rows
+   too.
+
+   The lift is not cosmetic. Every row in a list gives its vote column the
+   same z-10 in the same stacking context, so a tie is broken by DOM order and
+   the row that comes LATER always paints flatly over the one before it. A
+   particle that travels past its own row's boundary (the downvote chevrons
+   fall up to ~55px, well past a 36px box) therefore vanished mid-flight,
+   under the next row — verified live, not inferred. Raising the particle
+   wrapper itself cannot fix that: z-10 on this column makes it a stacking
+   context, so any z-index inside only ever orders siblings WITHIN the column.
+   The lift has to happen here, on the element that is actually in the tie.
+
+   `:has()` rather than a timer: the marker class lives on the effect wrapper
+   both call sites spawn and tear down again (see VOTE_FX_LIFETIME_MS), so the
+   column drops back to z-10 exactly when the last effect leaves the DOM,
+   with no second source of truth for the duration. */
+.vp-vote-stack {
+  position: relative;
+  z-index: 10;
+}
+.vp-vote-stack:has(.vp-vote-fx) {
+  z-index: 40;
+}
+
+/* Interactive press feedback — buttons, chips, vote boxes. */
+.vp-press {
+  transition:
+    transform 120ms var(--ease-vp-out),
+    background-color 150ms var(--ease-vp-out),
+    border-color 150ms var(--ease-vp-out),
+    color 150ms var(--ease-vp-out),
+    box-shadow 150ms var(--ease-vp-out);
+}
+.vp-press:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+/* Stagger helper: children of a list arrive one after another. */
+.vp-stagger > * {
+  animation: var(--animate-vp-rise);
+}
+.vp-stagger > *:nth-child(1) { animation-delay: 0ms; }
+.vp-stagger > *:nth-child(2) { animation-delay: 30ms; }
+.vp-stagger > *:nth-child(3) { animation-delay: 60ms; }
+.vp-stagger > *:nth-child(4) { animation-delay: 90ms; }
+.vp-stagger > *:nth-child(5) { animation-delay: 120ms; }
+.vp-stagger > *:nth-child(6) { animation-delay: 150ms; }
+.vp-stagger > *:nth-child(7) { animation-delay: 180ms; }
+.vp-stagger > *:nth-child(8) { animation-delay: 210ms; }
+.vp-stagger > *:nth-child(n + 9) { animation-delay: 240ms; }
+
+/* ============================================================
+   prefers-reduced-motion: disable all transitions/animations
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    animation-delay: 0ms !important;
+    transition-duration: 0.01ms !important;
+  }
+  .vp-card--interactive:hover,
+  .vp-press:active:not(:disabled),
+  .vp-lift:hover {
+    transform: none;
+  }
+}
