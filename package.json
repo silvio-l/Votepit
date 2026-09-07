@@ -1,0 +1,12 @@
+{
+  "name": "votepit",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Votepit — selbst-gehostetes Feature-Voting-Board (PHP/MySQL): React-SPA app/ + shared @votepit/ui.",
+  "scripts": {
+    "build": "pnpm -r build",
+    "lint": "pnpm -r lint",
+    "test": "pnpm -r test"
+  }
+}

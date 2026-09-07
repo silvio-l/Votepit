@@ -1,0 +1,15 @@
+Wortlisten (en.txt, de.txt) in diesem Verzeichnis stammen aus dem Projekt
+"List of Dirty, Naughty, Obscene, and Otherwise Bad Words" (LDNOOBW).
+
+  Quelle:  https://github.com/LDNOOBW/List-of-Dirty-Naughty-Obscene-and-Otherwise-Bad-Words
+  Lizenz:  Creative Commons Attribution 4.0 International (CC-BY-4.0)
+           https://creativecommons.org/licenses/by/4.0/
+  Stand:   2026-06-23 (master)
+
+Verwendung als Basis-Blockliste für die serverseitige Inhaltsmoderation in
+Votepit. Die Listen wurden unverändert übernommen. Attribution gemäß CC-BY-4.0
+erfolgt durch diese Datei.
+
+Hinweis: Diese Daten stehen unter CC-BY-4.0 und nicht unter der MIT-Lizenz des
+übrigen Votepit-Quellcodes. Der Votepit-Code bleibt MIT-lizenziert; nur diese
+Wortlisten-Daten tragen die CC-BY-4.0-Attribution.

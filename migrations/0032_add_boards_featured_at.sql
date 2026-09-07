@@ -1,0 +1,11 @@
+-- 0032_add_boards_featured_at — Discover page (/discover) curation.
+--
+-- NULL by default (nothing is featured); an operator/admin sets this
+-- manually to surface a board on the Discover page ahead of others,
+-- regardless of activity. Only meaningful for visibility='public' boards —
+-- BoardRepository::listPublicDiscovery() ranks featured boards first, then
+-- by vote activity, same as an unset column would just fall through to the
+-- activity ranking. Timestamp (not boolean) so "when was it featured" is
+-- available for free if ever needed, matching the locked_at/frozen_at
+-- pattern already used on this table.
+ALTER TABLE boards ADD COLUMN featured_at DATETIME NULL AFTER visibility;

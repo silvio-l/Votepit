@@ -1,0 +1,21 @@
+-- 0042_add_user_is_test_account_column — marks a user as a dedicated test
+-- account (manual QA and automated E2E tests run against the live
+-- production environment), not a real customer.
+--
+-- Two effects, both application-level (this migration only adds the flag):
+--   (A) excluded from Matomo analytics (core/app/src/App.tsx skips
+--       setAnalyticsConfig()/initAnalytics() entirely for such a session)
+--       and from rate limiting (RateLimitMiddleware::process() bypasses the
+--       limiter for a request whose authenticated user carries this flag).
+--   (B) the account this user owns can be wiped back to a known fixture
+--       state via cloud/src/TestAccount/TestAccountResetService.php +
+--       cloud/bin/reset-test-account.php (manually/harness-triggered, no
+--       cron — unlike the public demo tenant, this runs against the real
+--       shared production DB, so a reset must never happen unattended).
+--
+-- Unlike is_operator, more than one user may hold this flag (a self-hoster
+-- or the Cloud team may want more than one test identity). No HTTP
+-- promotion path — same posture as is_operator/is_support (see
+-- UserRepository class doc): only a direct DB UPDATE or a future
+-- bin/grant-test-account.php CLI script sets this.
+ALTER TABLE users ADD COLUMN is_test_account TINYINT(1) NOT NULL DEFAULT 0 AFTER is_support;

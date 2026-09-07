@@ -1,0 +1,95 @@
+# Votepit — Apache configuration for the webroot (public/).
+
+# Under CGI/FastCGI SAPIs (the common case on shared hosting), Apache does
+# NOT forward the Authorization header to PHP by default (mod_php is the one
+# exception) — getallheaders()/apache_request_headers() simply never see it,
+# so ApiTokenAuthenticator::resolve() (core/src/Security/ApiTokenAuthenticator.php)
+# reads an empty header and treats every Bearer-token request as
+# unauthenticated, no matter how correct the token is. Confirmed live against
+# a CGI/FastCGI production install: a verified-valid token on GET
+# /api/v1/board came back 401, and the same token on POST /api/v1/mcp and
+# POST /api/v1/ideas came back 403 "CSRF token invalid." — CsrfMiddleware's
+# own bearer exemption
+# (str_starts_with($request->getHeaderLine('Authorization'), 'Bearer ')) only
+# ever sees the header on GET (irrelevant there — CSRF already bypasses safe
+# verbs), never on POST, because it never arrives at all. CGIPassAuth
+# (Apache 2.4.13+) would be the more direct fix, but risks a hard 500 on any
+# older httpd that rejects the unknown directive in .htaccess — mirroring
+# the header into an env var via mod_rewrite below achieves the same result
+# with a module this file already requires. Without this, the entire Agent
+# API (Bearer-token REST + MCP) is unusable for every mutating request, and
+# reads only work by accident (GET's CSRF safe-verb bypass hides the missing
+# header, doesn't restore it).
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    RewriteCond %{HTTP:Authorization} ^(.+)
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%1]
+
+    # Route every non-existent path to the front controller.
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^ index.php [L]
+</IfModule>
+
+# Never serve hidden files (e.g. .htaccess itself).
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>
+
+# Security headers for the static SPA assets (index.html, JS/CSS bundles).
+# These files NEVER pass through index.php/Slim — SecurityHeaderMiddleware
+# only applies to API JSON responses (see its class doc). Without this
+# block the page actually rendered by the browser (where XSS/clickjacking
+# matter in the first place) would have none of these protections — the
+# focus so far was exclusively on the API side.
+<IfModule mod_headers.c>
+    Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set Referrer-Policy "no-referrer"
+    Header always set X-Frame-Options "DENY"
+    Header always set Cross-Origin-Opener-Policy "same-origin-allow-popups"
+    Header always set Cross-Origin-Resource-Policy "same-origin"
+    Header always set Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()"
+    # script-src/style-src: no inline scripts anywhere in the built SPA (both
+    # tags in index.html are external file src); the one inline <style> is
+    # the static noscript-fallback block, hence style-src needs unsafe-inline
+    # (attribute + that one block) but script-src stays 'self' only. A
+    # self-hosted installation talks to no third-party origin at all — every
+    # source list is 'self'. An operator who plugs in an extension that needs
+    # an external origin (e.g. a payment provider's checkout script) widens
+    # the policy in their own deployment (a later `Header always set
+    # Content-Security-Policy` in this file replaces this one), never here.
+    # style-src-attr/-elem: same finer split as SecurityHeaderMiddleware.php's
+    # API-side CSP (review-2026-09-04-fixes item 18), kept in lockstep —
+    # style-src stays as the fallback for browsers without Level-3 support.
+    # matomo.silvio-und-maik.de: allows the optional Matomo tracker
+    # (core/app/src/lib/analytics.ts) — Cloud's own analytics and/or
+    # Community Edition's opt-out product telemetry, both inert by default
+    # (empty matomo_url / opted-out). A self-hoster who points their OWN
+    # matomo_url at a different Matomo instance widens this in their own
+    # deployment.
+    # img-src https:: a board's logo_url may be any externally-hosted https
+    # image (BrandingValidator::logoUrl() already rejects javascript:/data:/
+    # relative-without-leading-slash schemes there); passive image content,
+    # never script execution.
+    Header always set Content-Security-Policy "default-src 'self'; script-src 'self' https://matomo.silvio-und-maik.de; style-src 'self' 'unsafe-inline'; style-src-attr 'unsafe-inline'; style-src-elem 'self'; img-src 'self' data: https:; connect-src 'self' https://matomo.silvio-und-maik.de; frame-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; object-src 'none'"
+</IfModule>
+
+# Caching: index.html references Vite's content-hashed chunk filenames
+# (assets/Foo-<hash>.js) — after a deploy, the old hashed files are gone.
+# Without an explicit Cache-Control, browsers may keep serving a stale
+# index.html that points at now-deleted chunks, so a lazy route (e.g.
+# /profile) silently fails to load (dynamic import() 404s, no visible
+# error). index.html/root: always revalidate. Hashed assets: filename
+# changes on every build, so they're safe to cache forever.
+<IfModule mod_headers.c>
+    <FilesMatch "^index\.html$">
+        Header always set Cache-Control "no-cache, must-revalidate"
+    </FilesMatch>
+</IfModule>
+<IfModule mod_headers.c>
+    <If "%{REQUEST_URI} =~ m#^/assets/#">
+        Header always set Cache-Control "public, max-age=31536000, immutable"
+    </If>
+</IfModule>

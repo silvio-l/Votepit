@@ -1,0 +1,18 @@
+export default {
+  showAgain: 'Erste Schritte anzeigen',
+  allDoneHeading: 'Alle ersten Schritte erledigt 🎉',
+  heading: 'Erste Schritte',
+  subtitle: 'So nutzt du dein Board optimal.',
+  hideAriaLabel: 'Erste-Schritte-Liste ausblenden',
+  hide: 'Ausblenden',
+  boardLabel: 'Board erstellt',
+  boardCta: 'Öffentliche Seite ansehen',
+  ideaLabel: 'Ersten Vorschlag erhalten',
+  ideaCta: 'Vorschlag einreichen',
+  voteLabel: 'Erste Stimme erhalten',
+  voteCta: 'Board öffnen',
+  teamLabel: 'Team-Mitglied eingeladen',
+  teamCta: 'Mitglieder verwalten',
+  progressAriaLabel: 'Fortschritt der ersten Schritte',
+  progressLabel: '{done} von {total} erledigt',
+}

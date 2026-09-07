@@ -1,0 +1,10 @@
+# PHPStan — statische Analyse (Codebase-Intelligence + Anti-Slop: tote Branches,
+# Typ-Unsicherheit, unerreichbarer Code). strict-rules + phpunit-Extension werden
+# über phpstan/extension-installer automatisch registriert.
+parameters:
+    level: 8
+    paths:
+        - src
+        - tests
+    phpVersion: 80200
+    checkTooWideReturnTypesInProtectedAndPublicMethods: true

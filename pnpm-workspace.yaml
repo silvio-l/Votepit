@@ -1,0 +1,23 @@
+packages:
+  - app
+  - packages/*
+
+allowBuilds:
+  esbuild: true
+  sharp: true
+
+# Preserved from the prior app/pnpm-workspace.yaml (Knip release-age allowlist).
+minimumReleaseAgeExclude:
+  - knip@6.23.0
+
+# Security patch overrides (dependency CVE scan, `pnpm audit`, 2026-08-31 security review):
+# nanoid + postcss come in transitively via vite (dev server, not part of the production
+# build) below the patched version. Patch-level bumps, no API change expected.
+#
+# NOT overridden: undici (transitive only via jsdom@29.1.1, exclusively the Vitest test
+# environment, never in the browser/production bundle) — overriding to the patched version
+# breaks jsdom internally (MODULE_NOT_FOUND, verified). Accepted residual risk: no
+# production exposure (test tooling only, not in the browser/production bundle).
+overrides:
+  nanoid: ">=3.3.18"
+  postcss: ">=8.5.18"
