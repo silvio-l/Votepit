@@ -1,0 +1,84 @@
+{
+  "entries": [
+    {
+      "file": "app/src/components/BoardImportPanel.tsx",
+      "element": "input",
+      "key": "accept,aria-label,onChange,ref,type"
+    },
+    {
+      "file": "app/src/components/CommentReactionBar.tsx",
+      "element": "button",
+      "key": "aria-label,aria-pressed,disabled,key,onClick,type"
+    },
+    {
+      "file": "app/src/components/MarkdownLite.tsx",
+      "element": "a",
+      "key": "href,key,onClick,rel,target"
+    },
+    {
+      "file": "app/src/components/MergeIdeaDialog.tsx",
+      "element": "button",
+      "key": "aria-hidden,onClick,tabIndex,type"
+    },
+    {
+      "file": "app/src/components/MergeIdeaDialog.tsx",
+      "element": "input",
+      "key": "checked,disabled,name,onChange,type,value"
+    },
+    {
+      "file": "app/src/components/ReportContentModal.tsx",
+      "element": "button",
+      "key": "aria-hidden,onClick,tabIndex,type"
+    },
+    {
+      "file": "app/src/components/TurnstileChallengeModal.tsx",
+      "element": "button",
+      "key": "aria-hidden,onClick,tabIndex,type"
+    },
+    {
+      "file": "app/src/pages/BoardPage.tsx",
+      "element": "button",
+      "key": "onClick,type"
+    },
+    {
+      "file": "app/src/pages/IdeaDetailPage.tsx",
+      "element": "button",
+      "key": "onClick,type"
+    },
+    {
+      "file": "app/src/pages/IdeaDetailPage.tsx",
+      "element": "button",
+      "key": "onClick,type"
+    },
+    {
+      "file": "app/src/pages/IdeaDetailPage.tsx",
+      "element": "button",
+      "key": "onClick,type"
+    },
+    {
+      "file": "app/src/pages/IdeaDetailPage.tsx",
+      "element": "button",
+      "key": "onClick,type"
+    },
+    {
+      "file": "app/src/pages/OperatorSupportTicketPage.tsx",
+      "element": "button",
+      "key": "onClick,type"
+    },
+    {
+      "file": "app/src/pages/ProfilePage.tsx",
+      "element": "button",
+      "key": "aria-label,disabled,onClick,type"
+    },
+    {
+      "file": "app/src/pages/ProfilePage.tsx",
+      "element": "input",
+      "key": "accept,onChange,ref,type"
+    },
+    {
+      "file": "app/src/pages/RoadmapPage.tsx",
+      "element": "button",
+      "key": "onClick,type"
+    }
+  ]
+}

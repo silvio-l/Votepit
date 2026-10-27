@@ -1,0 +1,47 @@
+// machine-drafted, needs native review
+import type de from './loginPage.de'
+
+const fr = {
+  backToBoard: 'Retour au tableau',
+  heading: 'Se connecter',
+  subtitle: 'Nous vous envoyons un lien magique par e-mail.',
+  inviteNoticeTitle: "Accepter l'invitation",
+  inviteNoticeBody:
+    "Connectez-vous avec l'adresse e-mail qui a été invitée. L'invitation est alors acceptée automatiquement – aucun mot de passe n'est nécessaire, le lien magique suffit. Vous n'avez pas besoin de créer votre propre compte.",
+  noAccount: "Vous n'avez pas encore de compte ?",
+  signupLink: "S'inscrire gratuitement",
+  subtitlePassword: 'Connectez-vous avec votre adresse e-mail et votre mot de passe.',
+  emailLabel: 'Adresse e-mail',
+  emailPlaceholder: 'vous@email.com',
+  submit: 'Envoyer le lien magique',
+  submitting: 'Envoi…',
+  sentTitle: 'Lien envoyé',
+  sentBefore: 'Nous avons envoyé un lien magique à',
+  sentAfter: 'Consultez votre boîte de réception.',
+  noLinkQuestion: "Vous n'avez pas reçu de lien ?",
+  retryLink: 'Réessayer',
+  methodMagicLink: 'Lien magique',
+  methodPassword: 'Mot de passe',
+  methodTabsLabel: 'Méthode de connexion',
+  passwordLabel: 'Mot de passe',
+  passwordSubmit: 'Se connecter',
+  passwordSubmitting: 'Connexion…',
+  forgotPasswordLink: 'Mot de passe oublié ?',
+  twoFactorHeading: 'Vérification en deux étapes',
+  twoFactorCodeSubtitle: "Saisissez le code à 6 chiffres de votre application d'authentification.",
+  twoFactorBackupSubtitle: "Saisissez l'un de vos codes de secours.",
+  totpCodeLabel: 'Code',
+  totpCodePlaceholder: '123456',
+  backupCodeLabel: 'Code de secours',
+  backupCodePlaceholder: 'XXXX-XXXX',
+  useBackupCodeInstead: 'Utiliser plutôt un code de secours',
+  useCodeInstead: "Utiliser plutôt le code de l'application d'authentification",
+  twoFactorSubmit: 'Vérifier',
+  twoFactorSubmitting: 'Vérification…',
+  twoFactorError: 'Le code est invalide.',
+  oauthDivider: 'ou',
+  oauthContinueWithGoogle: 'Continuer avec Google',
+  oauthContinueWithGithub: 'Continuer avec GitHub',
+} satisfies typeof de
+
+export default fr

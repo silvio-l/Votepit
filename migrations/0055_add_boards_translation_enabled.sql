@@ -1,0 +1,18 @@
+-- 0055_add_boards_translation_enabled — idea-comment-translation, per-board
+-- opt-in follow-up.
+--
+-- Machine translation was installation-wide only (Config::translationConfigured()):
+-- once a Cloud/self-host operator sets up Google credentials, EVERY board on
+-- that installation got auto-translated content for logged-in voters, with
+-- no way for an individual customer to turn it off. Real-world feedback:
+-- plenty of boards are internal, single-language team boards that never
+-- need translation — auto-translating them anyway burns API calls/cost for
+-- no benefit.
+--
+-- boards.translation_enabled: per-board opt-IN, defaulting to OFF (0) —
+-- translation only ever fires for a board once its owner explicitly
+-- switches it on, on top of the installation still needing
+-- Config::translationConfigured() to be true. NULL-free TINYINT(1), same
+-- pattern as hide_badge (migration 0014). Not plan-gated — any plan may
+-- toggle this, since disabling it only ever reduces API usage/cost.
+ALTER TABLE boards ADD COLUMN translation_enabled TINYINT(1) NOT NULL DEFAULT 0 AFTER hide_badge;

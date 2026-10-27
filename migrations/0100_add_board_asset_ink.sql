@@ -1,0 +1,11 @@
+-- 0100_add_board_asset_ink — contrast metadata for the logo slots (BR-LOGO2).
+--
+-- ink_luminance: mean WCAG relative luminance (0..1, linearised per pixel) of
+-- the visible pixels of one rendition, computed by BoardAssetProcessor at
+-- upload time. The app uses it to decide whether a light plate is needed
+-- behind a logo on a dark topbar (contrast below 3:1). NULL for rows written
+-- before this migration and for renditions without visible pixels; the app
+-- then shows the logo as it is.
+--
+-- Forward-only.
+ALTER TABLE board_assets ADD COLUMN ink_luminance DECIMAL(4,3) NULL AFTER height;

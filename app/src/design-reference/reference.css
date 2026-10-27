@@ -1,0 +1,279 @@
+/*
+ * Dev-only reference page styles (design-reference.html). Not part of the production
+ * build. Fonts are the same self-hosted files the app uses (see packages/ui/src/tokens.css).
+ */
+
+@font-face {
+  font-family: 'Archivo';
+  src: url('/assets/fonts/archivo-latin-600-normal.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Archivo';
+  src: url('/assets/fonts/archivo-latin-700-normal.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Archivo';
+  src: url('/assets/fonts/archivo-latin-800-normal.woff2') format('woff2');
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Inter';
+  src: url('/assets/fonts/inter-latin-400-normal.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Inter';
+  src: url('/assets/fonts/inter-latin-500-normal.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Inter';
+  src: url('/assets/fonts/inter-latin-600-normal.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--vpds-surface-canvas);
+  color: var(--vpds-text-primary);
+  font-family: var(--vpds-font-ui);
+  font-size: var(--vpds-type-body-size);
+  line-height: var(--vpds-type-body-line-height);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.ref-page {
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: var(--vpds-layout-workspace-max);
+  margin: 0 auto;
+  padding: 0 var(--vpds-space-gutter) var(--vpds-space-section);
+}
+
+.ref-topbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--vpds-space-xs) var(--vpds-space-md);
+  padding: var(--vpds-space-md) 0;
+}
+
+.ref-topbar__title {
+  margin: 0;
+  font-family: var(--vpds-font-display);
+  font-size: var(--vpds-type-heading-3-size);
+  font-weight: var(--vpds-p-font-weight-heavy);
+  line-height: var(--vpds-type-heading-3-line-height);
+}
+
+.ref-topbar__note {
+  color: var(--vpds-text-secondary);
+  font-size: var(--vpds-type-meta-size);
+}
+
+.ref-section {
+  display: grid;
+  gap: var(--vpds-space-lg);
+  min-width: 0;
+  padding: var(--vpds-space-lg) 0;
+}
+
+.ref-section__title {
+  margin: 0;
+  font-family: var(--vpds-font-display);
+  font-size: var(--vpds-type-heading-2-size);
+  font-weight: var(--vpds-p-font-weight-heavy);
+  line-height: var(--vpds-type-heading-2-line-height);
+  letter-spacing: var(--vpds-type-heading-2-tracking);
+}
+
+.ref-stack {
+  display: grid;
+  gap: var(--vpds-space-md);
+  min-width: 0;
+}
+
+.ref-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--vpds-space-sm);
+  min-width: 0;
+}
+
+.ref-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--vpds-space-xs);
+  min-width: 0;
+}
+
+/* Board */
+
+.ref-board-toolbar {
+  display: grid;
+  gap: var(--vpds-space-md);
+  padding: var(--vpds-space-md) 0;
+  min-width: 0;
+}
+
+.ref-board {
+  display: grid;
+  gap: var(--vpds-space-lg);
+  align-items: start;
+  min-width: 0;
+}
+
+.ref-list {
+  display: grid;
+  gap: var(--vpds-space-sm);
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+  list-style: none;
+}
+
+.ref-detail {
+  display: grid;
+  gap: var(--vpds-space-md);
+  min-width: 0;
+  padding: var(--vpds-space-lg);
+  background: var(--vpds-surface-card);
+  border-radius: var(--vpds-radius-card);
+  box-shadow: var(--vpds-shadow-card);
+}
+
+.ref-detail__title {
+  margin: 0;
+  font-family: var(--vpds-font-display);
+  font-size: var(--vpds-type-heading-3-size);
+  font-weight: var(--vpds-p-font-weight-heavy);
+  line-height: var(--vpds-type-heading-3-line-height);
+  overflow-wrap: anywhere;
+}
+
+.ref-detail__problem {
+  margin: 0;
+  max-width: var(--vpds-type-measure);
+  overflow-wrap: anywhere;
+}
+
+.ref-detail__section-title {
+  margin: 0;
+  font-size: var(--vpds-type-label-size);
+  font-weight: var(--vpds-p-font-weight-semibold);
+}
+
+.ref-placeholder {
+  margin: 0;
+  color: var(--vpds-text-secondary);
+}
+
+@media (min-width: 1024px) {
+  .ref-board {
+    grid-template-columns:
+      minmax(var(--vpds-layout-list-min), 3fr)
+      minmax(var(--vpds-layout-detail-min), 2fr);
+    gap: var(--vpds-space-lg);
+  }
+
+  .ref-detail {
+    position: sticky;
+    top: var(--vpds-space-md);
+  }
+}
+
+@media (min-width: 1440px) {
+  .ref-board {
+    grid-template-columns:
+      minmax(var(--vpds-layout-list-min), 3fr)
+      minmax(var(--vpds-layout-detail-min), 2fr);
+  }
+}
+
+/* States catalogue */
+
+.ref-cases {
+  display: grid;
+  gap: var(--vpds-space-lg);
+  min-width: 0;
+}
+
+@media (min-width: 1024px) {
+  .ref-cases {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: var(--vpds-space-lg);
+  }
+}
+
+.ref-case {
+  display: grid;
+  align-content: start;
+  gap: var(--vpds-space-sm);
+  min-width: 0;
+  padding: var(--vpds-space-md);
+  background: var(--vpds-surface-card);
+  border: var(--vpds-control-border-width) solid var(--vpds-border-subtle);
+  border-radius: var(--vpds-radius-card);
+}
+
+.ref-case__label {
+  margin: 0;
+  color: var(--vpds-text-secondary);
+  font-size: var(--vpds-type-meta-size);
+  font-weight: var(--vpds-p-font-weight-semibold);
+  line-height: var(--vpds-type-meta-line-height);
+}
+
+.ref-stage {
+  display: grid;
+  gap: var(--vpds-space-md);
+  min-width: 0;
+  padding: var(--vpds-space-md);
+  background: var(--vpds-surface-inverse);
+  color: var(--vpds-text-inverse);
+  border-radius: var(--vpds-c-stage-radius);
+}
+
+.ref-frame-320 {
+  display: grid;
+  gap: var(--vpds-space-md);
+  width: 320px;
+  max-width: 100%;
+  box-sizing: border-box;
+  min-width: 0;
+  padding: var(--vpds-space-md);
+  background: var(--vpds-surface-card);
+  border: var(--vpds-control-border-width) solid var(--vpds-border-subtle);
+  border-radius: var(--vpds-radius-card);
+}
+
+.ref-showcase-media {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.ref-notice-spacer {
+  height: var(--vpds-space-xs);
+}

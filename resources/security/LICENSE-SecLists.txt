@@ -1,0 +1,13 @@
+Die Passwort-Häufigkeitsliste (password-denylist-top3000.txt) in diesem
+Verzeichnis ist eine gekürzte, kleingeschriebene, deduplizierte Auswahl (die
+ersten 3000 Zeilen) aus dem Projekt "SecLists".
+
+  Quelle:  https://github.com/danielmiessler/SecLists
+           Passwords/Common-Credentials/10k-most-common.txt
+  Lizenz:  MIT License, Copyright (c) 2018 Daniel Miessler
+  Stand:   2026-09-09 (master)
+
+Verwendung als Blockliste gegen häufig verwendete/geleakte Passwörter beim
+Setzen eines neuen Passworts (OWASP/BSI audit remediation issue 04). Der
+Votepit-Code bleibt MIT-lizenziert; diese Datei attribuiert die
+Quelldaten zusätzlich gemäß deren eigener MIT-Lizenz.

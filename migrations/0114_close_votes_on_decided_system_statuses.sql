@@ -1,0 +1,13 @@
+-- 0114_close_votes_on_decided_system_statuses — votes close on decided ideas
+-- by default (owner decision 2026-10-26, part 13b).
+--
+-- Ideas in a status of category done (completed), declined or archived take
+-- no votes any more, unless an admin re-opens that status. The code default
+-- lives in Domain\BoardStatuses::defaultAllowVotes(); this migration brings
+-- the already materialised system rows in line with it. Boards without rows
+-- get the same default from code and need no data change.
+--
+-- Only the six system rows (is_system = 1) are touched. Custom statuses keep
+-- the allow_votes value their admin chose. The vote lock stays per idea
+-- (VoteAction, status_closed_for_votes), not per board.
+UPDATE board_statuses SET allow_votes = 0 WHERE is_system = 1 AND status_key IN ('done', 'declined', 'archived');

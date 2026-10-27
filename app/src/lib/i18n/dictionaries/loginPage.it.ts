@@ -1,0 +1,47 @@
+// machine-drafted, needs native review
+import type de from './loginPage.de'
+
+const it = {
+  backToBoard: 'Torna alla bacheca',
+  heading: 'Accedi',
+  subtitle: 'Ti invieremo un magic link via e-mail.',
+  inviteNoticeTitle: 'Accetta l’invito',
+  inviteNoticeBody:
+    'Accedi con l’indirizzo e-mail che è stato invitato. L’invito verrà quindi accettato automaticamente – non ti serve una password, basta il magic link. Non devi creare un tuo account.',
+  noAccount: 'Non hai ancora un account?',
+  signupLink: 'Registrati gratis',
+  subtitlePassword: 'Accedi con il tuo indirizzo e-mail e la password.',
+  emailLabel: 'Indirizzo e-mail',
+  emailPlaceholder: 'tu@email.com',
+  submit: 'Invia magic link',
+  submitting: 'Invio…',
+  sentTitle: 'Link inviato',
+  sentBefore: 'Abbiamo inviato un magic link a',
+  sentAfter: 'Controlla la tua posta in arrivo.',
+  noLinkQuestion: 'Non hai ricevuto il link?',
+  retryLink: 'Riprova',
+  methodMagicLink: 'Magic link',
+  methodPassword: 'Password',
+  methodTabsLabel: 'Metodo di accesso',
+  passwordLabel: 'Password',
+  passwordSubmit: 'Accedi',
+  passwordSubmitting: 'Accesso in corso…',
+  forgotPasswordLink: 'Password dimenticata?',
+  twoFactorHeading: 'Verifica in due passaggi',
+  twoFactorCodeSubtitle: 'Inserisci il codice a 6 cifre della tua app di autenticazione.',
+  twoFactorBackupSubtitle: 'Inserisci uno dei tuoi codici di backup.',
+  totpCodeLabel: 'Codice',
+  totpCodePlaceholder: '123456',
+  backupCodeLabel: 'Codice di backup',
+  backupCodePlaceholder: 'XXXX-XXXX',
+  useBackupCodeInstead: 'Usa invece un codice di backup',
+  useCodeInstead: 'Usa invece il codice dell’app di autenticazione',
+  twoFactorSubmit: 'Verifica',
+  twoFactorSubmitting: 'Verifica in corso…',
+  twoFactorError: 'Il codice non è valido.',
+  oauthDivider: 'oppure',
+  oauthContinueWithGoogle: 'Continua con Google',
+  oauthContinueWithGithub: 'Continua con GitHub',
+} satisfies typeof de
+
+export default it

@@ -1,0 +1,836 @@
+openapi: 3.1.0
+# Hand-maintained contract of the token-authenticated Agent API (/api/v1/*).
+# tests/Documentation/OpenApiSpecTest.php fails when a registered /api/v1
+# route is missing here or a path/method here is not registered — keep both
+# in sync. Prose reference: api-reference.md, MCP: mcp-server.md.
+info:
+  title: Votepit Agent API
+  version: 1.1.0
+  description: |
+    Bearer-token API for external integrations and AI agents. A token is
+    issued by an account admin and grants a set of boards, each with a grant
+    level:
+
+    - `read` — read the board and its published ideas.
+    - `write` — plus create ideas, vote and comment (acts like a regular,
+      non-moderating member: on a board with pre-moderation, created ideas
+      wait for approval).
+    - `moderate` — plus change status, assign/remove tags, merge/unmerge and
+      read pending ideas. Explicit grant, only effective while the user who
+      issued the token still moderates the account.
+
+    The board is never taken from the path: a token granting one board uses
+    it automatically, a token granting several requires `?board=<slug>`.
+    Ideas of other boards or accounts are always reported as `404`.
+  license:
+    name: MIT
+    identifier: MIT
+servers:
+  - url: https://{host}
+    variables:
+      host:
+        default: app.example.com
+security:
+  - bearerToken: []
+tags:
+  - name: Board
+    description: The board the token resolves to.
+  - name: Ideas
+    description: Reading, searching and submitting ideas.
+  - name: Idea actions
+    description: Votes, comments and moderator actions on one idea.
+  - name: MCP
+    description: The same capabilities as Model Context Protocol tools.
+  - name: Browser session
+    description: Cookie-authenticated, not part of the bearer-token API (see the operation).
+
+paths:
+  /api/v1/board:
+    get:
+      tags: [Board]
+      operationId: getBoard
+      summary: Read the token's board, its status registry and tags
+      description: Rate-limit bucket `apitoken:read`.
+      parameters:
+        - $ref: '#/components/parameters/Board'
+      responses:
+        '200':
+          description: The resolved board.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [board]
+                properties:
+                  board:
+                    $ref: '#/components/schemas/Board'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '429':
+          $ref: '#/components/responses/Error'
+
+  /api/v1/ideas:
+    get:
+      tags: [Ideas]
+      operationId: listIdeas
+      summary: List or search published ideas, or read the approval queue
+      description: |
+        Published ideas only. `moderation_state=pending` returns the ideas
+        awaiting approval instead and requires the `moderate` grant (`403
+        insufficient_scope` otherwise). Rate-limit bucket `apitoken:read`.
+      parameters:
+        - $ref: '#/components/parameters/Board'
+        - name: status
+          in: query
+          description: Status category; matches every status of that category.
+          schema:
+            type: string
+            enum: [open, planned, in_progress, done, declined, archived]
+        - name: status_key
+          in: query
+          description: One exact status key (wins over `status`).
+          schema:
+            type: string
+            pattern: '^[a-z0-9_]{1,16}$'
+        - name: q
+          in: query
+          description: Title search; every word must match (prefix matching).
+          schema:
+            type: string
+            maxLength: 100
+        - name: sort
+          in: query
+          schema:
+            type: string
+            enum: [newest, top]
+            default: newest
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+        - name: moderation_state
+          in: query
+          description: Only `pending` (moderate grant).
+          schema:
+            type: string
+            enum: [pending]
+      responses:
+        '200':
+          description: One page of ideas.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ideas]
+                properties:
+                  ideas:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Idea'
+                  active_status:
+                    type: [string, 'null']
+                  active_status_key:
+                    type: [string, 'null']
+                  active_query:
+                    type: [string, 'null']
+                  active_sort:
+                    type: string
+                  page:
+                    type: integer
+                  total_pages:
+                    type: integer
+                  moderation_state:
+                    type: string
+                    enum: [pending]
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '429':
+          $ref: '#/components/responses/Error'
+    post:
+      tags: [Ideas]
+      operationId: createIdea
+      summary: Submit a new idea (write grant)
+      description: |
+        Attributed to the user who issued the token. On a board with
+        pre-moderation the idea is stored as pending (`moderation_state:
+        pending`, moderators are notified) unless the token has the
+        `moderate` grant or its issuing user is a trusted author of the
+        account; a published idea fires the `idea.created` webhook.
+        `423` when the board is frozen or its submission window is not open
+        (binding every token).
+        Rate-limit bucket `apitoken:write`.
+      parameters:
+        - $ref: '#/components/parameters/Board'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title, body]
+              properties:
+                title:
+                  type: string
+                  minLength: 3
+                  maxLength: 200
+                body:
+                  type: string
+                  minLength: 10
+      responses:
+        '201':
+          description: Created.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, id]
+                properties:
+                  ok:
+                    type: boolean
+                  id:
+                    type: integer
+                  moderation_state:
+                    type: string
+                    enum: [pending]
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '422':
+          $ref: '#/components/responses/Error'
+        '423':
+          $ref: '#/components/responses/Error'
+        '429':
+          $ref: '#/components/responses/Error'
+
+  /api/v1/ideas/{id}:
+    get:
+      tags: [Ideas]
+      operationId: getIdea
+      summary: Read one idea
+      description: |
+        Pending ideas are only visible with the `moderate` grant (then
+        carrying `moderation_state`). Rate-limit bucket `apitoken:read`.
+      parameters:
+        - $ref: '#/components/parameters/IdeaId'
+        - $ref: '#/components/parameters/Board'
+      responses:
+        '200':
+          description: The idea.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [idea]
+                properties:
+                  idea:
+                    $ref: '#/components/schemas/Idea'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '429':
+          $ref: '#/components/responses/Error'
+
+  /api/v1/ideas/{id}/vote:
+    post:
+      tags: [Idea actions]
+      operationId: voteIdea
+      summary: Set this token's vote on an idea (write grant)
+      description: |
+        The token is one voter: one vote per token per idea, separate from
+        the issuing user's own vote. `value` is the desired end state —
+        `up`/`down` cast or change the vote, `none` removes it, repeating a
+        value is a no-op. `423` when the board is frozen, its voting window
+        is not open or the idea's status is closed for votes. Rate-limit bucket `apitoken:write`.
+      parameters:
+        - $ref: '#/components/parameters/IdeaId'
+        - $ref: '#/components/parameters/Board'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [value]
+              properties:
+                value:
+                  type: string
+                  enum: [up, down, none]
+      responses:
+        '200':
+          description: The idea's new tally and this token's vote.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [score, my_vote, up_count, down_count]
+                properties:
+                  score:
+                    type: integer
+                  my_vote:
+                    type: string
+                    enum: [up, down, none]
+                  up_count:
+                    type: integer
+                  down_count:
+                    type: integer
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '422':
+          $ref: '#/components/responses/Error'
+        '423':
+          $ref: '#/components/responses/Error'
+        '429':
+          $ref: '#/components/responses/Error'
+
+  /api/v1/ideas/{id}/comments:
+    post:
+      tags: [Idea actions]
+      operationId: commentOnIdea
+      summary: Post a comment (write grant)
+      description: |
+        Plain text, attributed to the user who issued the token; same
+        validation and notifications as a comment in the app (rejected when
+        that user already wrote the idea's latest comment). Rate-limit bucket
+        `apitoken:write`.
+      parameters:
+        - $ref: '#/components/parameters/IdeaId'
+        - $ref: '#/components/parameters/Board'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [body]
+              properties:
+                body:
+                  type: string
+                  minLength: 1
+                  maxLength: 500
+      responses:
+        '201':
+          description: Created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OkId'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '422':
+          $ref: '#/components/responses/Error'
+        '423':
+          $ref: '#/components/responses/Error'
+        '429':
+          $ref: '#/components/responses/Error'
+
+  /api/v1/ideas/{id}/status:
+    post:
+      tags: [Idea actions]
+      operationId: setIdeaStatus
+      summary: Change an idea's status (moderate grant)
+      description: |
+        `status` must be a key of the board's status registry (see
+        `GET /api/v1/board`), including board-defined custom statuses.
+        Notifies followers and fires the `idea.status_changed` webhook like
+        the app. Rate-limit bucket `apitoken:write`.
+      parameters:
+        - $ref: '#/components/parameters/IdeaId'
+        - $ref: '#/components/parameters/Board'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status:
+                  type: string
+                  pattern: '^[a-z0-9_]{1,16}$'
+      responses:
+        '200':
+          description: Changed.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, status, status_key]
+                properties:
+                  ok:
+                    type: boolean
+                  status:
+                    type: string
+                  status_key:
+                    type: string
+                  allowed_next:
+                    type: array
+                    items:
+                      type: string
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '422':
+          $ref: '#/components/responses/Error'
+        '423':
+          $ref: '#/components/responses/Error'
+        '429':
+          $ref: '#/components/responses/Error'
+
+  /api/v1/ideas/{id}/tags:
+    post:
+      tags: [Idea actions]
+      operationId: addIdeaTag
+      summary: Assign a board tag (moderate grant)
+      description: Idempotent. Rate-limit bucket `apitoken:write`.
+      parameters:
+        - $ref: '#/components/parameters/IdeaId'
+        - $ref: '#/components/parameters/Board'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [tag_id]
+              properties:
+                tag_id:
+                  type: integer
+                  minimum: 1
+      responses:
+        '200':
+          $ref: '#/components/responses/IdeaTags'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '422':
+          $ref: '#/components/responses/Error'
+        '429':
+          $ref: '#/components/responses/Error'
+
+  /api/v1/ideas/{id}/tags/{tagId}:
+    delete:
+      tags: [Idea actions]
+      operationId: removeIdeaTag
+      summary: Remove a tag (moderate grant)
+      description: Idempotent. Rate-limit bucket `apitoken:write`.
+      parameters:
+        - $ref: '#/components/parameters/IdeaId'
+        - name: tagId
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+        - $ref: '#/components/parameters/Board'
+      responses:
+        '200':
+          $ref: '#/components/responses/IdeaTags'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '429':
+          $ref: '#/components/responses/Error'
+
+  /api/v1/ideas/{id}/merge:
+    post:
+      tags: [Idea actions]
+      operationId: mergeIdea
+      summary: Merge a duplicate into another idea (moderate grant)
+      description: |
+        Both ideas must be published, on the same board and not merged
+        themselves. Votes are combined (one per voter), followers are
+        notified and the `idea.merged` webhook fires like in the app.
+        Rate-limit bucket `apitoken:write`.
+      parameters:
+        - $ref: '#/components/parameters/IdeaId'
+        - $ref: '#/components/parameters/Board'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [target_id]
+              properties:
+                target_id:
+                  type: integer
+                  minimum: 1
+      responses:
+        '200':
+          description: Merged.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, idea_id, merged_into]
+                properties:
+                  ok:
+                    type: boolean
+                  idea_id:
+                    type: integer
+                  merged_into:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                      title:
+                        type: string
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '422':
+          $ref: '#/components/responses/Error'
+        '423':
+          $ref: '#/components/responses/Error'
+        '429':
+          $ref: '#/components/responses/Error'
+
+  /api/v1/ideas/{id}/unmerge:
+    post:
+      tags: [Idea actions]
+      operationId: unmergeIdea
+      summary: Undo a merge (moderate grant)
+      description: Rate-limit bucket `apitoken:write`.
+      parameters:
+        - $ref: '#/components/parameters/IdeaId'
+        - $ref: '#/components/parameters/Board'
+      responses:
+        '200':
+          description: The idea is separate again.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, idea_id]
+                properties:
+                  ok:
+                    type: boolean
+                  idea_id:
+                    type: integer
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '422':
+          $ref: '#/components/responses/Error'
+        '423':
+          $ref: '#/components/responses/Error'
+        '429':
+          $ref: '#/components/responses/Error'
+
+  /api/v1/mcp:
+    post:
+      tags: [MCP]
+      operationId: mcp
+      summary: Model Context Protocol endpoint (JSON-RPC 2.0)
+      description: |
+        MCP server (protocol 2024-11-05, single request/response) exposing the operations above as tools
+        (see mcp-server.md). Protocol errors are JSON-RPC error objects with
+        HTTP 200; tool failures are results with `isError: true`. Rate-limit
+        bucket `apitoken:read`, write tools additionally `apitoken:write`.
+
+        Besides a static token, MCP clients can sign in with OAuth 2.1
+        (authorization code + PKCE S256, dynamic client registration). An
+        unauthenticated call answers `401` with
+        `WWW-Authenticate: Bearer resource_metadata="…"` pointing at
+        `/.well-known/oauth-protected-resource/api/v1/mcp`; the OAuth access
+        token is then sent as the same Bearer header (see mcp-server.md).
+      security:
+        - bearerToken: []
+        - mcpOAuth: [read, write, moderate]
+      parameters:
+        - $ref: '#/components/parameters/Board'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [jsonrpc, method]
+              properties:
+                jsonrpc:
+                  type: string
+                  const: '2.0'
+                id:
+                  type: [string, integer, 'null']
+                method:
+                  type: string
+                params:
+                  type: object
+      responses:
+        '200':
+          description: JSON-RPC response.
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '429':
+          $ref: '#/components/responses/Error'
+
+  /api/v1/session/badge:
+    # Not a bearer-token endpoint: it is the browser's own session cookie that
+    # is read (security: []), so it is documented here only to keep this file
+    # in sync with the registered /api/v1 routes (OpenApiSpecTest).
+    get:
+      tags: [Browser session]
+      operationId: getSessionBadge
+      summary: Signed-in header badge of the browser session
+      description: |
+        Answers `{"authenticated":false}` for anyone without a valid session
+        cookie. For a signed-in user it returns only the display name, initials,
+        avatar URL and the app/profile links. Never sets a cookie and never
+        extends the session. Cross-origin reads (with credentials) are granted
+        only to the origins in `cors_badge_origins`. Rate-limit bucket
+        `session:badge` (per IP).
+      security: []
+      responses:
+        '200':
+          description: Badge state.
+          headers:
+            Cache-Control:
+              schema: {type: string, enum: [no-store]}
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [authenticated]
+                properties:
+                  authenticated: {type: boolean}
+                  displayName: {type: string}
+                  initials: {type: string}
+                  avatarUrl: {type: [string, 'null']}
+                  appUrl: {type: string}
+                  profileUrl: {type: string}
+        '429':
+          $ref: '#/components/responses/Error'
+    options:
+      tags: [Browser session]
+      operationId: optionsSessionBadge
+      summary: CORS preflight, always refused
+      description: No CORS header is ever granted; the GET needs no preflight.
+      security: []
+      responses:
+        '405':
+          description: 'Method not allowed (`Allow: GET`).'
+
+components:
+  securitySchemes:
+    bearerToken:
+      type: http
+      scheme: bearer
+      description: Account API token (Account → API tokens).
+    mcpOAuth:
+      type: oauth2
+      description: |
+        MCP OAuth 2.1 (POST /api/v1/mcp only). Public clients register via
+        RFC 7591; PKCE S256 is mandatory; the user picks account, boards and
+        a level per board on the consent screen — the requested scope is
+        only a ceiling. Access tokens live 1 hour, refresh tokens rotate on
+        every use. Discovery: /.well-known/oauth-authorization-server.
+      flows:
+        authorizationCode:
+          authorizationUrl: /oauth/authorize
+          tokenUrl: /oauth/token
+          refreshUrl: /oauth/token
+          scopes:
+            read: Read the granted boards and their published ideas.
+            write: Plus create ideas, vote and comment.
+            moderate: Plus moderator actions (issuer must still moderate the account).
+  parameters:
+    Board:
+      name: board
+      in: query
+      required: false
+      description: Board slug; required when the token grants more than one board.
+      schema:
+        type: string
+        pattern: '^[a-z0-9-]+$'
+    IdeaId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+        minimum: 1
+  responses:
+    Error:
+      description: Error (see `error.key`).
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    IdeaTags:
+      description: The idea's tags after the change.
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [ok, tags]
+            properties:
+              ok:
+                type: boolean
+              tags:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Tag'
+  schemas:
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [key, message]
+          properties:
+            key:
+              type: string
+              examples: [insufficient_scope, token_issuer_not_moderator, board_not_granted, board_required, not_found, board_frozen, submissions_closed, voting_closed, invalid_status]
+            message:
+              type: string
+            fields:
+              type: object
+              additionalProperties:
+                type: string
+    OkId:
+      type: object
+      required: [ok, id]
+      properties:
+        ok:
+          type: boolean
+        id:
+          type: integer
+    Tag:
+      type: object
+      required: [id, name, color]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        color:
+          type: string
+    BoardStatus:
+      type: object
+      required: [key, category, label]
+      properties:
+        key:
+          type: string
+        category:
+          type: string
+          enum: [open, planned, in_progress, done, declined, archived]
+        label:
+          type: string
+        is_hidden:
+          type: boolean
+        allow_votes:
+          type: boolean
+        allow_comments:
+          type: boolean
+    Board:
+      type: object
+      required: [id, slug, name]
+      properties:
+        id:
+          type: integer
+        slug:
+          type: string
+        name:
+          type: string
+        intro:
+          type: string
+        statuses:
+          type: array
+          items:
+            $ref: '#/components/schemas/BoardStatus'
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/Tag'
+    Idea:
+      type: object
+      required: [id, title, status]
+      additionalProperties: true
+      properties:
+        id:
+          type: integer
+        board_id:
+          type: integer
+        title:
+          type: string
+        body:
+          type: string
+        status:
+          type: string
+          description: Status category.
+        status_key:
+          type: string
+        status_category:
+          type: string
+        status_label:
+          type: string
+        score_cache:
+          type: integer
+        up_count:
+          type: integer
+        down_count:
+          type: integer
+        voter_count:
+          type: integer
+          description: >-
+            Distinct voting identities on the idea (up_count + down_count; one
+            vote per signed-in account or guest browser). Below 10 votes or
+            below 5 voters the approval is shown with a "few votes yet" note.
+        comment_count:
+          type: integer
+        created_at:
+          type: string
+        updated_at:
+          type: string
+        author_type:
+          type: string
+          enum: [member, guest]
+          description: >-
+            `guest` for ideas submitted without an account (shared guest
+            author, no profile); `member` otherwise.
+        moderation_state:
+          type: string
+          enum: [pending]
