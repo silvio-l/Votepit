@@ -1,0 +1,24 @@
+-- 0064_add_legal_operator_contact — board-operator-compliance follow-up
+-- (international legal-notice completeness, 2026-09-09): adds the two
+-- fields a §5-DDG-style legal notice needs beyond name/address
+-- (migrations/0058_add_legal_operator_identity.sql).
+--
+-- accounts.legal_operator_email: the "schnelle elektronische
+-- Kontaktaufnahme" German law explicitly requires alongside name/address —
+-- shown on the board's public legal-notice page (never inline in the
+-- footer, see BoardOperatorFooter's class doc) so it stays as a low-key,
+-- deliberate lookup rather than an always-visible harvestable address.
+--
+-- accounts.legal_operator_notice: optional free-text for jurisdiction-
+-- specific extras no single structured schema could model for every legal
+-- system worldwide (VAT/tax ID, commercial register entry, supervisory
+-- authority, professional title, …) — same "free-form TEXT over speculative
+-- structure" reasoning as legal_operator_address.
+--
+-- Together with legal_operator_name/legal_operator_address, name+address+
+-- email now form the account's "complete legal-operator identity" gate
+-- (AccountRepository::hasCompleteLegalOperatorIdentity(), replacing the
+-- name-only hasLegalOperatorName()) — legal_operator_notice stays supplementary,
+-- never required.
+ALTER TABLE accounts ADD COLUMN legal_operator_email VARCHAR(255) NULL AFTER legal_operator_address;
+ALTER TABLE accounts ADD COLUMN legal_operator_notice TEXT NULL AFTER legal_operator_email;

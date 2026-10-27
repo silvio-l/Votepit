@@ -1,0 +1,83 @@
+// machine-drafted, needs native review
+import type de from './operatorSupportPage.de'
+
+const it = {
+  scopeLabel: 'Operatore',
+  title: 'Richieste di supporto',
+  subtitle:
+    'Tutti i ticket di supporto, di tutti gli account — ricercabili, filtrabili, ordinabili.',
+  loading: 'Caricamento…',
+  loadError: 'Impossibile caricare le richieste di supporto.',
+  accessDeniedTitle: 'Nessun accesso',
+  accessDeniedBody: 'Questa pagina è accessibile solo agli operatori della piattaforma.',
+  backToOperatorPanel: 'Pannello operatore',
+
+  filtersHeading: 'Filtri',
+  searchLabel: 'Cerca richieste',
+  searchPlaceholder: 'Cerca nell’oggetto o nel messaggio…',
+  statusFilterLabel: 'Stato',
+  statusFilterAll: 'Tutti gli stati',
+  categoryFilterLabel: 'Categoria',
+  categoryFilterAll: 'Tutte le categorie',
+  sortLabel: 'Ordina',
+  'sort.updated_at_desc': 'Attività più recente',
+  'sort.updated_at_asc': 'Attività meno recente',
+  'sort.created_at_desc': 'Prima i più recenti',
+  'sort.created_at_asc': 'Prima i meno recenti',
+  resetFilters: 'Reimposta filtri',
+
+  tableAriaLabel: 'Richieste di supporto',
+  tableHeading: 'Ticket',
+  tableHeadingCount: 'Ticket ({count})',
+  subjectColumn: 'Oggetto',
+  categoryColumn: 'Categoria',
+  statusColumn: 'Stato',
+  accountColumn: 'Account',
+  updatedColumn: 'Ultima attività',
+  noTickets: 'Nessuna richiesta di supporto.',
+  noTicketsFiltered: 'Nessun ticket corrisponde ai filtri attuali.',
+
+  // Detail / thread view
+  ticketNotFoundTitle: 'Ticket non trovato',
+  ticketNotFoundBody: 'Questo ticket di supporto non esiste più.',
+  threadHeading: 'Conversazione',
+  threadLoading: 'Caricamento della conversazione…',
+  threadLoadError: 'Impossibile caricare la conversazione.',
+  fromCustomer: 'Cliente',
+  fromOperator: 'Supporto',
+  machineTranslatedLabel: 'Tradotto automaticamente',
+  showOriginalLink: 'Mostra originale',
+  showTranslationLink: 'Mostra traduzione',
+  translationUnavailableHint: 'La traduzione non è al momento disponibile.',
+  statusChangeLabel: 'Cambia stato',
+  statusChangeFailed: 'Impossibile cambiare lo stato.',
+  replyLabel: 'Risposta',
+  replyPlaceholder: 'Scrivi una risposta…',
+  replySubmit: 'Rispondi',
+  replySubmitting: 'Invio…',
+  replyFailed: 'Impossibile inviare la risposta.',
+
+  accountContextHeading: 'Account',
+  accountSlugLabel: 'Slug',
+  accountPlanLabel: 'Piano',
+  accountCreatedLabel: 'Account creato il {date}',
+  requesterContextHeading: 'Richiedente',
+  requesterUsernameLabel: 'Nome utente',
+  requesterUsernameUnset: '— nessun nome utente impostato —',
+  requesterCreatedLabel: 'Membro dal {date}',
+  requesterPublicIdLabel: 'ID utente pubblico {id}',
+  requesterIdLabel: 'ID utente interno {id}',
+
+  'category.billing': 'Fatturazione',
+  'category.technical': 'Problema tecnico',
+  'category.account': 'Account e iscrizione',
+  'category.feature_request': 'Richiesta di funzionalità',
+  'category.privacy': 'Privacy',
+  'category.other': 'Altro',
+
+  'status.open': 'Aperto',
+  'status.answered': 'Risposto',
+  'status.closed': 'Chiuso',
+} satisfies typeof de
+
+export default it

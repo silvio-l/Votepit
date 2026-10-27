@@ -1,0 +1,42 @@
+export default {
+  loading: 'Wird geladen…',
+  loadError: 'Seite konnte nicht geladen werden.',
+  accessDeniedTitle: 'Kein Zugriff',
+  accessDeniedBody:
+    'Diese Seite ist nur für Owner, Admins und Moderatoren dieses Accounts zugänglich.',
+  notFoundTitle: 'Board nicht gefunden',
+  notFoundBody: 'Dieses Board gibt es in diesem Account nicht.',
+  title: 'Freigabe-Warteschlange',
+  subtitle: 'Neue Ideen prüfen und freigeben, bevor sie auf dem Board erscheinen.',
+  switchedOffHint:
+    'Die Freigabe ist für dieses Board ausgeschaltet. Neue Ideen erscheinen sofort; die hier noch wartenden Ideen kannst du weiterhin bearbeiten.',
+  heading: 'Wartende Ideen ({count})',
+  emptyState: 'Keine Ideen warten auf Freigabe.',
+  selectAll: 'Alle auswählen',
+  selectIdea: '„{title}“ auswählen',
+  approveSelected: 'Auswahl freigeben ({count})',
+  rejectSelected: 'Auswahl ablehnen ({count})',
+  columnSelect: 'Auswahl',
+  columnIdea: 'Idee',
+  columnSubmitted: 'Eingereicht',
+  columnActions: 'Aktionen',
+  approve: 'Freigeben',
+  reject: 'Ablehnen',
+  approveFailed: 'Die Freigabe ist fehlgeschlagen. Bitte versuche es erneut.',
+  approvedNotice: '{count} Idee(n) freigegeben.',
+  rejectedNotice: '{count} Idee(n) abgelehnt.',
+  guestLabel: 'Gast',
+  rejectAllGuest: 'Alle Gast-Ideen ablehnen ({count})',
+  rejectAllGuestTitle: '{count} Gast-Idee(n) ablehnen?',
+  rejectAllGuestBody:
+    'Alle wartenden Ideen, die ohne Konto eingereicht wurden, werden als Verstoß gegen die Board-Regeln abgelehnt. Ideen von Mitgliedern bleiben unberührt.',
+  rejectAllGuestConfirm: 'Alle ablehnen',
+  guestRejectedNotice: '{count} Gast-Idee(n) abgelehnt.',
+  guestRejectFailed: 'Ablehnen hat nicht geklappt. Bitte versuche es noch einmal.',
+  approveAndTrust: 'Freigeben und Person vertrauen',
+  approvedAndTrustedNotice:
+    'Idee freigegeben. Weitere Ideen dieser Person erscheinen ab jetzt sofort.',
+  approveAndTrustFailed:
+    'Freigeben und Vertrauen hat nicht geklappt. Bitte versuche es noch einmal.',
+  trustedAuthorsLink: 'Vertrauenswürdige Personen',
+}

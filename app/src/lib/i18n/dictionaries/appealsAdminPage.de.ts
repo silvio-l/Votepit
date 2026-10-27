@@ -1,0 +1,23 @@
+export default {
+  loading: 'Wird geladen…',
+  loadError: 'Seite konnte nicht geladen werden.',
+  accessDeniedTitle: 'Kein Zugriff',
+  accessDeniedBody:
+    'Diese Seite ist nur für Owner, Admins und Moderatoren dieses Accounts zugänglich.',
+  resolveFailed: 'Der Einspruch konnte nicht bearbeitet werden. Bitte versuche es erneut.',
+  title: 'Einsprüche',
+  subtitle: 'Einsprüche gegen Moderationsentscheidungen prüfen und entscheiden.',
+  appealsHeading: 'Einsprüche ({count} offen)',
+  emptyState: 'Es liegen keine Einsprüche vor.',
+  columnContent: 'Entfernter Inhalt',
+  columnReason: 'Grund',
+  columnMessage: 'Einspruchsbegründung',
+  columnStatus: 'Status',
+  columnSubmitted: 'Eingereicht',
+  columnActions: 'Aktionen',
+  statusPending: 'Offen',
+  statusUpheld: 'Bestätigt',
+  statusOverturned: 'Aufgehoben',
+  overturn: 'Aufheben',
+  uphold: 'Bestätigen',
+}

@@ -1,0 +1,22 @@
+# PHPStan — statische Analyse (Codebase-Intelligence + Anti-Slop: tote Branches,
+# Typ-Unsicherheit, unerreichbarer Code). strict-rules + phpunit-Extension werden
+# über phpstan/extension-installer automatisch registriert.
+parameters:
+    level: 8
+    paths:
+        - src
+        - tests
+        # CLI entry points run in production cron; a type error there fails a job
+        # every run without reaching any test (participant digest, v0.1.2).
+        - bin
+    phpVersion: 80200
+    checkTooWideReturnTypesInProtectedAndPublicMethods: true
+    ignoreErrors:
+        # PHP always defines $argv in a CLI script's global scope; PHPStan cannot
+        # know a bin/ file only ever runs from the CLI. Whether it reports this
+        # depends on the PHP runtime (8.5 locally, 8.2 in CI), hence unmatched is fine.
+        -
+            identifier: variable.undefined
+            message: '#^Variable \$argv might not be defined\.$#'
+            path: bin/*
+            reportUnmatched: false

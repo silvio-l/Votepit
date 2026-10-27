@@ -1,0 +1,72 @@
+// machine-drafted, needs native review
+import type de from './boardPage.de'
+
+const nl = {
+  timeAgoJustNow: 'zojuist',
+  timeAgoMinutes: '{count} min. geleden',
+  timeAgoHours: '{count} uur geleden',
+  timeAgoDaySingular: '{count} dag geleden',
+  timeAgoDayPlural: '{count} dagen geleden',
+  timeAgoMonthSingular: '{count} maand geleden',
+  timeAgoMonthPlural: '{count} maanden geleden',
+  timeAgoYearSingular: '{count} jaar geleden',
+  timeAgoYearPlural: '{count} jaar geleden',
+  loadError: 'We konden de ideeën nu niet laden. Probeer het opnieuw.',
+  loading: 'Laden…',
+  loadErrorTitle: 'Ideeën konden niet worden geladen',
+  participationHintAnonymousVoting:
+    'Stemmen kan zonder in te loggen. Om zelf een idee in te dienen, log je eenmalig in met je e-mailadres.',
+  newIdea: 'Nieuw idee',
+  noIdeasForStatusTitle: 'Geen ideeën met deze status',
+  noIdeasForStatusDescription:
+    'Er past momenteel niets bij dit filter. Kies een andere status of toon alle ideeën.',
+  pinnedHeading: 'Vastgezet',
+  filtersButton: 'Filters',
+  weekApprovalLabel: 'Ø goedkeuring',
+  loadMore: 'Meer laden',
+  loadMoreRemaining: 'nog {count}',
+  tagsFilterLabel: 'Tags',
+  allTags: 'Alle tags',
+  clearAllFilters: 'Alle filters wissen',
+  searchLabel: 'Ideeën zoeken',
+  searchPlaceholder: 'Ideeën zoeken…',
+  noSearchResultsTitle: 'Geen resultaten',
+  noSearchResultsDescription:
+    'Geen idee komt overeen met “{query}”. Probeer andere woorden – of dien het in als nieuw idee.',
+  resetSearch: 'Zoekopdracht wissen',
+  noIdeasTitle: 'Nog geen ideeën',
+  noIdeasDescription:
+    'Hier is nog niets ingediend. Wees de eerste — het eerste idee brengt het board op gang.',
+  submitFirstIdea: 'Eerste idee indienen',
+  ideasAriaLabel: 'Ideeën',
+  poweredBy: 'Powered by Votepit',
+  operatedBy: 'Geëxploiteerd door {name}',
+  legalNoticeLink: 'Juridische informatie',
+  milestoneFirstIdeaTitle: 'Je eerste idee is binnen!',
+  milestoneFirstIdeaBody: 'Je board leeft — ga zo door.',
+  milestoneFirstExternalTitle: 'Je eerste idee van iemand anders!',
+  milestoneFirstExternalBody: 'Er doet net iemand anders mee — je board groeit verder dan jijzelf.',
+  milestoneTenIdeasTitle: '10 ideeën bereikt!',
+  milestoneTenIdeasBody: 'Je board komt op stoom.',
+  machineTranslatedLabel: 'Machinaal vertaald',
+  introShowMore: 'Meer tonen',
+  introShowLess: 'Minder tonen',
+  showOriginalLink: 'Origineel tonen',
+  showTranslationLink: 'Vertaling tonen',
+  translationUnavailableHint: 'Vertaling is momenteel niet beschikbaar.',
+  participationHintGuestSubmission:
+    'Je kunt een idee ook zonder account indienen – het verschijnt dan als ‘Gast’. Om te stemmen meld je je eenmaal aan met je e-mailadres.',
+  participationHintAnonymousBoth:
+    'Stemmen en ideeën indienen kan zonder in te loggen. Ideeën zonder account verschijnen als ‘Gast’.',
+  shareIdea: 'Deel een idee',
+  shareBoard: 'Delen',
+  shareCopied: 'Link gekopieerd.',
+  shareFailed: 'Delen lukte nu niet. Kopieer het adres uit de adresbalk.',
+  statIdeasSingular: '{count} idee',
+  statIdeasPlural: '{count} ideeën',
+  statVotesWeekSingular: '{count} stem deze week',
+  statVotesWeekPlural: '{count} stemmen deze week',
+  whatHappensNext: 'Wat gebeurt er nu?',
+} satisfies typeof de
+
+export default nl

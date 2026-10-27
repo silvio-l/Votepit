@@ -1,0 +1,16 @@
+export default {
+  backToLogin: 'Zurück zur Anmeldung',
+  heading: 'Neues Passwort vergeben',
+  subtitle: 'Wähle ein neues Passwort für dein Konto.',
+  newPasswordLabel: 'Neues Passwort',
+  confirmPasswordLabel: 'Passwort bestätigen',
+  passwordMinLengthHint: 'Mindestens 10 Zeichen.',
+  passwordMismatchError: 'Die Passwörter stimmen nicht überein.',
+  submit: 'Passwort speichern',
+  submitting: 'Wird gespeichert…',
+  doneTitle: 'Passwort gespeichert',
+  doneBody: 'Dein Passwort wurde geändert. Du wirst gleich zur Anmeldung weitergeleitet.',
+  errorTitle: 'Link ungültig',
+  invalidOrExpired: 'Der Link ist ungültig oder abgelaufen.',
+  requestNewLink: 'Neuen Link anfordern',
+}

@@ -1,0 +1,83 @@
+// machine-drafted, needs native review
+import type de from './operatorSupportPage.de'
+
+const es = {
+  scopeLabel: 'Operador',
+  title: 'Solicitudes de soporte',
+  subtitle:
+    'Todos los tickets de soporte de todas las cuentas: con búsqueda, filtros y ordenación.',
+  loading: 'Cargando…',
+  loadError: 'No se pudieron cargar las solicitudes de soporte.',
+  accessDeniedTitle: 'Sin acceso',
+  accessDeniedBody: 'Solo los operadores de la plataforma pueden acceder a esta página.',
+  backToOperatorPanel: 'Panel del operador',
+
+  filtersHeading: 'Filtros',
+  searchLabel: 'Buscar solicitudes',
+  searchPlaceholder: 'Buscar en asunto o mensaje…',
+  statusFilterLabel: 'Estado',
+  statusFilterAll: 'Todos los estados',
+  categoryFilterLabel: 'Categoría',
+  categoryFilterAll: 'Todas las categorías',
+  sortLabel: 'Ordenar',
+  'sort.updated_at_desc': 'Actividad más reciente',
+  'sort.updated_at_asc': 'Actividad más antigua',
+  'sort.created_at_desc': 'Más recientes primero',
+  'sort.created_at_asc': 'Más antiguos primero',
+  resetFilters: 'Restablecer filtros',
+
+  tableAriaLabel: 'Solicitudes de soporte',
+  tableHeading: 'Tickets',
+  tableHeadingCount: 'Tickets ({count})',
+  subjectColumn: 'Asunto',
+  categoryColumn: 'Categoría',
+  statusColumn: 'Estado',
+  accountColumn: 'Cuenta',
+  updatedColumn: 'Última actividad',
+  noTickets: 'No hay solicitudes de soporte.',
+  noTicketsFiltered: 'Ningún ticket coincide con los filtros actuales.',
+
+  // Detail / thread view
+  ticketNotFoundTitle: 'Ticket no encontrado',
+  ticketNotFoundBody: 'Este ticket de soporte ya no existe.',
+  threadHeading: 'Conversación',
+  threadLoading: 'Cargando conversación…',
+  threadLoadError: 'No se pudo cargar la conversación.',
+  fromCustomer: 'Cliente',
+  fromOperator: 'Soporte',
+  machineTranslatedLabel: 'Traducción automática',
+  showOriginalLink: 'Mostrar original',
+  showTranslationLink: 'Mostrar traducción',
+  translationUnavailableHint: 'La traducción no está disponible en este momento.',
+  statusChangeLabel: 'Cambiar estado',
+  statusChangeFailed: 'No se pudo cambiar el estado.',
+  replyLabel: 'Respuesta',
+  replyPlaceholder: 'Escribe una respuesta…',
+  replySubmit: 'Responder',
+  replySubmitting: 'Enviando…',
+  replyFailed: 'No se pudo enviar la respuesta.',
+
+  accountContextHeading: 'Cuenta',
+  accountSlugLabel: 'Slug',
+  accountPlanLabel: 'Plan',
+  accountCreatedLabel: 'Cuenta creada el {date}',
+  requesterContextHeading: 'Solicitante',
+  requesterUsernameLabel: 'Nombre de usuario',
+  requesterUsernameUnset: '— sin nombre de usuario —',
+  requesterCreatedLabel: 'Miembro desde {date}',
+  requesterPublicIdLabel: 'ID público de usuario {id}',
+  requesterIdLabel: 'ID interno de usuario {id}',
+
+  'category.billing': 'Facturación',
+  'category.technical': 'Problema técnico',
+  'category.account': 'Cuenta y membresía',
+  'category.feature_request': 'Solicitud de función',
+  'category.privacy': 'Privacidad',
+  'category.other': 'Otro',
+
+  'status.open': 'Abierto',
+  'status.answered': 'Respondido',
+  'status.closed': 'Cerrado',
+} satisfies typeof de
+
+export default es

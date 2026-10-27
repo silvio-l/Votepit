@@ -1,0 +1,33 @@
+{
+  "name": "@votepit/ui",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Shared Votepit React component library (token-bound, CSS-only state motion) — consumed by the React app (app/); the Astro landing (web/) consumes tokens.css only.",
+  "exports": {
+    ".": "./src/index.ts",
+    "./tokens.css": "./src/tokens.css",
+    "./ds": "./src/ds/index.ts",
+    "./ds/tokens.css": "./src/ds/tokens.generated.css",
+    "./ds/theme.css": "./src/ds/theme.generated.css",
+    "./ds/components.css": "./src/ds/components.css",
+    "./ds/mobile.css": "./src/ds/mobile.css",
+    "./ds/vote-summary": "./src/ds/voteSummary.ts",
+    "./ds/avatar-tint": "./src/ds/avatarTint.ts",
+    "./ds/motion": "./src/ds/motion.ts"
+  },
+  "peerDependencies": {
+    "react": ">=19",
+    "react-dom": ">=19"
+  },
+  "dependencies": {
+    "@fortawesome/fontawesome-svg-core": "^7.3.1",
+    "@fortawesome/free-brands-svg-icons": "^7.3.1",
+    "@fortawesome/free-solid-svg-icons": "^7.3.1",
+    "@fortawesome/react-fontawesome": "^3.5.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19",
+    "@types/react-dom": "^19"
+  }
+}
