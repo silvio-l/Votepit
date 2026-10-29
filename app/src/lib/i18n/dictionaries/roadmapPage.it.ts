@@ -1,0 +1,46 @@
+// machine-drafted, needs native review
+import type de from './roadmapPage.de'
+
+const it = {
+  viewAriaLabel: 'Vista',
+  viewList: 'Elenco',
+  viewColumns: 'Colonne',
+  viewGantt: 'Gantt',
+  ganttAriaLabel: 'Diagramma di Gantt',
+  ganttEmptyTitle: 'Ancora nessuna data impostata',
+  ganttEmptyDescription:
+    'Non appena un amministratore della bacheca imposta date di inizio e di obiettivo, qui compaiono le barre.',
+  ganttStartDateLabel: 'Inizio',
+  ganttTargetDateLabel: 'Obiettivo',
+  ganttNoDatesLabel: 'Nessuna data',
+  ganttOpenEndLabel: 'aperta',
+  ganttDatesUpdateError: 'Impossibile salvare le date.',
+  ganttInvalidDateRangeError: 'L’inizio non può essere successivo all’obiettivo.',
+  ideaSingular: 'idea',
+  ideaPlural: 'idee',
+  ideasAriaLabel: 'Idee della roadmap',
+  sectionOpen: 'Aperte',
+  sectionPlanned: 'Pianificate',
+  sectionInProgress: 'In corso',
+  sectionDone: 'Completate',
+  sectionDeclined: 'Rifiutate',
+  sectionArchived: 'Archiviate',
+  loading: 'Caricamento…',
+  errorNotFound: 'Questa bacheca non esiste — potrebbe essere stata rinominata o rimossa.',
+  errorLoadFailed: 'Al momento non siamo riusciti a caricare la roadmap. Riprova.',
+  errorHeading: 'Errore durante il caricamento dei dati',
+  retry: 'Riprova',
+  heading: 'Roadmap',
+  subtitle: '{name} — idee pianificate, in corso e completate a colpo d’occhio.',
+  emptyPlannedTitle: 'Ancora niente di pianificato',
+  emptyPlannedDescription: 'Le idee che entrano nella roadmap compaiono qui.',
+  emptyInProgressTitle: 'Niente in corso',
+  emptyInProgressDescription: 'Non appena si lavora a un’idea, si sposta qui.',
+  emptyDoneTitle: 'Ancora niente di realizzato',
+  emptyDoneDescription: 'Le idee realizzate si raccolgono qui.',
+  machineTranslatedLabel: 'Tradotto automaticamente',
+  showOriginalLink: 'Mostra originale',
+  showTranslationLink: 'Mostra traduzione',
+} satisfies typeof de
+
+export default it

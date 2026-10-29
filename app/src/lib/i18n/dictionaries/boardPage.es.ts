@@ -1,0 +1,72 @@
+// machine-drafted, needs native review
+import type de from './boardPage.de'
+
+const es = {
+  timeAgoJustNow: 'justo ahora',
+  timeAgoMinutes: 'hace {count} min',
+  timeAgoHours: 'hace {count} h',
+  timeAgoDaySingular: 'hace {count} día',
+  timeAgoDayPlural: 'hace {count} días',
+  timeAgoMonthSingular: 'hace {count} mes',
+  timeAgoMonthPlural: 'hace {count} meses',
+  timeAgoYearSingular: 'hace {count} año',
+  timeAgoYearPlural: 'hace {count} años',
+  loadError: 'No hemos podido cargar las ideas en este momento. Inténtalo de nuevo.',
+  loading: 'Cargando…',
+  loadErrorTitle: 'No se pudieron cargar las ideas',
+  participationHintAnonymousVoting:
+    'Puedes votar sin iniciar sesión. Para enviar tu propia idea, inicias sesión una vez con tu dirección de correo.',
+  newIdea: 'Nueva idea',
+  noIdeasForStatusTitle: 'No hay ideas con este estado',
+  noIdeasForStatusDescription:
+    'Ahora mismo nada coincide con este filtro. Elige otro estado o muestra todas las ideas.',
+  pinnedHeading: 'Fijadas',
+  filtersButton: 'Filtros',
+  weekApprovalLabel: 'Ø aprobación',
+  loadMore: 'Cargar más',
+  loadMoreRemaining: 'quedan {count}',
+  tagsFilterLabel: 'Etiquetas',
+  allTags: 'Todas las etiquetas',
+  clearAllFilters: 'Borrar todos los filtros',
+  searchLabel: 'Buscar ideas',
+  searchPlaceholder: 'Buscar ideas…',
+  noSearchResultsTitle: 'Sin resultados',
+  noSearchResultsDescription:
+    'Ninguna idea coincide con «{query}». Prueba con otras palabras o envíala como idea nueva.',
+  resetSearch: 'Borrar búsqueda',
+  noIdeasTitle: 'Aún no hay ideas',
+  noIdeasDescription:
+    'Todavía no se ha enviado nada aquí. Sé el primero: la primera idea pone en marcha el tablero.',
+  submitFirstIdea: 'Enviar la primera idea',
+  ideasAriaLabel: 'Ideas',
+  poweredBy: 'Powered by Votepit',
+  operatedBy: 'Operado por {name}',
+  legalNoticeLink: 'Aviso legal',
+  milestoneFirstIdeaTitle: '¡Ya tienes tu primera idea!',
+  milestoneFirstIdeaBody: 'Tu tablero está vivo: sigue así.',
+  milestoneFirstExternalTitle: '¡Tu primera idea externa!',
+  milestoneFirstExternalBody: 'Alguien más se ha unido: tu tablero está creciendo más allá de ti.',
+  milestoneTenIdeasTitle: '¡10 ideas alcanzadas!',
+  milestoneTenIdeasBody: 'Tu tablero está cogiendo impulso.',
+  machineTranslatedLabel: 'Traducción automática',
+  introShowMore: 'Mostrar más',
+  introShowLess: 'Mostrar menos',
+  showOriginalLink: 'Mostrar original',
+  showTranslationLink: 'Mostrar traducción',
+  translationUnavailableHint: 'La traducción no está disponible en este momento.',
+  participationHintGuestSubmission:
+    'Puedes enviar una idea sin cuenta: aparecerá como «Invitado». Para votar, inicias sesión una vez con tu dirección de correo.',
+  participationHintAnonymousBoth:
+    'Votar y enviar ideas funciona sin iniciar sesión. Las ideas sin cuenta aparecen como «Invitado».',
+  shareIdea: 'Comparte una idea',
+  shareBoard: 'Compartir',
+  shareCopied: 'Enlace copiado.',
+  shareFailed: 'Compartir no funcionó ahora. Copia la dirección de la barra del navegador.',
+  statIdeasSingular: '{count} idea',
+  statIdeasPlural: '{count} ideas',
+  statVotesWeekSingular: '{count} voto esta semana',
+  statVotesWeekPlural: '{count} votos esta semana',
+  whatHappensNext: '¿Qué pasa después?',
+} satisfies typeof de
+
+export default es

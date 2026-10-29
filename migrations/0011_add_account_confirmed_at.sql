@@ -1,0 +1,21 @@
+-- 0011_add_account_confirmed_at — Sprint 20: Cloud signup / onboarding.
+--
+-- accounts.confirmed_at: NULL = this account's boards are NOT publicly
+-- visible yet (confirm-before-public spam gate, ADR 0001 §2c decision 12 —
+-- "neues Gratis-Board wird erst nach E-Mail-Bestätigung des Erstellers
+-- öffentlich"). Set once, at account-creation time, by SignupAccountAction
+-- (POST /signup/account) — reachable only via an already-authenticated
+-- session, i.e. only AFTER the owner's magic-link click already proved
+-- ownership of their email (GET /login/verify runs first structurally),
+-- so this column is stamped immediately at creation in the normal flow.
+-- It exists as its own column (not just "any row exists") so a future
+-- moderation/Not-Aus action (ADR §2c decision 12) can flip it back to NULL
+-- to instantly hide every board of a suspended account, without deleting
+-- anything — see BoardRepository::findPublicBySlugForAccount(), the single
+-- enforcement chokepoint used by every anon-facing board read path.
+--
+-- Backfill existing accounts (self-host default account + anything created
+-- before this migration) to confirmed = created_at: this gate must never
+-- retroactively hide boards that already existed and were already public.
+ALTER TABLE accounts ADD COLUMN confirmed_at DATETIME NULL AFTER deletion_scheduled_at;
+UPDATE accounts SET confirmed_at = created_at WHERE confirmed_at IS NULL;

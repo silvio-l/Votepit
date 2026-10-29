@@ -1,0 +1,13 @@
+-- 0036_add_user_public_id_column — nullable staging column for public_id.
+--
+-- users.id (auto-increment) must never be exposed to the client: a raw
+-- sequential integer leaks total registered-user count/growth and lets two
+-- members compare IDs to infer signup order (undermines the ADR 0002
+-- pseudonymization intent, even though public_id itself carries no PII).
+-- public_id is a short random opaque identifier, safe to display instead
+-- (Profile page, Members overview) and to correlate 1:1 back to the row it
+-- belongs to.
+--
+-- Nullable for now — 0037 backfills every existing row, 0038 finalizes as
+-- NOT NULL UNIQUE. Same three-step shape as email_hmac (0004/0005/0006).
+ALTER TABLE users ADD COLUMN public_id CHAR(10) NULL AFTER id;

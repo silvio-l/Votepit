@@ -1,0 +1,46 @@
+// machine-drafted, needs native review
+import type de from './roadmapPage.de'
+
+const es = {
+  viewAriaLabel: 'Vista',
+  viewList: 'Lista',
+  viewColumns: 'Columnas',
+  viewGantt: 'Gantt',
+  ganttAriaLabel: 'Diagrama de Gantt',
+  ganttEmptyTitle: 'Aún no hay fechas',
+  ganttEmptyDescription:
+    'En cuanto un administrador del tablero fije fechas de inicio y objetivo, aparecerán aquí las barras.',
+  ganttStartDateLabel: 'Inicio',
+  ganttTargetDateLabel: 'Objetivo',
+  ganttNoDatesLabel: 'Sin fechas',
+  ganttOpenEndLabel: 'abierto',
+  ganttDatesUpdateError: 'No se pudieron guardar las fechas.',
+  ganttInvalidDateRangeError: 'El inicio no puede ser posterior al objetivo.',
+  ideaSingular: 'idea',
+  ideaPlural: 'ideas',
+  ideasAriaLabel: 'Ideas de la hoja de ruta',
+  sectionOpen: 'Abiertas',
+  sectionPlanned: 'Planificadas',
+  sectionInProgress: 'En curso',
+  sectionDone: 'Hechas',
+  sectionDeclined: 'Rechazadas',
+  sectionArchived: 'Archivadas',
+  loading: 'Cargando…',
+  errorNotFound: 'Este tablero no existe; puede que se haya renombrado o eliminado.',
+  errorLoadFailed: 'No hemos podido cargar la hoja de ruta en este momento. Inténtalo de nuevo.',
+  errorHeading: 'Error al cargar los datos',
+  retry: 'Reintentar',
+  heading: 'Hoja de ruta',
+  subtitle: '{name}: ideas planificadas, en curso y completadas de un vistazo.',
+  emptyPlannedTitle: 'Aún no hay nada planificado',
+  emptyPlannedDescription: 'Las ideas que lleguen a la hoja de ruta aparecerán aquí.',
+  emptyInProgressTitle: 'Nada en curso',
+  emptyInProgressDescription: 'En cuanto se empiece a trabajar en una idea, pasará aquí.',
+  emptyDoneTitle: 'Aún no hay nada hecho',
+  emptyDoneDescription: 'Aquí se reúnen las ideas que ya se han hecho realidad.',
+  machineTranslatedLabel: 'Traducción automática',
+  showOriginalLink: 'Mostrar original',
+  showTranslationLink: 'Mostrar traducción',
+} satisfies typeof de
+
+export default es

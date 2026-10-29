@@ -1,0 +1,46 @@
+// machine-drafted, needs native review
+import type de from './roadmapPage.de'
+
+const nl = {
+  viewAriaLabel: 'Weergave',
+  viewList: 'Lijst',
+  viewColumns: 'Kolommen',
+  viewGantt: 'Gantt',
+  ganttAriaLabel: 'Gantt-diagram',
+  ganttEmptyTitle: 'Nog geen datums ingesteld',
+  ganttEmptyDescription:
+    'Zodra een boardbeheerder start- en streefdatums instelt, verschijnen hier balken.',
+  ganttStartDateLabel: 'Start',
+  ganttTargetDateLabel: 'Streefdatum',
+  ganttNoDatesLabel: 'Geen datums',
+  ganttOpenEndLabel: 'open',
+  ganttDatesUpdateError: 'De datums konden niet worden opgeslagen.',
+  ganttInvalidDateRangeError: 'De start mag niet na de streefdatum liggen.',
+  ideaSingular: 'idee',
+  ideaPlural: 'ideeën',
+  ideasAriaLabel: 'Roadmap-ideeën',
+  sectionOpen: 'Open',
+  sectionPlanned: 'Gepland',
+  sectionInProgress: 'In uitvoering',
+  sectionDone: 'Klaar',
+  sectionDeclined: 'Afgewezen',
+  sectionArchived: 'Gearchiveerd',
+  loading: 'Laden…',
+  errorNotFound: 'Dit board bestaat niet — het is mogelijk hernoemd of verwijderd.',
+  errorLoadFailed: 'We konden de roadmap nu niet laden. Probeer het opnieuw.',
+  errorHeading: 'Fout bij het laden van gegevens',
+  retry: 'Opnieuw proberen',
+  heading: 'Roadmap',
+  subtitle: '{name} — geplande, lopende en afgeronde ideeën in één oogopslag.',
+  emptyPlannedTitle: 'Nog niets gepland',
+  emptyPlannedDescription: 'Ideeën die op de roadmap komen, verschijnen hier.',
+  emptyInProgressTitle: 'Niets in uitvoering',
+  emptyInProgressDescription: 'Zodra er aan een idee wordt gewerkt, komt het hier te staan.',
+  emptyDoneTitle: 'Nog niets afgerond',
+  emptyDoneDescription: 'Gerealiseerde ideeën verzamelen zich hier.',
+  machineTranslatedLabel: 'Machinaal vertaald',
+  showOriginalLink: 'Origineel tonen',
+  showTranslationLink: 'Vertaling tonen',
+} satisfies typeof de
+
+export default nl

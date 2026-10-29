@@ -1,0 +1,89 @@
+# Votepit — project-specific Semgrep rules (local, offline, no account/telemetry).
+#
+# Formalizes the security invariants documented in CLAUDE.md as an enforceable
+# gate. Run: tools/semgrep-scan.sh (or
+#   semgrep scan --config .semgrep/votepit.yml --metrics=off src app/src web/src).
+#
+# Deliberately kept local (no registry packs p/...): deterministic, offline,
+# no login, no quota — fits the free-tier discipline. For deeper scans,
+# registry packs can be added ad hoc (--config p/php p/typescript).
+
+rules:
+  # ── Grep gate: dangerous PHP functions (code execution / deserialization) ──
+  - id: votepit-php-forbidden-functions
+    languages: [php]
+    severity: ERROR
+    message: >-
+      Forbidden PHP function (code execution / unsafe deserialization).
+      Forbidden per the CLAUDE.md grep gate: exec|shell_exec|system|passthru|eval|
+      unserialize|proc_open|popen|create_function. Use a safe alternative
+      (e.g. json_decode instead of unserialize, no shell call on shared hosting).
+    pattern-either:
+      - pattern: exec(...)
+      - pattern: shell_exec(...)
+      - pattern: system(...)
+      - pattern: passthru(...)
+      - pattern: proc_open(...)
+      - pattern: popen(...)
+      - pattern: eval(...)
+      - pattern: unserialize(...)
+      - pattern: create_function(...)
+    # Owner exception (2026-10-25, decision 10a): the cron runner isolates each job in
+    # its own OS process (docs/operations.md: a hung job must not delay the others), which
+    # PHP can only do with proc_open. Exactly these two files are exempt, and only for an
+    # argv array — votepit-php-proc-open-argv-only below rejects any shell-string form there.
+    paths:
+      exclude:
+        - "**/src/Cron/NativeProcessRunner.php"
+        - "**/src/Cron/ProcOpenChildProcessSpawner.php"
+
+  # ── Companion to the exception above: proc_open only with an argv array (no shell) ──
+  - id: votepit-php-proc-open-argv-only
+    languages: [php]
+    severity: ERROR
+    message: >-
+      proc_open() is only allowed in the cron runner and only with an argv array
+      (no shell parsing). A string command goes through /bin/sh — pass an array of
+      the binary and its arguments instead.
+    paths:
+      include:
+        - "**/src/Cron/NativeProcessRunner.php"
+        - "**/src/Cron/ProcOpenChildProcessSpawner.php"
+    pattern-either:
+      - pattern: proc_open("...", ...)
+      - pattern: proc_open($A . $B, ...)
+      - pattern: proc_open(sprintf(...), ...)
+      - pattern: proc_open(implode(...), ...)
+      - pattern: proc_open(escapeshellcmd(...), ...)
+      - pattern: proc_open(escapeshellarg(...), ...)
+      - pattern: proc_open((string) $X, ...)
+
+  # ── Prepared-statements-only: no SQL string concatenation in DB calls ──
+  - id: votepit-php-sql-string-concatenation
+    languages: [php]
+    severity: ERROR
+    message: >-
+      SQL passed as a string concatenation to a DB call. Invariant
+      (CLAUDE.md): prepared-statements-only — no variables in the query string,
+      only ?/:name placeholders + bind via Doctrine DBAL.
+    pattern-either:
+      - pattern: $C->executeStatement("..." . $X, ...)
+      - pattern: $C->executeStatement($X . "...", ...)
+      - pattern: $C->executeQuery("..." . $X, ...)
+      - pattern: $C->executeQuery($X . "...", ...)
+      - pattern: $C->query("..." . $X)
+      - pattern: $C->query($X . "...")
+      - pattern: $C->prepare("..." . $X)
+      - pattern: $C->prepare($X . "...")
+
+  # ── React: dangerouslySetInnerHTML only after review (plaintext invariant) ──
+  - id: votepit-react-dangerously-set-inner-html
+    languages: [typescript]
+    severity: WARNING
+    message: >-
+      dangerouslySetInnerHTML found. Invariant (CLAUDE.md): only after review
+      and only for trusted, non-user-controlled values. Idea body, comment,
+      board name/intro are plaintext — never render HTML/Markdown.
+    pattern-either:
+      - pattern: <$EL dangerouslySetInnerHTML={...} />
+      - pattern: <$EL dangerouslySetInnerHTML={...}>...</$EL>

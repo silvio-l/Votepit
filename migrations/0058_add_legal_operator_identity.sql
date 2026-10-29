@@ -1,0 +1,22 @@
+-- 0058_add_legal_operator_identity — lets an account record who legally
+-- operates its boards, so a public board can always name a responsible
+-- party instead of just "Votepit" (board-operator-compliance issue 02).
+--
+-- accounts.legal_operator_name: the name shown as "Operated by ..." on any
+-- public board page (company name, or the operator's own name if they run
+-- solo) — also reusable as the "Kundenname" the AVV document already
+-- interpolates (cloud/src/Legal/AvvDocument.php), so this doubles as a
+-- small de-duplication of data that currently only lives as the account's
+-- display `name`. Nullable: a fresh account has none set yet.
+--
+-- accounts.legal_operator_address: optional postal address shown alongside
+-- the name. Free-form TEXT to avoid over-modeling international address
+-- formats, consistent with this codebase's preference for minimal schema
+-- over speculative structure.
+--
+-- Enforcement: a board cannot be created/updated with a public-facing
+-- visibility while legal_operator_name is empty on the owning account —
+-- see BoardCreateAction/BoardBrandingAction (fail-secure, rejects with 422
+-- rather than silently downgrading the visibility).
+ALTER TABLE accounts ADD COLUMN legal_operator_name VARCHAR(255) NULL AFTER telemetry_decided_at;
+ALTER TABLE accounts ADD COLUMN legal_operator_address TEXT NULL AFTER legal_operator_name;

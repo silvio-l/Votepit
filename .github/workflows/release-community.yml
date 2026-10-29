@@ -1,0 +1,131 @@
+name: Release Community (draft)
+
+# Builds the Community upload archive and creates a DRAFT GitHub release.
+# Started by hand only (workflow_dispatch). The owner then verifies the
+# draft, signs the archive locally with minisign (tools/release-community.sh
+# in the private monorepo), uploads the .minisig and publishes the release.
+# No push, pull_request, tag, schedule or repository_dispatch trigger; macOS
+# runners are not used (the archive is platform-neutral).
+#
+# This file lives in core/.github/workflows/ of the monorepo and only takes
+# effect in the public export repository, where core/ is the repository root.
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version X.Y.Z (must equal the version in composer.json)"
+        required: true
+        type: string
+
+permissions: {}
+
+concurrency:
+  group: release-community-${{ inputs.version }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Build archive, attest, create draft release
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      VERSION: ${{ inputs.version }}
+    steps:
+      - name: Validate version input
+        env:
+          VERSION_INPUT: ${{ inputs.version }}
+        run: |
+          if ! printf '%s' "$VERSION_INPUT" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "::error::version '$VERSION_INPUT' is not in X.Y.Z form" >&2
+            exit 1
+          fi
+
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Check version, tag and existing release
+        run: |
+          composer_version="$(jq -r '.version' composer.json)"
+          if [ "$composer_version" != "$VERSION" ]; then
+            echo "::error::input version $VERSION does not match composer.json version $composer_version" >&2
+            exit 1
+          fi
+          # Refuse to touch an existing release (draft or published).
+          if gh release view "v$VERSION" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "::error::release v$VERSION already exists; refusing to overwrite it" >&2
+            exit 1
+          fi
+          # Refuse an existing tag: the release must point at the commit built here.
+          rc=0
+          git ls-remote --exit-code --tags origin "refs/tags/v$VERSION" >/dev/null 2>&1 || rc=$?
+          if [ "$rc" -eq 0 ]; then
+            echo "::error::tag v$VERSION already exists; refusing to continue" >&2
+            exit 1
+          elif [ "$rc" -ne 2 ]; then
+            echo "::error::could not query the remote tags (exit $rc)" >&2
+            exit 1
+          fi
+
+      - name: PHP 8.2 einrichten
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # v2
+        with:
+          php-version: "8.2"
+          extensions: pdo, pdo_mysql, mbstring, intl, curl, gd
+          tools: composer:v2
+          coverage: none
+
+      - name: pnpm 11 einrichten
+        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
+        with:
+          version: 11
+
+      - name: Node.js 22 einrichten
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Build release archive (bin/build-release.sh)
+        run: bash bin/build-release.sh
+
+      - name: Check build output
+        run: |
+          test -f "build/votepit-community-$VERSION.zip"
+          test -f "build/votepit-community-$VERSION.zip.sha256"
+
+      - name: Attest build provenance (Sigstore via GitHub)
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4
+        with:
+          subject-path: build/votepit-community-${{ inputs.version }}.zip
+
+      - name: Extract release notes from CHANGELOG
+        run: |
+          awk -v v="$VERSION" '
+            $0 ~ "^## \\[" v "\\]" { on = 1; next }
+            on && /^## \[/ { exit }
+            on { print }
+          ' CHANGELOG.md > "$RUNNER_TEMP/notes.md"
+          if ! grep -q '[^[:space:]]' "$RUNNER_TEMP/notes.md"; then
+            echo "::error::CHANGELOG.md has no section for $VERSION" >&2
+            exit 1
+          fi
+
+      - name: Create DRAFT release
+        run: |
+          gh release create "v$VERSION" \
+            --repo "$GITHUB_REPOSITORY" \
+            --draft \
+            --target "$GITHUB_SHA" \
+            --title "Votepit Community $VERSION" \
+            --notes-file "$RUNNER_TEMP/notes.md" \
+            "build/votepit-community-$VERSION.zip" \
+            "build/votepit-community-$VERSION.zip.sha256"

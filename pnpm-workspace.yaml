@@ -1,0 +1,31 @@
+packages:
+  - app
+  - packages/*
+
+allowBuilds:
+  esbuild: true
+  sharp: true
+
+# Preserved from the prior app/pnpm-workspace.yaml (Knip release-age allowlist).
+minimumReleaseAgeExclude:
+  - knip@6.23.0
+
+# Security patch overrides (dependency CVE scan, `pnpm audit`, 2026-08-31 security review):
+# nanoid + postcss come in transitively via vite (dev server, not part of the production
+# build) below the patched version. Patch-level bumps, no API change expected.
+#
+# undici (transitive via jsdom, Vitest test environment only): overridden within its
+# current major only. An earlier cross-major override broke jsdom (MODULE_NOT_FOUND).
+#
+# 2026-10-27 audit: source-map-js (tailwind/postcss/css-tree) and zod (knip) below their
+# patched versions; dev tooling only, capped at the current major.
+#
+# smol-toml (transitive via knip, devDependency-only, 2026-09-10): pinned <=1.7.0
+# (patched >=1.7.1), same transitive-only, dev-tooling-only pattern as above.
+overrides:
+  nanoid: ">=3.3.18"
+  postcss: ">=8.5.18"
+  smol-toml: ">=1.7.1"
+  source-map-js: ">=1.2.2 <2"
+  zod: ">=4.6.6 <5"
+  undici: ">=7.30.1 <8"

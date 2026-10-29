@@ -1,0 +1,65 @@
+# Votepit — optional Docker self-host stack.
+#
+# Alternative to the classic PHP/MySQL shared-hosting deployment (see
+# documentation/installation.md) — not a replacement for it. Quick start:
+#
+#   cp .env.example .env
+#   # edit .env: set the app/identity keys, the DB password, admin emails,
+#   # and SMTP access (magic-link sign-in has no password fallback, so
+#   # mail delivery is required even to try this out)
+#   docker compose up -d
+#
+# The app container generates config/config.php from the env vars in .env
+# (env_file below — see docker/generate-config.php for what each one maps
+# to) and runs pending migrations on every start (docker/entrypoint.sh)
+# before serving traffic on http://localhost:8080.
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - '8080:80'
+    env_file:
+      - .env
+    environment:
+      # Not user-configurable: the app always talks to the `db` service
+      # below on the compose network, never to an env-supplied host/port.
+      VOTEPIT_DB_HOST: db
+      VOTEPIT_DB_PORT: 3306
+    volumes:
+      # Runtime data outside the image: avatar uploads and the audit log
+      # (Votepit\Http\AppFactory / Votepit\Logging\AuditLogger — see
+      # documentation/operations.md), so they survive a rebuild/recreate.
+      - votepit-storage:/var/www/html/storage
+      - votepit-logs:/var/www/html/logs
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  db:
+    image: mysql:8.0
+    environment:
+      MYSQL_DATABASE: ${VOTEPIT_DB_NAME:-votepit}
+      MYSQL_USER: ${VOTEPIT_DB_USER:-votepit}
+      # Sourced from .env (VOTEPIT_DB_PASS) — required, and must match what
+      # the app container sends (same variable, passed through via its own
+      # env_file above). An empty value makes the official mysql image
+      # refuse to start rather than come up unprotected — fail secure.
+      MYSQL_PASSWORD: ${VOTEPIT_DB_PASS}
+      MYSQL_RANDOM_ROOT_PASSWORD: 'yes'
+    volumes:
+      - votepit-db:/var/lib/mysql
+    healthcheck:
+      test: ['CMD', 'mysqladmin', 'ping', '-h', 'localhost', '-u', 'root']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+volumes:
+  votepit-db:
+  votepit-storage:
+  votepit-logs:

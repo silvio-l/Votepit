@@ -1,0 +1,47 @@
+// machine-drafted, needs native review
+import type de from './loginPage.de'
+
+const nl = {
+  backToBoard: 'Terug naar board',
+  heading: 'Inloggen',
+  subtitle: 'We sturen je een magic link per e-mail.',
+  inviteNoticeTitle: 'Uitnodiging accepteren',
+  inviteNoticeBody:
+    'Log in met het e-mailadres dat is uitgenodigd. De uitnodiging wordt dan automatisch geaccepteerd – je hebt geen wachtwoord nodig, de magic link is genoeg. Je hoeft geen eigen account aan te maken.',
+  noAccount: 'Nog geen account?',
+  signupLink: 'Gratis aanmelden',
+  subtitlePassword: 'Log in met je e-mailadres en wachtwoord.',
+  emailLabel: 'E-mailadres',
+  emailPlaceholder: 'jij@email.com',
+  submit: 'Magic link versturen',
+  submitting: 'Verzenden…',
+  sentTitle: 'Link verstuurd',
+  sentBefore: 'We hebben een magic link gestuurd naar',
+  sentAfter: 'Kijk in je inbox.',
+  noLinkQuestion: 'Geen link ontvangen?',
+  retryLink: 'Opnieuw proberen',
+  methodMagicLink: 'Magic link',
+  methodPassword: 'Wachtwoord',
+  methodTabsLabel: 'Inlogmethode',
+  passwordLabel: 'Wachtwoord',
+  passwordSubmit: 'Inloggen',
+  passwordSubmitting: 'Inloggen…',
+  forgotPasswordLink: 'Wachtwoord vergeten?',
+  twoFactorHeading: 'Verificatie in twee stappen',
+  twoFactorCodeSubtitle: 'Vul de 6-cijferige code uit je authenticator-app in.',
+  twoFactorBackupSubtitle: 'Vul een van je back-upcodes in.',
+  totpCodeLabel: 'Code',
+  totpCodePlaceholder: '123456',
+  backupCodeLabel: 'Back-upcode',
+  backupCodePlaceholder: 'XXXX-XXXX',
+  useBackupCodeInstead: 'Liever een back-upcode gebruiken',
+  useCodeInstead: 'Liever de authenticator-code gebruiken',
+  twoFactorSubmit: 'Verifiëren',
+  twoFactorSubmitting: 'Verifiëren…',
+  twoFactorError: 'De code is ongeldig.',
+  oauthDivider: 'of',
+  oauthContinueWithGoogle: 'Doorgaan met Google',
+  oauthContinueWithGithub: 'Doorgaan met GitHub',
+} satisfies typeof de
+
+export default nl

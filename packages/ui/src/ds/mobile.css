@@ -1,0 +1,427 @@
+/*
+ * Phone app shell (below 640 px): bottom tab bar, safe-area insets, a top
+ * bar without the duplicate page nav, and the bottom sheet. Everything here
+ * is either mobile-only (max-width: 639.98px) or additive, so desktop
+ * (640 px and up) renders exactly as before. Loaded after components.css.
+ */
+
+/* ── Bottom tab bar ───────────────────────────────────────────────────── */
+
+.ds-tabbar {
+  display: none;
+}
+
+@media (max-width: 639.98px) {
+  .ds-tabbar {
+    display: block;
+    position: fixed;
+    inset-inline: 0;
+    bottom: 0;
+    z-index: var(--vpds-layer-sticky);
+    background: var(--vpds-c-topbar-background);
+    color: var(--vpds-c-topbar-foreground);
+    border-top: var(--vpds-control-border-width) solid var(--vpds-c-topbar-rule);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .ds-tabbar__list {
+    display: grid;
+    grid-template-columns: repeat(var(--ds-tabbar-count, 5), minmax(0, 1fr));
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .ds-tabbar__item {
+    min-width: 0;
+  }
+
+  .ds-tabbar__link {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 2px;
+    min-height: 56px;
+    padding: 6px 2px 8px;
+    color: var(--vpds-c-topbar-muted);
+    font-family: var(--vpds-font-ui);
+    font-size: 11px;
+    font-weight: 500;
+    line-height: 1.2;
+    text-align: center;
+    text-decoration: none;
+    -webkit-tap-highlight-color: transparent;
+    transition: color var(--vpds-motion-fast) var(--vpds-motion-easing);
+  }
+
+  .ds-tabbar__link:active {
+    opacity: 0.7;
+  }
+
+  .ds-tabbar__link[aria-current='page'] {
+    color: var(--vpds-c-topbar-foreground);
+    font-weight: 600;
+  }
+
+  .ds-tabbar__icon {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+  }
+
+  .ds-tabbar__link[aria-current='page'] .ds-tabbar__icon {
+    color: var(--vpds-c-topbar-accent);
+  }
+
+  .ds-tabbar__dot {
+    position: absolute;
+    top: -2px;
+    right: -4px;
+    width: 9px;
+    height: 9px;
+    border-radius: 999px;
+    background: var(--vpds-p-color-negative-strong);
+    box-shadow: 0 0 0 2px var(--vpds-c-topbar-background);
+  }
+
+  /* The central action: the accent button (coral by default, the board primary on a branded board), lifted above the row. */
+  .ds-tabbar__link--primary .ds-tabbar__icon {
+    width: 48px;
+    height: 48px;
+    margin-top: -20px;
+    border-radius: 999px;
+    background: var(--vpds-c-button-accent-background);
+    color: var(--vpds-c-button-accent-foreground);
+    box-shadow: 0 0 0 3px var(--vpds-c-topbar-background);
+  }
+
+  .ds-tabbar__link--primary .ds-tabbar__icon svg {
+    width: 22px;
+    height: 22px;
+  }
+
+  .ds-tabbar__link--primary[aria-current='page'] .ds-tabbar__icon {
+    color: var(--vpds-c-button-accent-foreground);
+  }
+
+  .ds-tabbar__sr {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  .ds-tabbar :focus-visible {
+    outline: var(--vpds-focus-width) solid var(--vpds-focus-halo);
+    outline-offset: calc(-1 * var(--vpds-focus-width));
+  }
+
+  /* Keep the last content above the fixed bar and the home indicator. */
+  body:has(.ds-tabbar) {
+    padding-bottom: calc(56px + env(safe-area-inset-bottom));
+  }
+
+  /* Top bar: notch-safe, and no second row of page links (the tab bar has them). */
+  .ds-topbar {
+    padding-top: env(safe-area-inset-top);
+  }
+
+  .ds-topbar__inner {
+    padding-left: max(var(--vpds-c-topbar-padding-x), env(safe-area-inset-left));
+    padding-right: max(var(--vpds-c-topbar-padding-x), env(safe-area-inset-right));
+  }
+
+  .ds-topbar--tabbar .ds-topbar__nav {
+    display: none;
+  }
+
+  .ds-topbar--tabbar .ds-topbar__inner {
+    min-height: 52px;
+    padding-block: 0;
+    flex-wrap: nowrap;
+  }
+
+  /* One row on phones: logo mark, edition label, language, account. The word "Votepit" is dropped here (the mark keeps its accessible name);
+     the Cloud/Community label stays visible on every surface (brand rule). */
+  .ds-topbar--tabbar .ds-topbar__wordmark-name {
+    display: none;
+  }
+
+  .ds-topbar--tabbar .ds-topbar__brand {
+    min-width: 44px;
+    justify-content: center;
+  }
+
+  /* Next to the edition label the board name would shrink to a few letters; the
+     page itself names the board (board H1, back link on detail pages). */
+  .ds-topbar--tabbar .ds-topbar__scope {
+    display: none;
+  }
+
+  /* Narrow phones (320 px): the actions group shrinks and its labels wrap inside the 44 px target
+     instead of pushing past the viewport edge. */
+  .ds-topbar--tabbar .ds-topbar__actions {
+    flex: 0 1 auto;
+    min-width: 0;
+  }
+
+  .ds-topbar--tabbar .ds-topbar__actions button {
+    white-space: normal;
+  }
+
+  /* Opt-in per screen: every button inside is at least 44 px tall on phones. */
+  .ds-phone-touch button {
+    min-height: 44px;
+  }
+
+  /* Icon-only buttons keep a 44 px square target on phones. */
+  .ds-icon-button {
+    width: 44px;
+    height: 44px;
+  }
+
+  /* Buttons are at least 44 px tall on phones (touch targets). */
+  .ds-button {
+    min-height: 44px;
+  }
+
+  /* Header hit areas (phone): 44 px targets for the brand link and the
+     language switch, grown with padding and cancelled by negative margin so
+     the drawn size does not change. */
+  .ds-topbar__brand {
+    min-height: 44px;
+    padding-block: 10px;
+    margin-block: -10px;
+  }
+
+  .ds-lang-switch {
+    min-width: 44px;
+    justify-content: center;
+  }
+
+  /* Trailing top-bar controls (language, account, bell) are 44 px targets on phones. */
+  .ds-topbar__actions button,
+  .ds-topbar__actions a {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}
+
+/* ── Idea detail dock (phone): For / Against and a comment entry point,
+   pinned above the tab bar. Hidden from 640 px up; the desktop vote column
+   carries the same controls there. */
+
+.ds-idea-dock {
+  display: none;
+}
+
+@media (max-width: 639.98px) {
+  /* 78 px = tab bar (58 px) + 20 px, so the central action, lifted 13 px above
+     the tab bar, stays clear of the dock's bottom edge. */
+  .ds-idea-dock {
+    position: fixed;
+    inset-inline: 0;
+    bottom: calc(78px + env(safe-area-inset-bottom));
+    z-index: var(--vpds-layer-sticky);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px max(12px, env(safe-area-inset-right)) 8px max(12px, env(safe-area-inset-left));
+    background: var(--vpds-c-topbar-background);
+    border-top: var(--vpds-control-border-width) solid var(--vpds-c-topbar-rule);
+  }
+
+  .ds-idea-dock > * {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  /* Width comes from the dock; see the label container query in components.css. */
+  .ds-idea-dock > .ds-vote-control-wrap {
+    container: vote-dock / inline-size;
+  }
+
+  /* The vote fields share the dock width (their 160 px desktop minimum does
+     not fit three items side by side on a 360 px phone). */
+  .ds-idea-dock .ds-vote-control {
+    width: 100%;
+    min-width: 0;
+    gap: var(--vpds-space-2xs);
+    padding: 0 var(--vpds-space-2xs);
+    justify-content: center;
+  }
+
+  .ds-idea-dock__comment {
+    flex: 1.05 1 0;
+    min-width: 0;
+    padding-inline: var(--vpds-space-2xs);
+    min-height: 44px;
+    border: var(--vpds-control-border-width) solid var(--vpds-c-topbar-rule);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--vpds-c-topbar-foreground);
+    font-family: var(--vpds-font-ui);
+    /* 14 px so "Kommentieren" fits its third of a 320 px dock; the label stays one line. */
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  /* Keep the last content above the dock (dock ~65 px + 78 px offset, plus margin). */
+  .ds-phone-touch:has(.ds-idea-dock) {
+    padding-bottom: 96px;
+  }
+
+  /* Anchor and focus targets scroll to a point above the dock, not under it. */
+  :root:has(.ds-idea-dock) {
+    scroll-padding-bottom: 160px;
+  }
+}
+
+/* ── Full-bleed sheet (phone): a result sheet that runs edge to edge, so its
+   content sits on the page gutter. The pull-back reads the gutter itself, so it
+   stays exact at every width and text size. Unlayered, so it beats vp-sheet. */
+@media (max-width: 639.98px) {
+  .vp-sheet.vp-sheet--bleed {
+    margin-inline: calc(-1 * var(--vpds-page-gutter, var(--vpds-p-space-16)));
+    border-left-width: 0;
+    border-right-width: 0;
+    border-radius: 0;
+  }
+
+  /* Every button inside a full-bleed sheet is a 44 px touch target. */
+  .vp-sheet.vp-sheet--bleed button {
+    min-height: 44px;
+  }
+}
+
+/* ── Bottom sheet ─────────────────────────────────────────────────────── */
+
+.ds-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: var(--vpds-layer-modal);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.ds-sheet__scrim {
+  position: absolute;
+  inset: 0;
+  background: color-mix(in srgb, var(--vpds-p-color-neutral-ink) 45%, transparent);
+}
+
+.ds-sheet__panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-height: 88vh;
+  max-height: 88dvh;
+  background: var(--vpds-surface-card);
+  color: var(--vpds-text-primary);
+  border-radius: 16px 16px 0 0;
+  padding-bottom: env(safe-area-inset-bottom);
+  overflow: hidden;
+}
+
+.ds-sheet__panel:focus {
+  outline: none;
+}
+
+.ds-sheet__grip {
+  width: 40px;
+  height: 4px;
+  margin: 8px auto 0;
+  border-radius: 999px;
+  background: var(--vpds-border-inverse);
+  opacity: 0.6;
+}
+
+.ds-sheet__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 8px 4px 16px;
+}
+
+.ds-sheet__title {
+  margin: 0;
+  font-family: var(--vpds-font-display, var(--vpds-font-ui));
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.ds-sheet__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 48px;
+  min-height: 48px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  font-size: 26px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.ds-sheet__close:focus-visible {
+  outline: var(--vpds-focus-width) solid var(--vpds-focus-halo);
+  outline-offset: var(--vpds-focus-offset);
+}
+
+.ds-sheet__body {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 4px 16px 16px;
+}
+
+@media (min-width: 640px) {
+  .ds-sheet {
+    align-items: center;
+  }
+
+  .ds-sheet__panel {
+    width: min(560px, calc(100% - 32px));
+    max-height: 85vh;
+    border-radius: 16px;
+  }
+
+  .ds-sheet__grip {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .ds-sheet__panel {
+    animation: ds-sheet-in var(--vpds-motion-normal) var(--vpds-motion-easing) both;
+  }
+}
+
+@keyframes ds-sheet-in {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ds-tabbar__link {
+    transition: none;
+  }
+}

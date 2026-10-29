@@ -1,0 +1,47 @@
+// machine-drafted, needs native review
+import type de from './loginPage.de'
+
+const es = {
+  backToBoard: 'Volver al tablero',
+  heading: 'Iniciar sesión',
+  subtitle: 'Te enviaremos un enlace mágico por correo.',
+  inviteNoticeTitle: 'Aceptar invitación',
+  inviteNoticeBody:
+    'Inicia sesión con la dirección de correo que recibió la invitación. La invitación se aceptará automáticamente – no necesitas contraseña, basta con el enlace mágico. No hace falta que crees una cuenta propia.',
+  noAccount: '¿Aún no tienes cuenta?',
+  signupLink: 'Regístrate gratis',
+  subtitlePassword: 'Inicia sesión con tu dirección de correo y tu contraseña.',
+  emailLabel: 'Dirección de correo',
+  emailPlaceholder: 'tu@correo.com',
+  submit: 'Enviar enlace mágico',
+  submitting: 'Enviando…',
+  sentTitle: 'Enlace enviado',
+  sentBefore: 'Hemos enviado un enlace mágico a',
+  sentAfter: 'Revisa tu bandeja de entrada.',
+  noLinkQuestion: '¿No has recibido ningún enlace?',
+  retryLink: 'Reintentar',
+  methodMagicLink: 'Enlace mágico',
+  methodPassword: 'Contraseña',
+  methodTabsLabel: 'Método de inicio de sesión',
+  passwordLabel: 'Contraseña',
+  passwordSubmit: 'Iniciar sesión',
+  passwordSubmitting: 'Iniciando sesión…',
+  forgotPasswordLink: '¿Olvidaste tu contraseña?',
+  twoFactorHeading: 'Verificación en dos pasos',
+  twoFactorCodeSubtitle: 'Introduce el código de 6 dígitos de tu app de autenticación.',
+  twoFactorBackupSubtitle: 'Introduce uno de tus códigos de respaldo.',
+  totpCodeLabel: 'Código',
+  totpCodePlaceholder: '123456',
+  backupCodeLabel: 'Código de respaldo',
+  backupCodePlaceholder: 'XXXX-XXXX',
+  useBackupCodeInstead: 'Usar un código de respaldo',
+  useCodeInstead: 'Usar el código de la app de autenticación',
+  twoFactorSubmit: 'Verificar',
+  twoFactorSubmitting: 'Verificando…',
+  twoFactorError: 'El código no es válido.',
+  oauthDivider: 'o',
+  oauthContinueWithGoogle: 'Continuar con Google',
+  oauthContinueWithGithub: 'Continuar con GitHub',
+} satisfies typeof de
+
+export default es

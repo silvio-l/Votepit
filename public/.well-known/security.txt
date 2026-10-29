@@ -1,0 +1,6 @@
+# Votepit security disclosure policy (RFC 9116).
+# Ships in every deployment (self-host and Votepit Cloud alike) — core/public/
+# is the shared Community Edition docroot, see CLAUDE.md "Was dieses Repo ist".
+Contact: mailto:security@votepit.com
+Expires: 2027-09-09T00:00:00.000Z
+Preferred-Languages: de, en
